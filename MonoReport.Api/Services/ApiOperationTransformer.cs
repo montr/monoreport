@@ -32,8 +32,8 @@ public sealed class ApiOperationTransformer : IOpenApiOperationTransformer
         };
         operation.Summary = generation ? "Generate a DOCX document" : "Analyze a DOCX template";
         operation.Description = generation
-            ? "Returns raw DOCX bytes. Structural validity does not guarantee data compatibility."
-            : "Returns structural diagnostics and the recursive template field model without JSON input or generation. Structurally invalid nonempty DOCX content returns 200 with valid=false and all reliably extracted fields.";
+            ? "Returns raw DOCX bytes after one parse-and-render operation. Template structure and actual JSON values are validated before output is produced."
+            : "Returns diagnostics, an ordered recursive dependency tree, and every source occurrence without JSON input or generation. Invalid nonempty DOCX content returns 200 with valid=false.";
         if (generation)
         {
             var success = (OpenApiResponse)operation.Responses!["200"];
@@ -56,7 +56,7 @@ public sealed class ApiOperationTransformer : IOpenApiOperationTransformer
                 "400" => "request.missing_input, request.empty_input, request.duplicate_input, request.invalid_input, request.invalid_multipart" + (generation ? ", data.invalid_json, culture.invalid" : ", request.unexpected_input"),
                 "413" => "request.too_large (pre-application host/proxy rejection may use a host-owned response)",
                 "415" => "request.unsupported_media_type",
-                "422" => "template.invalid_package, template.invalid_xml, template.unsupported_structure, template.invalid_field_syntax, template.invalid_field_structure, template.invalid_region, template.overlapping_regions, template.unsupported_nested_field, generation.invalid_data, generation.invalid_format, generation.unknown_formatter",
+                "422" => "template.invalid_package, template.invalid_xml, template.invalid_syntax, template.invalid_context, template.invalid_structure, template.tracked_revision, template.invalid_format, generation.invalid_data, generation.invalid_format",
                 _ => "server.internal_error"
             };
             concrete.Content = new Dictionary<string, OpenApiMediaType>

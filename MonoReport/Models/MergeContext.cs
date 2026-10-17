@@ -8,7 +8,9 @@ namespace MonoReport.Models
 
         public Stack<JsonElement> Values { get; } = new([root]);
 
-        internal Stack<string> DataPaths { get; } = new([string.Empty]);
+        internal JsonElement Root { get; } = root;
+
+        internal Stack<string> DataPaths { get; } = new(["$"]);
 
         public MergeOptions Options { get; } = options;
 
@@ -20,9 +22,7 @@ namespace MonoReport.Models
 
         internal bool LimitReached { get; private set; }
 
-        internal string DataPath(string name) => string.IsNullOrEmpty(DataPaths.Peek())
-            ? name
-            : DataPaths.Peek() + "." + name;
+        internal HashSet<string> WarningKeys { get; } = new(StringComparer.Ordinal);
 
         internal bool Record(TemplateException error, string dataPath, string? location = null)
         {

@@ -5,7 +5,7 @@ import { MonacoJsonEditor } from "./components/MonacoJsonEditor";
 import { Splitter } from "./components/Splitter";
 import { analyzeTemplate, AnalysisFailure } from "./services/analysis";
 import { generateDocument, GenerationFailure } from "./services/generation";
-import { fieldsToSampleJson } from "./services/sampleJson";
+import { requirementsToSampleJson } from "./services/sampleJson";
 import type { Diagnostic, GeneratedDocument } from "./types";
 import "./styles.css";
 import "./mobile.css";
@@ -287,7 +287,7 @@ export default function App() {
     try {
       const analysis = await analyzeTemplate(source, controller.signal);
       if (operationId.current !== operation || contentRevision.current !== expectedRevision || currentTemplate.current !== source) return;
-      const proposed = fieldsToSampleJson(analysis.fields);
+      const proposed = requirementsToSampleJson(analysis.requirements);
       const previous = currentJson.current;
       if (proposed === previous) return;
       if (previous.length > 0 && !window.confirm("Replace current JSON with generated example?")) return;

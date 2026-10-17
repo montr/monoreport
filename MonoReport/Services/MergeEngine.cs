@@ -40,8 +40,7 @@ namespace MonoReport.Services
                     }
                     foreach (var story in analysis.Stories)
                     {
-                        if (!_renderer.Render(story.Xml.Root!, story.Part.Uri.ToString(), context,
-                            story.Fields, story.Regions)) break;
+                        if (!_renderer.Render(story, context)) break;
                         using (var target = story.Part.GetStream(FileMode.Create, FileAccess.Write))
                         {
                             story.Xml.Save(target, SaveOptions.DisableFormatting);

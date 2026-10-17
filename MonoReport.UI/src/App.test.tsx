@@ -26,8 +26,8 @@ const success = (bytes = new Uint8Array([80, 75, 7, 8])) => {
   const blob = new Blob([bytes], { type: mime });
   return { ok: true, status: 200, blob: async () => blob, headers: new Headers({ "Content-Type": mime, "Content-Disposition": "attachment; filename=generated.docx" }) } as Response;
 };
-const analysis = (fields: unknown[] = [{ name: "Company.Name", type: "string", formats: [[]] }], valid = true) =>
-  new Response(JSON.stringify({ valid, errors: valid ? [] : [{ code: "template.invalid_region", message: "Invalid region" }], warnings: [], fields }), { status: 200, headers: { "Content-Type": "application/json" } });
+const analysis = (requirements: unknown[] = [{ name: "Company", type: "object", fields: [{ name: "Name", type: "value" }] }], valid = true) =>
+  new Response(JSON.stringify({ valid, errors: valid ? [] : [{ code: "template.invalid_structure", message: "Invalid block" }], warnings: [], requirements, occurrences: [] }), { status: 200, headers: { "Content-Type": "application/json" } });
 
 function mockPlaygroundFetch(api: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response> = async () => { throw new Error("Unexpected API request"); }) {
   const apiMock = vi.fn(api);
@@ -184,8 +184,8 @@ describe("MonoReport playground", () => {
     const user = userEvent.setup();
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
     const responses = [success(), analysis([
-      { name: "Company.Name", type: "string", formats: [[{ kind: "general", value: "Upper" }]] },
-      { name: "Orders", type: "array", formats: [], fields: [{ name: "Number", type: "string", formats: [[]] }] }
+      { name: "Company", type: "object", fields: [{ name: "Name", type: "value" }] },
+      { name: "Orders", type: "array", fields: [{ name: "Number", type: "value" }] }
     ])];
     const { apiMock } = mockPlaygroundFetch(async () => responses.shift()!);
     render(<App />);
@@ -236,7 +236,7 @@ describe("MonoReport playground", () => {
     await user.click(screen.getByRole("button", { name: "Generate JSON" }));
     const replacement = new File([new Uint8Array([1])], "replacement.docx", { type: mime });
     fireEvent.drop(screen.getByLabelText("Preview").querySelector(".canvas")!, { dataTransfer: { files: [replacement], types: ["Files"] } });
-    resolvers[1](analysis([{ name: "Stale", type: "string", formats: [[]] }]));
+    resolvers[1](analysis([{ name: "Stale", type: "value" }]));
     await waitFor(() => expect(screen.getByText("replacement.docx")).toBeInTheDocument());
     expect(editor).toHaveValue("edited during analysis");
   });
@@ -247,7 +247,7 @@ describe("MonoReport playground", () => {
     render(<App />);
     await selectTemplate(user);
     await user.click(screen.getByRole("button", { name: "Generate JSON" }));
-    expect(await screen.findByText("template.invalid_region", { selector: "strong" })).toBeInTheDocument();
+    expect(await screen.findByText("template.invalid_structure", { selector: "strong" })).toBeInTheDocument();
     expect(screen.getByLabelText("JSON data")).toHaveValue(sampleData);
   });
 

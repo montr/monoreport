@@ -1,135 +1,211 @@
+using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
 using MonoReport.Models;
 
-namespace MonoReport.Services
+namespace MonoReport.Services;
+
+public sealed class DocumentRenderer(DataResolver resolver, ValueFormatter formatter)
 {
-    public sealed class DocumentRenderer(DataResolver resolver, OoxmlFieldParser fieldParser,
-            RegionParser regionParser, ValueFormatter valueFormatter, CachedResultWriter resultWriter)
+    private readonly DataResolver _resolver = resolver ?? throw new ArgumentNullException(nameof(resolver));
+    private readonly ValueFormatter _formatter = formatter ?? throw new ArgumentNullException(nameof(formatter));
+
+    internal bool Render(StoryPlan plan, MergeContext context)
     {
-        private readonly DataResolver _resolver = resolver ?? throw new ArgumentNullException(nameof(resolver));
-        private readonly OoxmlFieldParser _fieldParser = fieldParser ?? throw new ArgumentNullException(nameof(fieldParser));
-        private readonly RegionParser _regionParser = regionParser ?? throw new ArgumentNullException(nameof(regionParser));
-        private readonly ValueFormatter _valueFormatter = valueFormatter ?? throw new ArgumentNullException(nameof(valueFormatter));
-        private readonly CachedResultWriter _resultWriter = resultWriter ?? throw new ArgumentNullException(nameof(resultWriter));
+        var map = plan.Xml.Root!.DescendantsAndSelf().ToDictionary(element => element, element => element);
+        return RenderScope(plan, plan.Paragraphs, plan.Blocks, map, context);
+    }
 
-        public void Preflight(XElement root, string location)
+    private bool RenderScope(StoryPlan plan, IReadOnlyList<ParagraphPlan> paragraphs,
+        IReadOnlyList<BlockPlan> blocks, Dictionary<XElement, XElement> map, MergeContext context)
+    {
+        foreach (var block in blocks)
+            if (!RenderBlock(plan, block, map, context)) return false;
+
+        foreach (var paragraph in paragraphs)
         {
-            _fieldParser.Validate(root, location);
-            _regionParser.Validate(_fieldParser.Parse(root, location));
+            if (blocks.Any(block => Contains(block, paragraph.Paragraph))) continue;
+            if (!map.ContainsKey(paragraph.Paragraph)) continue;
+            if (!RenderParagraph(paragraph, map, context)) return false;
         }
+        return true;
+    }
 
-        public void Render(XElement root, string location, MergeContext context)
+    private bool RenderBlock(StoryPlan plan, BlockPlan block, Dictionary<XElement, XElement> parentMap,
+        MergeContext context)
+    {
+        if (!parentMap.TryGetValue(block.StartContainer, out var targetStart) || targetStart.Parent is null) return true;
+        var resolution = _resolver.Resolve(block.StartExpression.Path!, context);
+        if (block.Kind == TemplateExpressionKind.For)
         {
-            var fields = _fieldParser.Parse(root, location);
-            var regions = _regionParser.Parse(fields);
-            Render(root, location, context, fields, regions);
-            if (context.Errors.Count != 0)
-                throw new TemplateException(context.FirstError!, context.Errors, context.LimitReached);
-        }
-
-        internal bool Render(XElement root, string location, MergeContext context,
-            IReadOnlyList<FieldReference> fields, IReadOnlyList<Region> regions)
-        {
-            var regionsByStart = regions.ToDictionary(region => region.First);
-            for (var i = 0; i < fields.Count; i++)
+            if (resolution.State == ResolutionState.Missing)
             {
-                if (context.LimitReached) return false;
-                if (regionsByStart.TryGetValue(i, out var region))
-                {
-                    if (!RenderRegion(location, context, region)) return false;
-                    i = region.Last;
-                    continue;
-                }
-
-                var field = fields[i];
-                try
-                {
-                    var value = _resolver.Resolve(field.Field.Name, field.Field.Code, location, context);
-                    _resultWriter.Write(field, _valueFormatter.Format(value, field.Field, context.Options, location));
-                }
-                catch (TemplateException error)
-                {
-                    _resultWriter.Write(field, string.Empty);
-                    if (!context.Record(error, context.DataPath(field.Field.Name), field.ContextLocation)) return false;
-                }
+                WarnMissing(block, context);
             }
-
-            return true;
-        }
-
-        private bool RenderRegion(string location, MergeContext context, Region region)
-        {
-            var (first, last) = _regionParser.GetBlocks(region);
-            var blocks = first.Parent!.Elements().SkipWhile(x => x != first).TakeWhile(x => x != last).Append(last).ToList();
-            var collectionPath = context.DataPath(region.Start.Field.Collection);
-            JsonElement collection;
-            try
+            else if (resolution.State == ResolutionState.Present && resolution.Value.ValueKind != JsonValueKind.Array)
             {
-                collection = _resolver.Resolve(region.Start.Field.Collection, region.Start.Field.Code, location, context);
-                var emptyString = collection.ValueKind == JsonValueKind.String && collection.GetString() == string.Empty;
-                if (collection.ValueKind is not (JsonValueKind.Array or JsonValueKind.Null or JsonValueKind.Undefined) && !emptyString)
-                    throw new TemplateException($"Region '{region.Start.Field.Collection}': collection value must be an array ({location}).",
-                        region.Start.Field.Collection, region.Start.Field.Code, location, code: "generation.invalid_data");
+                if (!RecordTypeError(block, context, "For requires a JSON array.")) return false;
             }
-            catch (TemplateException error)
-            {
-                foreach (var block in blocks) block.Remove();
-                return context.Record(error, collectionPath, region.Start.ContextLocation);
-            }
-
-            if (collection.ValueKind == JsonValueKind.Array)
+            else if (resolution.State == ResolutionState.Present)
             {
                 var itemIndex = 0;
-                foreach (var item in collection.EnumerateArray())
+                foreach (var item in resolution.Value.EnumerateArray())
                 {
                     if (context.LimitReached) return false;
-                    var copy = new XElement(first.Parent.Name, blocks.Select(x => new XElement(x)));
-                    var copiedFields = _fieldParser.Parse(copy, location);
-                    var start = copiedFields.First(x => x.Field.IsStart && x.Field.Collection == region.Start.Field.Collection);
-                    var end = copiedFields.Last(x => x.Field.IsEnd && x.Field.Collection == region.End.Field.Collection);
-                    var firstCopy = copy.Elements().First();
-                    var lastCopy = copy.Elements().Last();
-                    _resultWriter.Remove(start);
-                    _resultWriter.Remove(end);
-                    if (IsTechnicalBlock(firstCopy))
-                    {
-                        firstCopy.Remove();
-                    }
-
-                    if (lastCopy.Parent is not null && IsTechnicalBlock(lastCopy))
-                    {
-                        lastCopy.Remove();
-                    }
-
                     context.Values.Push(item);
-                    context.DataPaths.Push($"{collectionPath}[{itemIndex}]");
-
+                    context.DataPaths.Push(_resolver.DataPath(block.StartExpression.Path!, context) + $"[{itemIndex}]");
                     try
                     {
-                        var innerFields = _fieldParser.Parse(copy, location);
-                        var copiedRegions = _regionParser.Parse(innerFields);
-                        if (!Render(copy, location + "/" + region.Start.Field.Collection, context,
-                            innerFields, copiedRegions)) return false;
+                        if (!RenderSelected(plan, block, block.TrueBody, targetStart, parentMap, context)) return false;
                     }
                     finally
                     {
                         context.DataPaths.Pop();
                         context.Values.Pop();
                     }
-
-                    first.AddBeforeSelf(copy.Elements().ToList());
                     itemIndex++;
                 }
             }
-
-            foreach (var block in blocks) block.Remove();
-            return true;
         }
-
-        private static bool IsTechnicalBlock(XElement block)
+        else
         {
-            return block.Descendants().Any(x => (x.Name == WordXml.TextElementName && string.IsNullOrWhiteSpace(x.Value) == false) || x.Name == WordXml.SimpleFieldElementName || x.Name == WordXml.FieldCharacterElementName || x.Name == WordXml.InstructionTextElementName || x.Name == WordXml.DrawingElementName || x.Name == WordXml.PictureElementName || x.Name == WordXml.TableElementName || x.Name == WordXml.BreakElementName || x.Name == WordXml.TabElementName) == false;
+            var selected = block.FalseBody;
+            if (resolution.State == ResolutionState.Missing) WarnMissing(block, context);
+            else if (resolution.State == ResolutionState.Present)
+            {
+                if (resolution.Value.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
+                {
+                    if (!RecordTypeError(block, context, "If requires a JSON Boolean.")) return false;
+                }
+                else if (resolution.Value.ValueKind == JsonValueKind.True) selected = block.TrueBody;
+            }
+            if (!RenderSelected(plan, block, selected, targetStart, parentMap, context)) return false;
         }
+
+        RemoveFootprint(block, parentMap);
+        return true;
+    }
+
+    private bool RenderSelected(StoryPlan plan, BlockPlan block, IReadOnlyList<XElement> selected,
+        XElement targetStart, Dictionary<XElement, XElement> parentMap, MergeContext context)
+    {
+        if (selected.Count == 0) return true;
+        var cloneMap = new Dictionary<XElement, XElement>();
+        var clones = selected.Select(source => Clone(source, cloneMap)).ToArray();
+        var holder = new XElement("holder", clones);
+        var selectedParagraphs = plan.Paragraphs.Where(paragraph => selected.Any(root =>
+            paragraph.Paragraph == root || paragraph.Paragraph.Ancestors().Contains(root))).ToArray();
+        var selectedBlocks = block.Children.Where(child => selected.Any(root =>
+            child.StartContainer == root || child.StartContainer.Ancestors().Contains(root))).ToArray();
+        if (!RenderScope(plan, selectedParagraphs, selectedBlocks, cloneMap, context)) return false;
+        targetStart.AddBeforeSelf(holder.Elements().ToArray());
+        return true;
+    }
+
+    private bool RenderParagraph(ParagraphPlan paragraph, Dictionary<XElement, XElement> map, MergeContext context)
+    {
+        var tokens = paragraph.Tokens.Where(token => token.Expression?.Kind is TemplateExpressionKind.Field ||
+            token.Kind is TemplateTokenKind.LiteralOpenBrace or TemplateTokenKind.LiteralCloseBrace).ToArray();
+        if (tokens.Length == 0) return true;
+        var builders = paragraph.TextNodes.Select(_ => new StringBuilder()).ToArray();
+        var tokenIndex = 0;
+        for (var offset = 0; offset < paragraph.Text.Length;)
+        {
+            if (tokenIndex < tokens.Length && tokens[tokenIndex].Start == offset)
+            {
+                var token = tokens[tokenIndex++];
+                var nodeIndex = NodeAt(paragraph.TextNodes, offset);
+                var replacement = token.Kind switch
+                {
+                    TemplateTokenKind.LiteralOpenBrace => "{",
+                    TemplateTokenKind.LiteralCloseBrace => "}",
+                    _ => FieldText(token.Expression!, paragraph.Location, context)
+                };
+                builders[nodeIndex].Append(replacement);
+                offset += token.Length;
+                continue;
+            }
+            builders[NodeAt(paragraph.TextNodes, offset)].Append(paragraph.Text[offset]);
+            offset++;
+        }
+        foreach (var (span, index) in paragraph.TextNodes.Select((span, index) => (span, index)))
+            if (map.TryGetValue(span.Node, out var target))
+            {
+                target.Value = builders[index].ToString();
+                if (target.Value.Length != 0 && (char.IsWhiteSpace(target.Value[0]) || char.IsWhiteSpace(target.Value[^1])))
+                    target.SetAttributeValue(XNamespace.Xml + "space", "preserve");
+            }
+        return !context.LimitReached;
+    }
+
+    private string FieldText(TemplateExpression expression, string location, MergeContext context)
+    {
+        var resolution = _resolver.Resolve(expression.Path!, context);
+        if (resolution.State == ResolutionState.Missing)
+        {
+            var name = expression.Source;
+            var message = $"Unknown template value: {name}";
+            if (context.Options.MissingValues == MissingValueBehavior.Warning)
+                context.Warnings.Add(new(message, name, expression.Source, location, Part(location),
+                    _resolver.DataPath(expression.Path!, context)));
+            else if (context.Options.MissingValues == MissingValueBehavior.Error)
+                context.Record(new TemplateException(message, name, expression.Source, location),
+                    _resolver.DataPath(expression.Path!, context), location);
+            return string.Empty;
+        }
+        try
+        {
+            return _formatter.Format(resolution.Value, expression, context.Options, location);
+        }
+        catch (TemplateException error)
+        {
+            context.Record(error, _resolver.DataPath(expression.Path!, context), location);
+            return string.Empty;
+        }
+    }
+
+    private static int NodeAt(IReadOnlyList<TextNodeSpan> spans, int offset)
+    {
+        for (var index = 0; index < spans.Count; index++)
+            if (offset >= spans[index].Start && offset < spans[index].Start + spans[index].Length) return index;
+        return Math.Max(0, spans.Count - 1);
+    }
+
+    private static XElement Clone(XElement source, Dictionary<XElement, XElement> map)
+    {
+        var clone = new XElement(source);
+        foreach (var pair in source.DescendantsAndSelf().Zip(clone.DescendantsAndSelf())) map.Add(pair.First, pair.Second);
+        return clone;
+    }
+
+    private static bool Contains(BlockPlan block, XElement element)
+    {
+        if (element == block.StartContainer || element == block.EndContainer || element == block.ElseContainer) return true;
+        return block.TrueBody.Concat(block.FalseBody).Any(root => element == root || element.Ancestors().Contains(root));
+    }
+
+    private static void RemoveFootprint(BlockPlan block, Dictionary<XElement, XElement> map)
+    {
+        if (!map.TryGetValue(block.StartContainer, out var start) ||
+            !map.TryGetValue(block.EndContainer, out var end) || start.Parent != end.Parent) return;
+        start.Parent!.Elements().SkipWhile(element => element != start).TakeWhile(element => element != end)
+            .Append(end).ToList().ForEach(element => element.Remove());
+    }
+
+    private void WarnMissing(BlockPlan block, MergeContext context)
+    {
+        if (!context.WarningKeys.Add(block.Location + "|" + block.StartExpression.Source)) return;
+        context.Warnings.Add(new($"Missing structural path: {block.StartExpression.Source}",
+            block.StartExpression.Source, block.StartExpression.Source, block.Location, Part(block.Location),
+            _resolver.DataPath(block.StartExpression.Path!, context)));
+    }
+
+    private static string Part(string location) => location.Split(',', 2)[0];
+
+    private bool RecordTypeError(BlockPlan block, MergeContext context, string detail)
+    {
+        var error = new TemplateException(detail, block.StartExpression.Source, block.StartExpression.Source,
+            block.Location, code: "generation.invalid_data");
+        return context.Record(error, _resolver.DataPath(block.StartExpression.Path!, context), block.Location);
     }
 }

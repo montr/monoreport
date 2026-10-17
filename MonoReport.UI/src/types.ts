@@ -14,21 +14,24 @@ export interface GeneratedDocument {
   filename: string;
 }
 
-export interface TemplateFieldSwitch {
-  kind: string;
-  value: string;
+export interface TemplateRequirement {
+  name: string;
+  type: "object" | "array" | "value" | "boolean";
+  fields?: TemplateRequirement[];
 }
 
-export interface TemplateField {
-  name: string;
-  type: "string" | "array";
-  formats: TemplateFieldSwitch[][];
-  fields?: TemplateField[];
+export interface TemplateOccurrence {
+  kind: "field" | "for" | "if";
+  expression: string;
+  path: string;
+  part: string;
+  location: string;
 }
 
 export interface TemplateAnalysis {
   valid: boolean;
   errors: Diagnostic[];
   warnings: Diagnostic[];
-  fields: TemplateField[];
+  requirements: TemplateRequirement[];
+  occurrences: TemplateOccurrence[];
 }

@@ -21,7 +21,7 @@ namespace MonoReport.Cli.Services
             --json-file      UTF-8 JSON file path.
             --stdin          Read UTF-8 JSON from stdin (default when no source is specified).
             --culture        Formatting culture, e.g. ru-RU. Default: invariant culture.
-            --analyze        Analyze template structure and fields; accepts only --template.
+            --analyze        Analyze template syntax and data dependencies; accepts only --template.
             -h, --help       Show this help.
 
             Exit codes: 0 success, 1 input/render/output error, 2 invalid arguments.

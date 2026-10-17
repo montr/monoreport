@@ -33,6 +33,7 @@ namespace MonoReport.Services
         public static readonly XName TableRowElementName = WordprocessingNamespace + "tr";
         public static readonly XName TableCellElementName = WordprocessingNamespace + "tc";
         public static readonly XName TableElementName = WordprocessingNamespace + "tbl";
+        public static readonly XName VerticalMergeElementName = WordprocessingNamespace + "vMerge";
         public static readonly XName DrawingElementName = WordprocessingNamespace + "drawing";
         public static readonly XName PictureElementName = WordprocessingNamespace + "pict";
         public static readonly XName BreakElementName = WordprocessingNamespace + "br";

@@ -3,10 +3,10 @@ using MonoReport.Models;
 
 namespace MonoReport.Services;
 
-public sealed class TemplateAnalyzer(DocxStoryReader storyReader, TemplateStructureValidator structureValidator)
+public sealed class TemplateAnalyzer(DocxStoryReader storyReader, DocxTemplatePlanner planner)
 {
     private readonly DocxStoryReader _storyReader = storyReader ?? throw new ArgumentNullException(nameof(storyReader));
-    private readonly TemplateStructureValidator _structureValidator = structureValidator ?? throw new ArgumentNullException(nameof(structureValidator));
+    private readonly DocxTemplatePlanner _planner = planner ?? throw new ArgumentNullException(nameof(planner));
 
     public TemplateAnalysisResult Analyze(Stream template)
     {
@@ -16,172 +16,127 @@ public sealed class TemplateAnalyzer(DocxStoryReader storyReader, TemplateStruct
         template.CopyTo(buffer);
         buffer.Position = 0;
         var document = _storyReader.OpenForValidation(buffer, false, out var packageDiagnostic);
-        if (packageDiagnostic is not null)
-            return new([_structureValidator.Issue(packageDiagnostic)]);
+        if (packageDiagnostic is not null) return new([Issue(packageDiagnostic)]);
         using (document)
         {
             var inspection = Inspect(document!);
-            return new(inspection.Diagnostics.Select(diagnostic =>
-                _structureValidator.Issue(diagnostic, DiagnosticPart(diagnostic.Location))), inspection.Warnings, inspection.Fields);
+            return new(inspection.Diagnostics.Select(Issue), inspection.Warnings,
+                inspection.Requirements, inspection.Occurrences);
         }
     }
 
     internal TemplateInspection Inspect(WordprocessingDocument document)
     {
         var storyInspection = _storyReader.Inspect(document);
-        var analyzedStories = new List<AnalyzedStory>();
-        var diagnostics = storyInspection.Diagnostics.ToList();
-        foreach (var story in storyInspection.Stories)
-        {
-            var part = story.Part.Uri.ToString();
-            var analysis = _structureValidator.Analyze(story.Xml.Root!, part);
-            diagnostics.AddRange(analysis.Diagnostics);
-            analyzedStories.Add(new(story.Part, story.Xml, analysis.Fields, analysis.Regions, analysis.HierarchyIsSafe));
-        }
-
-        diagnostics = diagnostics.Select((diagnostic, index) => (diagnostic, index))
-            .OrderBy(item => PartOrder(item.diagnostic.Location))
-            .ThenBy(item => item.index)
-            .Select(item => item.diagnostic)
-            .ToList();
-
-        var builder = new FieldTreeBuilder();
-        foreach (var story in analyzedStories.Where(story => story.HierarchyIsSafe))
-            builder.Add(story.Fields);
-        return new(analyzedStories, diagnostics, builder.Warnings, builder.Fields);
+        var stories = storyInspection.Stories.Select(story => _planner.Plan(story.Part, story.Xml)).ToArray();
+        var diagnostics = storyInspection.Diagnostics.Concat(stories.SelectMany(story => story.Diagnostics)).ToList();
+        var builder = new RequirementBuilder();
+        foreach (var dependency in stories.SelectMany(story => story.Dependencies)) builder.Add(dependency);
+        diagnostics.AddRange(builder.Diagnostics);
+        return new(stories, diagnostics, [], builder.Requirements, builder.Occurrences);
     }
 
-    private static (int Kind, string Part) PartOrder(string? location)
+    private static TemplateValidationIssue Issue(StructuralDiagnostic diagnostic)
     {
-        var part = location?.Split(',', 2)[0];
-        return part switch
-        {
-            "/word/document.xml" => (0, part),
-            not null when part.StartsWith("/word/header", StringComparison.Ordinal) => (1, part),
-            not null when part.StartsWith("/word/footer", StringComparison.Ordinal) => (2, part),
-            "/word/footnotes.xml" => (3, part),
-            "/word/endnotes.xml" => (4, part),
-            _ => (5, part ?? string.Empty)
-        };
+        var part = diagnostic.Location?.Split(',', 2)[0];
+        return new(diagnostic.Code, Message(diagnostic.Code), diagnostic.Field, part, diagnostic.Location);
     }
 
-    private static string? DiagnosticPart(string? location) => location?.Split(',', 2)[0];
+    private static string Message(string code) => code switch
+    {
+        "template.invalid_package" => "The content is not a readable DOCX package.",
+        "template.unsupported_structure" => "The DOCX document structure is unsupported.",
+        "template.invalid_xml" => "A document part contains invalid XML.",
+        "template.invalid_expression" => "A template expression has invalid syntax.",
+        "template.unmatched_brace" => "Template braces are not balanced or escaped correctly.",
+        "template.invalid_context" => "A template path is invalid in its current loop context.",
+        "template.invalid_structure" => "A template block has an unsupported or ambiguous structure.",
+        "template.requirement_conflict" => "The same dependency path is used with incompatible requirement types.",
+        "template.tracked_revision" => "Tracked revisions must be accepted or rejected before processing.",
+        _ => "The template is invalid."
+    };
 
-    private sealed class FieldTreeBuilder
+    private sealed class RequirementBuilder
     {
         private readonly Scope _root = new();
-        private readonly List<TemplateValidationIssue> _warnings = [];
+        private readonly List<TemplateOccurrence> _occurrences = [];
 
-        internal IReadOnlyList<TemplateField> Fields => _root.Items.Select(ToPublic).ToArray();
-        internal IReadOnlyList<TemplateValidationIssue> Warnings => _warnings;
+        internal IReadOnlyList<TemplateRequirement> Requirements => _root.Items.Select(ToPublic).ToArray();
+        internal IReadOnlyList<TemplateOccurrence> Occurrences => _occurrences;
+        internal IReadOnlyList<StructuralDiagnostic> Diagnostics => Conflicted(_root)
+            .SelectMany(node => node.Uses.Select(use => new StructuralDiagnostic(
+                "template.requirement_conflict",
+                $"Dependency '{node.Path}' has incompatible requirement types.", use.Expression.Source,
+                use.Expression.Source, use.Location))).ToArray();
 
-        internal void Add(IReadOnlyList<FieldReference> fields) => AddScope(_root, fields, 0, fields.Count);
-
-        private void AddScope(Scope scope, IReadOnlyList<FieldReference> fields, int first, int last)
+        internal void Add(PlannedDependency dependency)
         {
-            for (var index = first; index < last; index++)
+            _occurrences.Add(new(dependency.Kind, dependency.Expression.Source, dependency.CanonicalPath,
+                dependency.Part, dependency.Location));
+            if (dependency.Expression.Path?.CurrentElement == true) return;
+            var components = Components(dependency.CanonicalPath);
+            if (components.Count == 0) return;
+            var scope = _root;
+            var path = "$";
+            for (var index = 0; index < components.Count; index++)
             {
-                var reference = fields[index];
-                if (reference.Field.IsEnd) continue;
-                if (!reference.Field.IsStart)
+                var component = components[index];
+                path += "." + component.Name + (component.Array ? "[]" : string.Empty);
+                var last = index == components.Count - 1;
+                var needed = component.Array ? "array" : last ? dependency.RequirementType : "object";
+                if (!scope.ByName.TryGetValue(component.Name, out var node))
                 {
-                    AddScalar(scope, reference);
-                    continue;
+                    node = new(component.Name, needed, path);
+                    scope.Add(node);
                 }
-
-                var end = FindEnd(fields, index, last);
-                if (end < 0) return;
-                var node = AddArray(scope, reference);
-                if (node is not null)
-                    AddScope(node.Children!, fields, index + 1, end);
-                index = end;
+                node.Uses.Add(dependency);
+                if (!Compatible(node.Type, needed))
+                {
+                    node.Conflicted = true;
+                    return;
+                }
+                else if (node.Type == "value" && needed == "boolean") node.Type = "boolean";
+                if (!last) scope = node.Children;
             }
         }
 
-        private void AddScalar(Scope scope, FieldReference reference)
+        private static IEnumerable<Node> Conflicted(Scope scope)
         {
-            var format = reference.Field.Switches.Select(ToPublic)
-                .Where(item => item is not null).Cast<TemplateFieldSwitch>().ToArray();
-            if (!scope.ByName.TryGetValue(reference.Field.Name, out var existing))
+            foreach (var node in scope.Items)
             {
-                scope.Add(new(reference.Field.Name, "string", [format], null));
-                return;
+                if (node.Conflicted) yield return node;
+                foreach (var child in Conflicted(node.Children)) yield return child;
             }
-            if (existing.Type != "string")
-            {
-                WarnConflict(scope, reference);
-                return;
-            }
-            if (!existing.Formats.Any(item => item.SequenceEqual(format)))
-                existing.Formats.Add(format);
         }
 
-        private Node? AddArray(Scope scope, FieldReference reference)
+        private static bool Compatible(string current, string needed) => current == needed ||
+            current is "value" or "boolean" && needed is "value" or "boolean";
+
+        private static IReadOnlyList<(string Name, bool Array)> Components(string path)
         {
-            if (!scope.ByName.TryGetValue(reference.Field.Collection, out var existing))
-            {
-                var node = new Node(reference.Field.Collection, "array", [], new());
-                scope.Add(node);
-                return node;
-            }
-            if (existing.Type == "array") return existing;
-            WarnConflict(scope, reference);
-            return null;
+            if (path == "$" || !path.StartsWith("$.", StringComparison.Ordinal)) return [];
+            return path[2..].Split('.').Select(segment => segment.EndsWith("[]", StringComparison.Ordinal)
+                ? (segment[..^2], true) : (segment, false)).ToArray();
         }
 
-        private void WarnConflict(Scope scope, FieldReference reference)
-        {
-            if (!scope.KindConflicts.Add(reference.Field.IsRegion ? reference.Field.Collection : reference.Field.Name)) return;
-            _warnings.Add(new("template.field_kind_conflict",
-                "The same field name is used as both a scalar and a collection; the first occurrence is represented.",
-                reference.Field.IsRegion ? reference.Field.Collection : reference.Field.Name,
-                reference.Location, reference.ContextLocation));
-        }
-
-        private static int FindEnd(IReadOnlyList<FieldReference> fields, int start, int last)
-        {
-            var depth = 0;
-            for (var index = start + 1; index < last; index++)
-            {
-                if (fields[index].Field.IsStart) depth++;
-                else if (fields[index].Field.IsEnd && depth-- == 0) return index;
-            }
-            return -1;
-        }
-
-        private static TemplateFieldSwitch? ToPublic(FieldSwitch fieldSwitch)
-        {
-            if (fieldSwitch.Name == WordFieldCodes.NumberFormatSwitch)
-                return new("number", fieldSwitch.Argument);
-            if (fieldSwitch.Name == WordFieldCodes.DateFormatSwitch)
-                return new("date", fieldSwitch.Argument);
-            if (fieldSwitch.Name != WordFieldCodes.GeneralFormatSwitch || !SupportedGeneral(fieldSwitch.Argument))
-                return null;
-            return new("general", fieldSwitch.Argument);
-        }
-
-        private static bool SupportedGeneral(string value) => value.ToUpperInvariant() is
-            WordFieldCodes.UpperFormat or WordFieldCodes.LowerFormat or WordFieldCodes.CapsFormat or
-            WordFieldCodes.FirstCapFormat or WordFieldCodes.SpellOutFormat or WordFieldCodes.MergeFormat;
-
-        private static TemplateField ToPublic(Node node) => new(node.Name, node.Type, node.Formats,
-            node.Children is null ? null : node.Children.Items.Select(ToPublic));
+        private static TemplateRequirement ToPublic(Node node) =>
+            new(node.Name, node.Type, node.Children.Items.Count == 0 ? null : node.Children.Items.Select(ToPublic));
 
         private sealed class Scope
         {
             internal List<Node> Items { get; } = [];
             internal Dictionary<string, Node> ByName { get; } = new(StringComparer.Ordinal);
-            internal HashSet<string> KindConflicts { get; } = new(StringComparer.Ordinal);
             internal void Add(Node node) { Items.Add(node); ByName.Add(node.Name, node); }
         }
 
-        private sealed class Node(string name, string type, IEnumerable<IReadOnlyList<TemplateFieldSwitch>> formats,
-            Scope? children)
+        private sealed class Node(string name, string type, string path)
         {
             internal string Name { get; } = name;
-            internal string Type { get; } = type;
-            internal List<IReadOnlyList<TemplateFieldSwitch>> Formats { get; } = [.. formats];
-            internal Scope? Children { get; } = children;
+            internal string Type { get; set; } = type;
+            internal string Path { get; } = path;
+            internal Scope Children { get; } = new();
+            internal List<PlannedDependency> Uses { get; } = [];
+            internal bool Conflicted { get; set; }
         }
     }
 }

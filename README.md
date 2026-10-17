@@ -1,420 +1,148 @@
-# monoreport
+# MonoReport
 
-MonoReport generates DOCX documents from Microsoft Word templates and JSON data. It preserves Word fields and formatting, repeats collection regions, and supports custom value formatters. It requires .NET SDK 10; Microsoft Word is needed to edit or inspect templates, not to run the engine.
+MonoReport generates DOCX reports, contracts, acts, protocols, invoices, and similar documents from Microsoft Word templates and JSON data. It requires .NET SDK 10. Microsoft Word is useful for authoring and visual verification but is not required by the engine.
 
-1. `MonoReport` is the library.
-2. `MonoReport.Cli` is the command-line application and `monoreport` .NET tool package.
-3. `MonoReport.Api` is the separate ASP.NET Core HTTP application. It references Core; Core and CLI have no HTTP dependencies.
-4. `MonoReport.UI` is the React and TypeScript browser playground for template selection, JSON editing, document generation, preview, and download through `MonoReport.Api`.
-5. `MonoReport.Tests` contains Core and Open XML tests.
-6. `MonoReport.Cli.Tests` contains CLI service and real-process tests.
-7. `MonoReport.Api.Tests` contains HTTP integration, generated OpenAPI contract, and real Kestrel host tests.
+## Projects
 
-Build and test from the repository root. These single-line commands work in macOS/Linux Bash or zsh, Windows PowerShell, and Windows CMD:
+1. `MonoReport` is the reusable library.
+2. `MonoReport.Cli` is the command-line application and .NET tool.
+3. `MonoReport.Api` is the ASP.NET Core HTTP application.
+4. `MonoReport.UI` is the React and TypeScript playground served by the API in production.
+5. The three test projects cover Core, CLI, HTTP, OpenAPI, and Open XML behavior.
 
-```bash
-dotnet build MonoReport.slnx -c Release
-dotnet test MonoReport.slnx -c Release
-```
+## Build and verify
 
-The normal solution test command runs Core, CLI, and `WebApplicationFactory` HTTP integration tests, including generated OpenAPI contract coverage. `MonoReport.Api.Tests` automatically excludes the `RealHost` category because those tests start real Kestrel processes. Run that category explicitly when needed. On macOS/Linux Bash or zsh:
+1. Run the backend checks from the repository root:
 
-```bash
-dotnet test MonoReport.Api.Tests/MonoReport.Api.Tests.csproj -c Release \
-  -p:VSTestTestCaseFilter=Category=RealHost
-```
+   ```bash
+   dotnet build MonoReport.slnx -c Release
+   dotnet test MonoReport.slnx -c Release
+   ```
 
-On Windows PowerShell:
+2. Run the frontend checks from `MonoReport.UI`:
 
-```powershell
-dotnet test MonoReport.Api.Tests/MonoReport.Api.Tests.csproj -c Release `
-  -p:VSTestTestCaseFilter=Category=RealHost
-```
+   ```bash
+   npm ci
+   npm test -- --run
+   npm run typecheck
+   npm run build
+   ```
 
-Browser/Playwright verification is a separate manual workflow and is not part of the normal local test run.
+3. Start the API and UI for local development in separate terminals:
 
+   ```bash
+   ASPNETCORE_URLS=http://127.0.0.1:5080 dotnet run --project MonoReport.Api
+   cd MonoReport.UI && npm run dev
+   ```
 
-![Word template, JSON data, and generated construction estimate](.docs/Template%20to%20JSON%20to%20Document%20Workflow.png)
+## Template syntax
 
-This illustration shows the workflow conceptually. For working templates, use the actual Word MERGEFIELD syntax and item-relative paths described in [Collections](#collections); the pictured field notation and JSON are illustrative.
+| Purpose | Syntax |
+| --- | --- |
+| Scalar value | `{Customer.Name}` |
+| Current property | `{./Name}` |
+| Current array element | `{.}` |
+| Parent loop context | `{../Number}` |
+| Root context | `{$.Company.Name}` |
+| Loop | `{For:Items}` … `{EndFor}` |
+| Condition | `{If:IsActive}` … `{Else}` … `{EndIf}` |
+| Literal braces | `{{` and `}}` |
+| Text format | `{Name upper}`, `{Name lower}`, `{Name caps}`, `{Name firstcap}` |
+| Decimal format | `{Amount number:"#,##0.00"}` |
+| ISO date format | `{Date date:"dd MMM yyyy"}` |
+| Russian RUB words | `{Amount spellout}` |
 
+1. Paths are ordinal and case-sensitive. A segment starts with a Unicode letter or underscore and then contains Unicode letters, digits, or underscores.
+2. `For` accepts JSON arrays, including mixed arrays of objects, strings, numbers, Booleans, and null. `{.}` renders the complete current primitive element and is valid only inside a loop.
+3. `If` accepts a JSON Boolean. Missing or null structural values select zero iterations or the false branch; incompatible non-null structural values are errors.
+4. A scalar expression supports at most one built-in formatter. `number` and `spellout` accept JSON numbers or invariant numeric strings. `date` accepts `YYYY-MM-DD` or an ISO date-time with `Z` or an explicit offset.
+5. Explicit null and empty strings render empty. Missing scalar values follow `MergeOptions.MissingValues`.
+6. Inserted JSON text and emitted literal braces are never reinterpreted as template syntax.
 
-## Browser UI
+## DOCX structure
 
-The UI requires Node.js 22.12 or newer and npm in addition to the .NET SDK. Start `MonoReport.Api` at `http://127.0.0.1:5080` using the command in the HTTP API section. In another terminal, install the locked frontend dependencies and start the development server:
-
-```bash
-cd MonoReport.UI
-npm ci
-npm run dev
-```
-
-Open `http://localhost:3000`. The development server proxies relative `/api` requests to the local API. Set `MONOREPORT_API_URL` before `npm run dev` only when the API uses another local origin. Playground loads the bundled Construction cost estimate template and JSON on startup without generating a result. Use Examples to restore a bundled example, Upload to select a custom DOCX while retaining the current JSON, and the contextual Download actions to retrieve the current template or generated result. Generate sends the selected template and JSON to document generation. Generate JSON explicitly analyzes the selected template and creates an editable example with `1234.5` for recognized numeric or SpellOut fields, an ISO 8601 value for recognized date fields, empty strings for other scalars, and one example item per collection. This is a best-effort editing aid, not validation. It confirms before replacing nonempty editor content. The UI has no persistence, analytics, or alternate generation backend.
-
-Run the focused frontend checks from `MonoReport.UI`:
-
-```bash
-npm run test -- --run
-npm run typecheck
-npm run build
-```
-
-The frontend production command creates static assets under `MonoReport.UI/dist`. Generated frontend and publish outputs are not committed.
-
-### Production hosting and containers
-
-A Release publish builds the locked frontend dependencies and serves the Playground, API, Swagger, and OpenAPI from one ASP.NET Core origin. Run the published application from its publish directory:
-
-```bash
-dotnet publish MonoReport.Api/MonoReport.Api.csproj -c Release -o artifacts/publish
-cd artifacts/publish
-ASPNETCORE_URLS=http://0.0.0.0:8080 dotnet MonoReport.Api.dll
-```
-
-Build and run the local production container from the repository root:
-
-```bash
-docker build -t monoreport:local .
-docker run --rm -p 8080:8080 monoreport:local
-```
-
-Compose uses the public GHCR image without building source. `MONOREPORT_TAG` selects an image version and `MONOREPORT_PORT` changes the host port; both default to `latest` and `8080` respectively. `MONOREPORT_IMAGE` can override the registry repository:
-
-```bash
-MONOREPORT_TAG=0.1.0 MONOREPORT_PORT=8081 docker compose up -d
-```
-
-Pulling and running a published image directly uses the same container contract:
-
-```bash
-docker pull ghcr.io/montr/monoreport:0.1.0
-docker run --rm -p 8080:8080 ghcr.io/montr/monoreport:0.1.0
-```
-
-Release tags are created manually and must follow `vMAJOR.MINOR.PATCH` or a SemVer prerelease such as `v0.1.0-rc.1`. Valid tags publish matching multi-platform GHCR images after quality and smoke checks. Stable tags also update `latest`; prerelease tags do not. The first published package must be made public manually before unauthenticated pulls can succeed.
-
-### DOCX preview limitations
-
-MonoReport uses `docx-preview` for browser rendering and includes a client-side compatibility workaround for OOXML simple fields (`w:fldSimple`).
-
-The workaround preserves cached field content in the preview without changing the original template or generated DOCX. Other rendering differences from Microsoft Word may still occur.
-
-See [DOCX field compatibility investigation](.docs/features/004-monoreport-ui/docx-preview-field-compatibility.md) for the root cause, comparison of Word-generated and programmatically generated templates, regression findings, and workaround details.
+1. Scalar expressions work in ordinary paragraphs and tables in the main document, headers, footers, footnotes, and endnotes.
+2. Control markers must occupy dedicated sibling paragraphs or dedicated sibling table rows. Paragraph blocks may contain complete tables. Row blocks operate only on sibling rows of one table.
+3. Nested blocks and nested tables are supported when every block independently satisfies those boundaries.
+4. Repeated and conditional list paragraphs preserve their styles, numbering references, levels, and indentation. Word controls visible continuation; MonoReport does not force a restart per iteration.
+5. Horizontal merged cells are preserved. A row operation intersecting a vertical merge is rejected; a complete vertically merged table may be cloned by a paragraph block.
+6. Hyperlinks and Word fields are preserved as opaque content. Expressions inside hyperlink text or Word field instructions/results are not processed.
+7. Shapes, floating text boxes, SmartArt, charts, and other specialized content are preserved without expression processing.
+8. Templates containing unaccepted tracked revisions in supported content are rejected. Accept or reject revisions in Word before generation.
 
 ## Core API
 
-Inject `MergeEngine` into your application's document service. This example opens fresh inputs for each generation and returns an independent document with any warnings. The caller decides where to save it.
+1. Register services and inject `MergeEngine` and, when needed, `TemplateAnalyzer`:
 
-```csharp
-using System.Text.Json;
-using MonoReport.Models;
-using MonoReport.Services;
+   ```csharp
+   services.AddMonoReport();
 
-public sealed class DocumentService(MergeEngine engine)
-{
-    private readonly MergeEngine _engine = engine
-        ?? throw new ArgumentNullException(nameof(engine));
+   using var template = File.OpenRead("template.docx");
+   using var data = JsonDocument.Parse(json);
+   MergeResult result = engine.Merge(template, data, new MergeOptions
+   {
+       Culture = CultureInfo.GetCultureInfo("en-GB"),
+       MissingValues = MissingValueBehavior.Error
+   });
+   ```
 
-    public MergeResult Generate(
-        string templatePath, string json, MergeOptions? options = null)
-    {
-        using var template = File.OpenRead(templatePath);
-        using var data = JsonDocument.Parse(json);
-        return _engine.Merge(template, data, options);
-    }
-}
-```
+2. `Merge` reads from the template stream's current position and leaves caller-owned inputs open. A successful result contains independent DOCX bytes and warnings. A failed merge throws `TemplateException`, aggregates up to 100 ordered diagnostics, and returns no partial document.
+3. `MergeOptions.Culture` controls output casing, decimal formatting, and date formatting. It does not change invariant numeric input parsing, ISO date interpretation, or Russian RUB `spellout` behavior.
+4. Custom formatter registration is not available in the unified language. Consumers can transform values before supplying JSON; formatter extensibility may be considered in a future Feature.
 
-`MergeEngine.Merge` reads a stream from its current position without modifying or closing it. The caller owns both input objects. It processes the main document, headers, footers, footnotes, and endnotes. Template and recoverable generation errors throw `TemplateException`. Its established properties describe the first error; `Errors` contains the ordered diagnostics and `LimitReached` reports that the maximum of 100 errors was recorded. Reaching 100 stops processing immediately without probing for another error. An unsuccessful merge returns no partial document.
+## Analyzer
 
-### Template analysis
+1. `TemplateAnalyzer.Analyze(Stream)` uses the same parser and structural plan as generation without requiring JSON or producing a document.
+2. The result contains `valid`, `errors`, `warnings`, recursive `requirements`, and source-ordered `occurrences`.
+3. Each requirement contains only `name`, `type`, and optional nonempty `fields`. Allowed types are `object`, `array`, `value`, and `boolean`. Array fields describe expressions evaluated against elements; they are dependencies, not a homogeneous JSON schema.
+4. Each occurrence contains `kind`, the original `expression`, canonical `path`, DOCX `part`, and source `location`. Duplicate occurrences are preserved.
+5. A loop using `{.}` can produce the requirement `{ "name": "Tags", "type": "array" }` and an occurrence at `$.Tags[]`; no artificial element property is inferred.
 
-Resolve the injected public `TemplateAnalyzer` through `AddMonoReport()` and call `Analyze(Stream template)`. It reads from the stream's current position, supports readable non-seekable streams, does not modify the content, and leaves the caller-owned input open; its position may advance. Dispose the input yourself. The result provides `Valid` plus read-only `Errors`, `Warnings`, and recursive `Fields` snapshots. Fields preserve case and dotted MERGEFIELD names; scalar fields have type `string`, collection regions have type `array`. A scalar's `formats` contains every unique sequence of supported formatting switches in first-appearance order, including an empty sequence for an unformatted occurrence; arrays have `formats: []`. Null/unreadable arguments throw argument exceptions; operational I/O failures remain exceptions; invalid or empty DOCX content produces an invalid result.
+## CLI
 
-The analyzer buffers the remaining source bytes because Open XML package access requires a seekable package. Generation already copies the remaining source into its output buffer, analyzes that editable package once, and passes the parsed original-story references and regions into rendering. Only cloned collection content is parsed again.
+1. Generate from a JSON file:
 
-Analysis checks DOCX package and supported story structure, MERGEFIELD syntax and Word field structure, collection marker pairing/nesting/boundaries/overlap, and unsupported fields in cached results. It uses the same structural rules as generation without merging, requiring JSON/culture, evaluating formatters, or generating document bytes. It does not check data paths, scalar types, or whether future generation will succeed, and is not universal OOXML certification.
+   ```bash
+   dotnet run --project MonoReport.Cli -- \
+     --template Samples/sample.template.docx \
+     --json-file Samples/sample.json \
+     --output result.docx
+   ```
 
-Issues have stable `code`, safe `message`, and explicit nullable `field`, `part`, and `location`. `part` is a package URI, never a server file path. `valid` is true exactly when structural `errors` is empty; warnings do not invalidate a template. Scalar/collection name conflicts produce analyzer warnings, while multiple formatting variants are normal. Ambiguous paths such as `Company` and `Company.Name` remain valid and are reported literally. Diagnostics follow main document, ordinal URI order of headers, ordinal URI order of footers, footnotes, then endnotes, with document order within safe stages. Independent errors are collected across readable stories and trustworthy stages. An unsafe parser stack or ambiguous markers stop dependent checks for that story; damaged packages can prevent story discovery. Exhaustive diagnostics and guessed recovery are not promised.
+2. Analyze without JSON:
 
-## HTTP API
+   ```bash
+   dotnet run --project MonoReport.Cli -- \
+     --analyze --template Samples/sample.template.docx
+   ```
 
-Build from the repository root with .NET SDK 10 and start the separate host. On macOS/Linux Bash or zsh:
+3. JSON may instead come from `--json` or `--stdin`. Omit `--output` or use `-` for binary stdout. Diagnostics go to stderr.
 
-```bash
-ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://127.0.0.1:5080 \
-  dotnet run --project MonoReport.Api/MonoReport.Api.csproj -c Release --no-build
-```
+## HTTP API and playground
 
-On Windows PowerShell:
+1. `POST /api/documents/generate` accepts multipart fields `template`, `data`, and optional `culture`; success returns raw DOCX bytes.
+2. `POST /api/documents/analyze` accepts only multipart file field `template`; success returns the Analyzer contract even when `valid` is false.
+3. Swagger UI is available at `/docs` and OpenAPI at `/openapi/v1.json` when documentation is enabled.
+4. The browser playground loads the authoritative assets from `Samples`, can analyze a template to propose dependency-based JSON, and does not persist user data.
 
-```powershell
-$env:ASPNETCORE_ENVIRONMENT = 'Development'
-$env:ASPNETCORE_URLS = 'http://127.0.0.1:5080'
-dotnet run --project MonoReport.Api/MonoReport.Api.csproj -c Release --no-build
-```
+## Sample and migration
 
-OpenAPI JSON is at `http://127.0.0.1:5080/openapi/v1.json`; Swagger UI interactive documentation is at `http://127.0.0.1:5080/docs`. Both are enabled by default in every environment after an ordinary API start. Set `MonoReport__DocumentationEnabled=false` to disable both routes or `true` to enable them explicitly, independently of the environment. The host supplies no authentication scheme. Scalar was evaluated first, but its multipart client did not produce a valid upload request with the selected generated contract, so Feature 003 uses the approved Swagger UI fallback.
+1. `Samples/sample.template.docx` and `Samples/sample.json` are the authoritative template and data pair. `Samples/sample.docx` is their generated output.
+2. Feature 010 is a breaking change. Legacy Word `MERGEFIELD`, `TableStart:`, `TableEnd:`, Word switch formatting, and programmatic formatter bindings are no longer interpreted as MonoReport template syntax. Existing Word fields remain untouched as ordinary opaque document content.
+3. Convert legacy scalar fields to `{Path}`, collection markers to `{For:Path}` and `{EndFor}`, and Word formatting switches to the built-in formatter syntax shown above.
 
-When TLS terminates at a reverse proxy, the proxy must preserve the public `Host` header and set `X-Forwarded-Proto`. MonoReport accepts the nearest forwarded scheme so generated OpenAPI server URLs and Swagger UI requests use the public HTTPS origin. Do not expose the container directly to untrusted clients that can bypass the proxy; filter or replace incoming forwarding headers at the trusted proxy boundary. Direct local HTTP requests without a forwarded scheme remain HTTP.
+## Production hosting
 
-1. `POST /api/documents/generate` accepts `multipart/form-data` with one required nonempty DOCX file `template`, one required text field `data` containing a single raw JSON value, and optional text `culture`. Omitted/blank culture means invariant; an explicit valid culture overrides it. `Accept-Language` is ignored. Duplicate or wrongly represented known inputs fail; unknown generation inputs are ignored. Submitted filenames never become server paths.
-2. Generation success returns HTTP 200 with raw DOCX bytes, DOCX media type, and attachment filename `document.docx`. `X-MonoReport-Warning-Count` exists only when warnings exist; the default missing-value policy remains empty without warnings. There is no JSON response envelope or success flag.
-3. `POST /api/documents/analyze` accepts exactly one nonempty DOCX file `template`. Additional inputs, including data and culture, fail. It directly calls Core analysis. Completed analysis returns HTTP 200 JSON even for invalid nonempty DOCX content, with `valid`, `errors`, `warnings`, and `fields`. Empty uploads are request errors.
+1. Publish the combined API and UI:
 
-Generate the sample and save its raw response on macOS/Linux Bash or zsh. `-o` writes the binary DOCX directly to a file:
+   ```bash
+   dotnet publish MonoReport.Api/MonoReport.Api.csproj -c Release -o artifacts/publish
+   ASPNETCORE_URLS=http://0.0.0.0:8080 dotnet artifacts/publish/MonoReport.Api.dll
+   ```
 
-```bash
-curl --fail-with-body http://127.0.0.1:5080/api/documents/generate \
-  -F 'template=@Samples/sample.template.docx' \
-  --form-string "data=$(cat Samples/sample.json)" \
-  --form-string 'culture=en-GB' -o /tmp/monoreport-generated.docx
-```
+2. Or build and run the container:
 
-Analyze the sample without JSON or culture on macOS/Linux Bash or zsh:
-
-```bash
-curl --fail-with-body http://127.0.0.1:5080/api/documents/analyze \
-  -F 'template=@Samples/sample.template.docx'
-```
-
-### Error contracts
-
-HTTP application errors use RFC 9457 `application/problem+json`: `type`, `title`, `status`, safe `detail`, machine-readable `code`, and `traceId`; optional safe field context may appear. Generation 422 responses retain the first error in the top-level properties and add ordered `errors` plus `limitReached`. Each error can include `field`, package `part`, template `location`, `formatter`, and an indexed JSON `dataPath`. They never return exception stacks, server paths, raw field instructions, input data, or partial generated documents. Stable code identity is independent of message wording.
-
-1. Both endpoints, HTTP 400: missing, empty, duplicate, wrongly represented inputs use `request.missing_input`, `request.empty_input`, `request.duplicate_input`, `request.invalid_input`; malformed multipart or missing boundary uses `request.invalid_multipart`. Analysis extra inputs use `request.unexpected_input`.
-2. Both endpoints, HTTP 413: `request.too_large`. HTTP 415: `request.unsupported_media_type` for an overall media type other than multipart/form-data.
-3. Generation, HTTP 400: malformed, trailing-content, or depth-exceeding JSON uses `data.invalid_json`; invalid culture uses `culture.invalid`.
-4. Generation, HTTP 422: unreadable/corrupt DOCX uses `template.invalid_package`; malformed story XML uses `template.invalid_xml`; missing/unsupported story structure uses `template.unsupported_structure`.
-5. Shared structural codes: `template.invalid_field_syntax`, `template.invalid_field_structure`, `template.invalid_region`, `template.overlapping_regions`, and `template.unsupported_nested_field`. Generation returns 422 Problem Details; analysis returns 200 with `valid=false` and structured errors, also for the package/XML/structure codes above. Analysis never returns 422. Analyzer-only `template.field_kind_conflict` is a non-fatal warning.
-6. Generation, HTTP 422: incompatible collection/scalar data uses `generation.invalid_data`; failed numeric/date/custom formatting uses `generation.invalid_format`; unavailable formatter uses `generation.unknown_formatter`.
-7. Both endpoints, HTTP 500: unexpected operational failures use `server.internal_error`. These are server failures rather than invalid-template results. A host or reverse proxy rejecting a request before application handling can return its own response instead of application Problem Details.
-
-### Resource policy and deployment
-
-The default whole HTTP request limit is 50 MiB (52,428,800 bytes), including multipart framing and every part. Configure the single positive `MonoReport__MaxRequestBytes` setting (maximum `Int32.MaxValue`) before host startup. Standard Kestrel/form handling enforces the boundary; there are no separate template, JSON, output, generation timeout, application concurrency limiter, queue, or 429 policies. The application disposes its input/JSON/package resources; ASP.NET Core owns request buffering and temporary resources. CLI file analysis has no HTTP size limit.
-
-This compressed request bound does not bound decompressed content, generated output, processing time, or aggregate concurrent memory. Synchronous Core merging/analysis cannot be hard-cancelled after execution begins; asynchronous transport honors cancellation where possible. Public deployments need infrastructure TLS, access controls, edge request/connection/rate protections, operational timeouts, capacity planning, and monitoring. Provision these at the host/proxy boundary; this repository does not supply deployment manifests or authentication infrastructure.
-
-For example, this application method receives `DocumentService` from its caller and saves the construction estimate:
-
-```csharp
-void SaveEstimate(DocumentService documents)
-{
-    var json = File.ReadAllText("Samples/sample.json");
-    var result = documents.Generate("Samples/sample.template.docx", json);
-    File.WriteAllBytes("result.docx", result.Document);
-}
-```
-
-### Dependency injection
-
-Add these registrations to the `IServiceCollection services` supplied by your application's host or composition root:
-
-```csharp
-using Microsoft.Extensions.DependencyInjection;
-
-services.AddMonoReport();
-services.AddTransient<DocumentService>();
-```
-
-Standalone applications using Microsoft's provider need the `Microsoft.Extensions.DependencyInjection` package alongside `MonoReport`. The host or composition root owns provider creation and disposal. Default engine services are transient, and the formatter registry and built-in formatter are singleton within the provider; no scope is needed for the default graph. Registration preserves consumer overrides and can be repeated without duplicating defaults. Manual constructor composition remains supported as an alternative.
-
-## Fields and formatting
-
-Insert a real Word field through **Insert → Quick Parts → Field → MergeField**. Typing braces and field text does not create a field. For example:
-
-```text
-{ MERGEFIELD Contractor.Name \* MERGEFORMAT }
-{ MERGEFIELD Totals.Amount \# "#,##0.00" }
-{ MERGEFIELD DeliveryDate \@ "dd MMM yyyy" }
-```
-
-Simple and complex Word fields are supported, including split instructions and cached results. Field codes and existing run formatting remain intact. Cached text is replaced across the existing runs; Unicode characters remain valid at run boundaries. Newlines and tabs become Word breaks and tabs. Populated fields are not marked as needing an update.
-
-1. `\* Upper`, `Lower`, `Caps`, and `FirstCap` transform text; `MERGEFORMAT` preserves formatting.
-2. `\#` applies a .NET numeric format, such as `#,##0.00`.
-3. `\@` applies a .NET date format, such as `dd MMM yyyy`; use ISO 8601 dates in JSON.
-4. Switches may be combined and run in their specified order. The complete historical Word picture-format grammar is not implemented.
-
-JSON property names are case-sensitive; dotted paths resolve nested properties. Missing scalar values, JSON `null`, and `""` produce empty text without running value-dependent formatters; formatter names and Word switches are still validated. Objects and arrays cannot be inserted as scalar values. Missing fields are empty by default; warning and error policies are available. The default numeric/date culture is invariant.
-
-This optional block goes inside `SaveEstimate`, after the JSON is read. Its `documents` parameter and `json` local variable come from that method. `Generate` opens a fresh template for each call:
-
-```csharp
-var optionsResult = documents.Generate(
-    "Samples/sample.template.docx", json,
-    new MonoReport.Models.MergeOptions
-    {
-        Culture = System.Globalization.CultureInfo.GetCultureInfo("en-GB"),
-        MissingValues = MonoReport.Models.MissingValueBehavior.Warning
-    });
-foreach (var warning in optionsResult.Warnings)
-    Console.WriteLine(warning.Message);
-File.WriteAllBytes("result-en-GB.docx", optionsResult.Document);
-```
-
-To update ordinary fields again, merge the generated bytes through a new `MemoryStream` with new data. Field codes and formatting remain available for the next merge.
-
-## Collections
-
-Use MERGEFIELD markers around the rows to repeat. Keep the table header outside the region:
-
-```text
-Material                            | Quantity | Unit price
-{ MERGEFIELD TableStart:Items }      ← separate marker row
-{ MERGEFIELD Name }                  | { MERGEFIELD Quantity } | { MERGEFIELD Price \# "0.00" }
-{ MERGEFIELD TableEnd:Items }         ← separate marker row
-```
-
-```json
-{"Items":[{"Name":"Portland cement (25 kg bag)","Quantity":100,"Price":500},{"Name":"Concrete blocks (440 x 215 x 100 mm)","Quantity":250,"Price":261.722}]}
-```
-
-1. The engine repeats the region for each item; an empty array, missing value, JSON `null`, or `""` produces no data rows, subject to the configured missing-property policy. Other non-array values are errors. It removes markers and rows or paragraphs containing only markers, while retaining ordinary fields and the outside header.
-2. Inside a region, use paths relative to the current item, such as `Name`, not `Items.Name`. There is no implicit lookup in the parent object. Nested collections restore the enclosing item's context when the inner region ends.
-3. Put boundaries in rows of the same table or paragraphs sharing a parent. Both markers may surround fields in one data row. For nested regions, use separate boundary rows or paragraphs. Ranges across tables or document parts are unsupported.
-4. Independent regions must have separate, nonoverlapping paragraph or row ranges. Shared blocks, including overlaps through nested tables, are rejected; genuine parent/child regions are supported.
-5. Re-expanding a collection requires the original template. Generated documents no longer contain region markers or row-to-array bindings; re-merging them updates ordinary fields without reconstructing collections.
-
-Nested Word fields in a MERGEFIELD's cached result are unsupported. Move them outside that result or replace it with plain cached text. Instruction nesting and independent sibling Word fields keep their supported behavior. The engine validates all processed document parts before rendering; invalid layouts produce actionable errors without partial CLI output.
-
-## Custom formatters
-
-To request an amount in words in the template, display the field code with **Shift+F9** and add `\* SpellOut`:
-
-```text
-{ MERGEFIELD Totals.Amount \* SpellOut }
-{ MERGEFIELD Totals.Amount \* SpellOut \* MERGEFORMAT }
-```
-
-`SpellOut` is a MonoReport extension. It generates Russian RUB wording regardless of numeric/date culture: `125430.50` becomes `Сто двадцать пять тысяч четыреста тридцать рублей 50 копеек`. It supports grammatical inflection, negative values, and rounding to kopecks away from zero; the rounded absolute amount must be below 10¹⁸ RUB. Formatter names are case-insensitive.
-
-Alternatively, the following optional block also goes inside `SaveEstimate` and binds the built-in formatter programmatically. Create `formatter-template.docx` with an ordinary `{ MERGEFIELD Amount }` field, without a numeric `\#` switch: a programmatic formatter runs before field switches, and its words cannot be processed as a number.
-
-```csharp
-var formatterResult = documents.Generate(
-    "formatter-template.docx", """{"Amount":125430.50}""",
-    new MonoReport.Models.MergeOptions
-    {
-        FieldFormatters = new Dictionary<string, MonoReport.Models.FormatterBinding>
-        {
-            ["Amount"] = new("spellOut", new Dictionary<string, string>
-            {
-                ["currency"] = "RUB"
-            })
-        }
-    });
-File.WriteAllBytes("amount-in-words.docx", formatterResult.Document);
-```
-
-For other transformations, implement `IValueFormatter` and use the existing `FormatterRegistry.Register` method. Resolve the shared registry from the provider and finish registration before the first merge and before concurrent use. Bindings use field names, including item-relative fields inside collections; a `\* SpellOut` switch receives the original JSON value at its position in the switch sequence.
-
-A shared registry supports concurrent reads after configuration, not registration during merges. Its formatters must be thread-safe and have singleton-compatible dependencies. A formatter with scoped dependencies needs a consumer-provided scoped registry, engines resolved within that same scope, and appropriate scope disposal; never capture it in the default singleton registry. Provider validation does not inspect manually captured objects. Each merge needs independent inputs and options that are not mutated during use.
-
-## Command-line application
-
-The CLI uses the same DI registration as library consumers and is packaged as the `monoreport` .NET tool. To pack and install it locally into an isolated directory on macOS/Linux Bash or zsh:
-
-```bash
-dotnet pack MonoReport.Cli/MonoReport.Cli.csproj -c Release -o ./artifacts/packages
-dotnet tool install --tool-path ./artifacts/tools MonoReport.Cli \
-  --source ./artifacts/packages
-./artifacts/tools/monoreport --help
-```
-
-On Windows PowerShell:
-
-```powershell
-dotnet pack MonoReport.Cli/MonoReport.Cli.csproj -c Release -o .\artifacts\packages
-dotnet tool install --tool-path .\artifacts\tools MonoReport.Cli `
-  --source .\artifacts\packages
-.\artifacts\tools\monoreport.exe --help
-```
-
-Remove `artifacts` when the isolated package and installation are no longer needed. The built DLL remains directly executable for development and troubleshooting.
-
-1. `--template <path>` / `-t <path>` supplies the required DOCX template.
-2. `--output <path>` / `-o <path>` writes a file after a successful merge. Omit it or use `-` for binary stdout. Existing files are overwritten only after rendering succeeds.
-3. Choose one JSON source: `--json '<JSON>'`, `--json-file <path>`, or `--stdin`. File input is UTF-8; quote inline JSON for your shell. With no source option, the CLI reads stdin until EOF.
-4. `--culture <culture>` selects numeric/date culture, such as `en-GB`; the default is invariant.
-5. `--help` / `-h` shows help.
-6. Exit codes are `0` for success, `1` for input/render/output errors, and `2` for invalid arguments. Generation errors go to stderr in deterministic order, one line per error with indexed data paths when available. At the 100-error limit an additional informational line is printed. Failed generation writes no DOCX to stdout and does not create or replace the requested output file.
-
-### CLI template analysis
-
-`--analyze --template <path>` (or `-t <path>`) directly invokes the same injected Core analyzer as the HTTP endpoint. Only these options are accepted in analysis mode; JSON sources, stdin, culture, output, generation options, positional inputs and duplicates are argument errors. `--help` retains precedence. Analysis never reads stdin, performs a merge, or writes DOCX bytes.
-
-On macOS/Linux Bash or zsh, and on Windows after the tool directory is on `PATH`:
-
-```bash
-monoreport --analyze --template Samples/sample.template.docx
-```
-
-To analyze an invalid template, replace the template path with the document to inspect. Exit `0` means structurally valid; exit `1` means invalid template or operational execution failure; exit `2` means invalid arguments. Completed analysis writes exactly one JSON result to stdout with the same fields, issue codes/messages/context, nulls, ordering and warnings as HTTP analysis. Invalid/corrupt/readable empty local files produce invalid JSON and exit 1 without operational stderr; empty HTTP uploads instead return 400. Missing/unreadable files and unexpected execution/output failures produce safe operational diagnostics on stderr and exit 1. Failures before writing leave stdout empty; an output stream failure can interrupt JSON. Caller-owned stdin/stdout stay open. Generation behavior remains unchanged when `--analyze` is absent.
-
-### Construction estimate sample
-
-`Samples` contains `sample.template.docx`, `sample.json`, and `sample.docx`. The estimate identifies the Riverside Community Centre in Moscow and Northwind Construction LLC, repeats three material lines, and totals RUB 125,430.50. Labels and source data are English; the generated RUB amount in words is Russian. Quantities, prices, line totals, and summaries are supplied in JSON; MonoReport does not calculate business values.
-
-Run commands from the repository root. This single-line build command works in macOS/Linux Bash or zsh, Windows PowerShell, and Windows CMD:
-
-```bash
-dotnet build MonoReport.Cli/MonoReport.Cli.csproj -c Release
-```
-
-Generate from a JSON file on macOS/Linux Bash or zsh:
-
-```bash
-monoreport --template Samples/sample.template.docx \
-  --json-file Samples/sample.json \
-  --output sample.docx \
-  --culture en-GB
-```
-
-Pass inline JSON on macOS/Linux Bash or zsh:
-
-```bash
-monoreport --template Samples/sample.template.docx \
-  --json "$(cat Samples/sample.json)" \
-  --output sample.docx \
-  --culture en-GB
-```
-
-Read stdin and redirect binary stdout on macOS/Linux Bash or zsh. These shells preserve binary stdout when redirecting it to a file:
-
-```bash
-monoreport --template Samples/sample.template.docx \
-  --culture en-GB \
-  < Samples/sample.json > sample.docx
-```
-
-On Windows PowerShell, read UTF-8 stdin and use `--output` so DOCX bytes are written directly by MonoReport:
-
-```powershell
-$OutputEncoding = [System.Text.UTF8Encoding]::new($false)
-Get-Content -Raw -Encoding UTF8 Samples/sample.json | `
-  monoreport `
-    --template Samples/sample.template.docx `
-    --stdin `
-    --output sample.docx `
-    --culture en-GB
-```
-
-On Windows CMD, use caret (`^`) only for CMD line continuation. Read stdin and use `--output` instead of redirecting binary stdout:
-
-```cmd
-monoreport --template Samples/sample.template.docx ^
-  --stdin ^
-  --culture en-GB ^
-  --output sample.docx ^
-  < Samples\sample.json
-```
-
-Windows PowerShell 5.1 text redirection is unsuitable for binary DOCX; use `--output`. PowerShell versions do not all handle native binary stdout redirection identically, so `--output` is the portable Windows choice. With unredirected stdin, finish your JSON input with EOF so generation can proceed.
-
-## Current limitations
-
-1. DOCX generation and template analysis through Core, CLI, and HTTP are implemented. XLSX is planned; Word Add-in, conditions, and HTML/PDF output are not included.
-2. Other Word fields, such as `PAGE`, are preserved but not evaluated. The engine does not execute template code or business calculations.
-3. Manual Microsoft Word inspection remains useful for visual layout; automated checks validate Open XML and observable fields, formatting, and document structure.
+   ```bash
+   docker build -t monoreport:local .
+   docker run --rm -p 8080:8080 monoreport:local
+   ```

@@ -57,13 +57,13 @@ namespace MonoReport.Models
             "template.invalid_package" => "The content is not a readable DOCX package.",
             "template.invalid_xml" => "A document part contains invalid XML.",
             "template.unsupported_structure" => "The DOCX document structure is unsupported.",
-            "template.invalid_field_syntax" => "A MERGEFIELD instruction has invalid syntax.",
-            "template.invalid_field_structure" => "The Word field structure is invalid.",
-            "template.invalid_region" => "A collection region is invalid.",
-            "template.overlapping_regions" => "Collection regions overlap or share unsupported boundaries.",
-            "template.unsupported_nested_field" => "Nested Word fields inside MERGEFIELD results are unsupported.",
+            "template.invalid_expression" => "A template expression has invalid syntax.",
+            "template.unmatched_brace" => "Template braces are not balanced or escaped correctly.",
+            "template.invalid_context" => "A template path is invalid in its current loop context.",
+            "template.invalid_structure" => "A template block has an unsupported or ambiguous structure.",
+            "template.requirement_conflict" => "The same dependency path is used with incompatible requirement types.",
+            "template.tracked_revision" => "Tracked revisions must be accepted or rejected before processing.",
             "generation.invalid_format" => "A value cannot be formatted as requested.",
-            "generation.unknown_formatter" => "A requested formatter is unavailable.",
             _ => "The data is incompatible with the template."
         };
     }

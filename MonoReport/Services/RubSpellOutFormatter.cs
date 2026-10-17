@@ -1,16 +1,9 @@
 using System.Globalization;
-using System.Text.Json;
-using MonoReport.Models;
-
 namespace MonoReport.Services
 {
-    /// <summary>Russian RUB amounts, rounded to kopecks away from zero. Other currencies can register their own formatter.</summary>
-    public sealed class RubSpellOutFormatter : IValueFormatter
+    /// <summary>Russian RUB amounts, rounded to kopecks away from zero.</summary>
+    public sealed class RubSpellOutFormatter
     {
-        public const string FormatterName = "spellOut";
-        public const string CurrencyOptionName = "currency";
-        public const string CurrencyCode = "RUB";
-
         private const string FeminineOne = "одна";
         private const string FeminineTwo = "две";
         private const string NegativePrefix = "минус ";
@@ -24,14 +17,8 @@ namespace MonoReport.Services
         private static readonly string[] Hundreds = ["", "сто", "двести", "триста", "четыреста", "пятьсот", "шестьсот", "семьсот", "восемьсот", "девятьсот"];
         private static readonly string[][] Scales = [["рубль", "рубля", "рублей"], ["тысяча", "тысячи", "тысяч"], ["миллион", "миллиона", "миллионов"], ["миллиард", "миллиарда", "миллиардов"], ["триллион", "триллиона", "триллионов"], ["квадриллион", "квадриллиона", "квадриллионов"]];
 
-        public string Format(JsonElement value, CultureInfo culture, IReadOnlyDictionary<string, string> options)
+        internal string Format(decimal amount)
         {
-            if (options.TryGetValue(CurrencyOptionName, out var currency) && currency.Equals(CurrencyCode, StringComparison.OrdinalIgnoreCase) == false)
-            {
-                throw new FormatException($"Unsupported spellOut currency: {currency}");
-            }
-
-            var amount = value.ValueKind == JsonValueKind.Number ? value.GetDecimal() : decimal.Parse(value.GetString()!, CultureInfo.InvariantCulture);
             amount = decimal.Round(amount, 2, MidpointRounding.AwayFromZero);
             var absolute = Math.Abs(amount);
             if (absolute >= 1_000_000_000_000_000_000m)

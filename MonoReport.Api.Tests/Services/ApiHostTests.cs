@@ -51,9 +51,16 @@ public sealed class ApiHostTests
                         Assert.Equal("request.too_large", problem.RootElement.GetProperty("code").GetString());
                     }
                 }
-                using var small = HttpApiTests.Form(Docx.Create(Docx.P(Docx.Run("fine"))), endpoint == "generate" ? "{}" : null);
+                using var small = HttpApiTests.Form(Docx.Create(Docx.P(Docx.Run("{Name}"))), endpoint == "generate" ? "{\"Name\":\"fine\"}" : null);
                 using var recovered = await client.PostAsync($"/api/documents/{endpoint}", small);
                 Assert.Equal(HttpStatusCode.OK, recovered.StatusCode);
+                if (endpoint == "generate")
+                    Assert.Equal("fine", Docx.Text(Docx.Read(await recovered.Content.ReadAsByteArrayAsync())));
+                else
+                {
+                    using var analysis = JsonDocument.Parse(await recovered.Content.ReadAsStringAsync());
+                    Assert.Equal("Name", analysis.RootElement.GetProperty("requirements")[0].GetProperty("name").GetString());
+                }
             }
         }
         finally

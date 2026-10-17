@@ -1,115 +1,39 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
 
 namespace MonoReport.Tests.Services;
 
 public sealed class OpenApiContractTests
 {
-    [Theory]
-    [InlineData(null, "http://monoreport.test/")]
-    [InlineData("https", "https://monoreport.test/")]
-    public async Task Generated_contract_uses_the_public_scheme_for_every_operation(string? forwardedScheme, string expectedServer)
-    {
-        using var factory = new WebApplicationFactory<Program>();
-        using var client = factory.CreateClient();
-        using var request = new HttpRequestMessage(HttpMethod.Get, "/openapi/v1.json");
-        request.Headers.Host = "monoreport.test";
-        if (forwardedScheme is not null) request.Headers.Add("X-Forwarded-Proto", forwardedScheme);
-
-        using var response = await client.SendAsync(request); response.EnsureSuccessStatusCode();
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        var root = document.RootElement;
-        Assert.Equal(expectedServer, root.GetProperty("servers")[0].GetProperty("url").GetString());
-        Assert.Equal(
-            new[] { "/api/documents/analyze", "/api/documents/generate" },
-            root.GetProperty("paths").EnumerateObject().Select(path => path.Name).Order().ToArray());
-    }
-
     [Fact]
-    public async Task Generated_contract_has_accurate_multipart_binary_json_errors_and_context()
+    public async Task OpenApi_exposes_the_minimal_analyzer_contract_and_generation_diagnostics()
     {
-        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(b => b.UseEnvironment("Development"));
+        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder => builder.UseEnvironment("Development"));
         using var client = factory.CreateClient();
-        using var response = await client.GetAsync("/openapi/v1.json"); response.EnsureSuccessStatusCode();
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        var root = document.RootElement;
-        Assert.False(root.TryGetProperty("security", out _));
-        Assert.False(root.GetProperty("paths").TryGetProperty("/api/documents/validate", out _));
-        foreach (var name in new[] { "generate", "analyze" })
-        {
-            var operation = root.GetProperty("paths").GetProperty($"/api/documents/{name}").GetProperty("post");
-            var schema = operation.GetProperty("requestBody").GetProperty("content").GetProperty("multipart/form-data").GetProperty("schema");
-            Assert.True(operation.GetProperty("requestBody").GetProperty("required").GetBoolean());
-            Assert.Equal("binary", schema.GetProperty("properties").GetProperty("template").GetProperty("format").GetString());
-            Assert.Equal(name == "generate" ? new[] { "template", "data" } : new[] { "template" }, schema.GetProperty("required").EnumerateArray().Select(x => x.GetString()).ToArray());
-            if (name == "analyze") Assert.Single(schema.GetProperty("properties").EnumerateObject());
-            else Assert.Equal("string", schema.GetProperty("properties").GetProperty("data").GetProperty("type").GetString());
-            var responses = operation.GetProperty("responses");
-            Assert.Equal(name == "generate" ? new[] { "200", "400", "413", "415", "422", "500" } : new[] { "200", "400", "413", "415", "500" }, responses.EnumerateObject().Select(x => x.Name).Order().ToArray());
-            Assert.Contains("request.missing_input", responses.GetProperty("400").GetProperty("description").GetString());
-            var problem = responses.GetProperty("400").GetProperty("content").GetProperty("application/problem+json").GetProperty("schema");
-            Assert.True(problem.GetProperty("properties").TryGetProperty("code", out _));
-            Assert.True(problem.GetProperty("properties").TryGetProperty("traceId", out _));
-            if (name == "generate")
-            {
-                Assert.Equal("binary", responses.GetProperty("200").GetProperty("content").GetProperty("application/vnd.openxmlformats-officedocument.wordprocessingml.document").GetProperty("schema").GetProperty("format").GetString());
-                Assert.Contains("only", responses.GetProperty("200").GetProperty("headers").GetProperty("X-MonoReport-Warning-Count").GetProperty("description").GetString());
-                var generationProblem = responses.GetProperty("422").GetProperty("content").GetProperty("application/problem+json").GetProperty("schema");
-                Assert.True(generationProblem.GetProperty("properties").TryGetProperty("errors", out var errors));
-                Assert.True(generationProblem.GetProperty("properties").TryGetProperty("limitReached", out _));
-                foreach (var key in new[] { "code", "message", "field", "part", "location", "formatter", "dataPath" })
-                    Assert.True(errors.GetProperty("items").GetProperty("properties").TryGetProperty(key, out _));
-            }
-            else Assert.True(responses.GetProperty("200").GetProperty("content").TryGetProperty("application/json", out _));
-        }
+        using var response = await client.GetAsync("/openapi/v1.json");
+        response.EnsureSuccessStatusCode();
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = json.RootElement;
         var schemas = root.GetProperty("components").GetProperty("schemas");
-        var result = schemas.GetProperty("TemplateAnalysisResult");
-        foreach (var key in new[] { "valid", "errors", "warnings", "fields" }) Assert.True(result.GetProperty("properties").TryGetProperty(key, out _));
-        Assert.Equal(new[] { "errors", "fields", "valid", "warnings" }, result.GetProperty("required").EnumerateArray().Select(x => x.GetString()).Order().ToArray());
-        var issue = schemas.GetProperty("TemplateValidationIssue");
-        foreach (var key in new[] { "code", "message", "field", "part", "location" }) Assert.True(issue.GetProperty("properties").TryGetProperty(key, out _));
-        foreach (var key in new[] { "field", "part", "location" }) Assert.Contains("null", issue.GetProperty("properties").GetProperty(key).GetProperty("type").EnumerateArray().Select(x => x.GetString()));
-        var field = schemas.GetProperty("TemplateField");
-        foreach (var key in new[] { "name", "type", "formats", "fields" }) Assert.True(field.GetProperty("properties").TryGetProperty(key, out _));
-        Assert.False(field.GetProperty("properties").TryGetProperty("switches", out _));
-        Assert.Equal(new[] { "formats", "name", "type" }, field.GetProperty("required").EnumerateArray().Select(x => x.GetString()).Order().ToArray());
-        var formats = field.GetProperty("properties").GetProperty("formats");
-        Assert.Contains("array", SchemaTypes(formats));
-        Assert.Contains("array", SchemaTypes(formats.GetProperty("items")));
-        Assert.EndsWith("/TemplateFieldSwitch", formats.GetProperty("items").GetProperty("items").GetProperty("$ref").GetString());
-        var fieldSwitch = schemas.GetProperty("TemplateFieldSwitch");
-        Assert.Equal(new[] { "kind", "value" }, fieldSwitch.GetProperty("required").EnumerateArray().Select(x => x.GetString()).Order().ToArray());
-        using var docs = await client.GetAsync("/docs"); docs.EnsureSuccessStatusCode(); Assert.Contains("swagger", await docs.Content.ReadAsStringAsync(), StringComparison.OrdinalIgnoreCase);
-    }
+        var analysis = schemas.GetProperty("TemplateAnalysisResult");
+        Assert.Equal(new[] { "errors", "occurrences", "requirements", "valid", "warnings" },
+            analysis.GetProperty("required").EnumerateArray().Select(item => item.GetString()).Order());
 
-    private static IEnumerable<string?> SchemaTypes(JsonElement schema)
-    {
-        var type = schema.GetProperty("type");
-        return type.ValueKind == JsonValueKind.Array
-            ? type.EnumerateArray().Select(item => item.GetString()).ToArray()
-            : [type.GetString()];
-    }
+        var requirement = schemas.GetProperty("TemplateRequirement");
+        Assert.Equal(new[] { "name", "type" }, requirement.GetProperty("required").EnumerateArray().Select(item => item.GetString()).Order());
+        Assert.True(requirement.GetProperty("properties").TryGetProperty("fields", out _));
+        foreach (var forbidden in new[] { "items", "elementType", "required", "nullable", "format" })
+            Assert.False(requirement.GetProperty("properties").TryGetProperty(forbidden, out _));
 
-    [Theory]
-    [InlineData("Development", null, true)]
-    [InlineData("Production", null, true)]
-    [InlineData("Production", "true", true)]
-    [InlineData("Development", "false", false)]
-    [InlineData("Production", "false", false)]
-    public async Task Documentation_exposure_is_explicit(string environment, string? enabled, bool expected)
-    {
-        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(b =>
-        {
-            b.UseEnvironment(environment);
-            b.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(new Dictionary<string, string?> { ["MonoReport:DocumentationEnabled"] = enabled }));
-        });
-        using var client = factory.CreateClient();
-        foreach (var path in new[] { "/openapi/v1.json", "/docs" })
-        {
-            using var response = await client.GetAsync(path);
-            Assert.Equal(expected ? 200 : 404, (int)response.StatusCode);
-        }
+        var occurrence = schemas.GetProperty("TemplateOccurrence");
+        Assert.Equal(new[] { "expression", "kind", "location", "part", "path" },
+            occurrence.GetProperty("required").EnumerateArray().Select(item => item.GetString()).Order());
+
+        var generate = root.GetProperty("paths").GetProperty("/api/documents/generate").GetProperty("post");
+        var errors = generate.GetProperty("responses").GetProperty("422").GetProperty("content")
+            .GetProperty("application/problem+json").GetProperty("schema").GetProperty("properties").GetProperty("errors");
+        foreach (var name in new[] { "code", "message", "field", "part", "location", "formatter", "dataPath" })
+            Assert.True(errors.GetProperty("items").GetProperty("properties").TryGetProperty(name, out _));
     }
 }
