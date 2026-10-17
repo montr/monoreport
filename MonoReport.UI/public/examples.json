@@ -1,6 +1,20 @@
 {
-  "defaultExample": "construction-cost-estimate",
+  "defaultExample": "syntax-showcase",
   "examples": [
+    {
+      "id": "orders-report",
+      "title": "Sales Orders Report",
+      "format": "docx",
+      "templatePath": "/examples/orders-report.template.docx",
+      "dataPath": "/examples/orders-report.json"
+    },
+    {
+      "id": "syntax-showcase",
+      "title": "MonoReport Syntax & Formatting Showcase",
+      "format": "docx",
+      "templatePath": "/examples/syntax-showcase.template.docx",
+      "dataPath": "/examples/syntax-showcase.json"
+    },
     {
       "id": "construction-cost-estimate",
       "title": "Construction cost estimate",
