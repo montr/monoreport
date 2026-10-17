@@ -1,0 +1,79 @@
+{
+  "Company": {
+    "Name": "Northwind Demo Company",
+    "Contact": "aLEXANDER oNEILL"
+  },
+  "Text": {
+    "Mixed": "hELLO wORLD from monoReport",
+    "Title": "sample DOCUMENT heading"
+  },
+  "Amounts": {
+    "Net": "12345.678",
+    "Tax": "2469.14",
+    "Negative": "-42.505",
+    "InWords": "1250.75"
+  },
+  "Dates": {
+    "Issued": "2026-10-17",
+    "Scheduled": "2026-10-21T14:30:00+03:00"
+  },
+  "IsApproved": true,
+  "IsArchived": false,
+  "Tags": [
+    "priority",
+    "export",
+    "review",
+    "ready"
+  ],
+  "Employees": [
+    {
+      "Name": "Alice",
+      "Role": "Manager"
+    },
+    {
+      "Name": "Bob",
+      "Role": "Analyst"
+    },
+    {
+      "Name": "Chloe",
+      "Role": "Engineer"
+    }
+  ],
+  "Products": [
+    {
+      "Sku": "DEMO-01",
+      "Name": "Laptop Stand",
+      "Quantity": 2,
+      "Price": "39.95"
+    },
+    {
+      "Sku": "DEMO-02",
+      "Name": "USB-C Cable",
+      "Quantity": 5,
+      "Price": "8.50"
+    },
+    {
+      "Sku": "DEMO-03",
+      "Name": "Desk Mat",
+      "Quantity": 1,
+      "Price": "21.00"
+    }
+  ],
+  "Departments": [
+    {
+      "Name": "Operations",
+      "Members": [
+        "Alice",
+        "Bob"
+      ]
+    },
+    {
+      "Name": "Engineering",
+      "Members": [
+        "Chloe",
+        "Daniel",
+        "Eva"
+      ]
+    }
+  ]
+}
