@@ -17,10 +17,17 @@
     },
     {
       "id": "construction-cost-estimate",
-      "title": "Construction cost estimate",
+      "title": "Construction Cost Estimate",
       "format": "docx",
       "templatePath": "/examples/sample.template.docx",
       "dataPath": "/examples/sample.json"
+    },
+    {
+      "id": "repeated-image",
+      "title": "Repeated Image Check",
+      "format": "docx",
+      "templatePath": "/examples/repeated-image.template.docx",
+      "dataPath": "/examples/repeated-image.json"
     }
   ]
 }

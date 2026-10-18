@@ -1,0 +1,19 @@
+{
+  "Items": [
+    {
+      "Name": "Alpha",
+      "Code": "A-101",
+      "Caption": "First copy"
+    },
+    {
+      "Name": "Beta",
+      "Code": "B-202",
+      "Caption": "Second copy"
+    },
+    {
+      "Name": "Gamma",
+      "Code": "C-303",
+      "Caption": "Third copy"
+    }
+  ]
+}
