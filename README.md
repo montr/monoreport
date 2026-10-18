@@ -68,7 +68,11 @@ MonoReport generates DOCX reports, contracts, acts, protocols, invoices, and sim
 5. Horizontal merged cells are preserved. A row operation intersecting a vertical merge is rejected; a complete vertically merged table may be cloned by a paragraph block.
 6. Hyperlinks and Word fields are preserved as opaque content. Expressions inside hyperlink text or Word field instructions/results are not processed.
 7. Shapes, floating text boxes, SmartArt, charts, and other specialized content are preserved without expression processing.
-8. Templates containing unaccepted tracked revisions in supported content are rejected. Accept or reject revisions in Word before generation.
+8. Templates containing unaccepted tracked revisions in supported content are rejected, including cell changes, move/custom-XML revision ranges, deleted payloads, property changes, and Office 2010 conflicts. Accept or reject revisions in Word before generation.
+9. Content controls (`w:sdt`) are fully opaque, including inline, block, row, and cell controls. Their XML, properties, binding, and relationships are preserved. Expressions inside are literal; expressions cannot cross entry or exit boundaries.
+10. Bookmark, permission, and comment attachment ranges must remain wholly local to one loop body, conditional branch, or deleted marker, or wholly enclose the operation. Split or incomplete affected ranges are rejected before generation. Reference-only comments are supported as point attachments.
+11. Explicit internal hyperlink anchors support local targets and targets in active enclosing iterations or unaffected root content. A target must survive uniquely whenever its reference survives. Links from outside into repeated or conditional targets, between sibling loops, or from an enclosing loop into a child loop are rejected during analysis, even for data yielding one target. Bookmark identities and drawing IDs are allocated across the package, including cloned comment definitions.
+12. Word fields remain opaque: `REF`, `PAGEREF`, and field-code hyperlinks are not rewritten and their targets are not guaranteed to resolve after structural operations. Unrelated pre-existing unresolved anchors and external URL relationships are preserved.
 
 ## Core API
 
@@ -93,6 +97,7 @@ MonoReport generates DOCX reports, contracts, acts, protocols, invoices, and sim
 ## Analyzer
 
 1. `TemplateAnalyzer.Analyze(Stream)` uses the same parser and structural plan as generation without requiring JSON or producing a document.
+   Diagnostics retain the offending token or fragment in `field` and the precise part and paragraph/table coordinates in `location`. Their `message` includes bounded nearby template text where available so it can be found in Word; an incomplete fragment is never presented as a complete expression. Analyzer and generation use the same diagnostic messages in Core, API, CLI, and Playground.
 2. The result contains `valid`, `errors`, `warnings`, recursive `requirements`, and source-ordered `occurrences`.
 3. Each requirement contains only `name`, `type`, and optional nonempty `fields`. Allowed types are `object`, `array`, `value`, and `boolean`. Array fields describe expressions evaluated against elements; they are dependencies, not a homogeneous JSON schema.
 4. Each occurrence contains `kind`, the original `expression`, canonical `path`, DOCX `part`, and source `location`. Duplicate occurrences are preserved.

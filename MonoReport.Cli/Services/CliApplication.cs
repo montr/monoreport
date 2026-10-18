@@ -91,11 +91,6 @@ namespace MonoReport.Cli.Services
             }
             catch (TemplateException error)
             {
-                if (error.Errors.Count == 1 && error.Code.StartsWith("template.", StringComparison.Ordinal))
-                {
-                    diagnostics.WriteLine(error.Message);
-                    return 1;
-                }
                 foreach (var item in error.Errors)
                 {
                     var context = new[]

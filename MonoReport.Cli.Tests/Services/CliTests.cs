@@ -87,6 +87,75 @@ public sealed class CliTests
         Assert.Throws<ArgumentException>(() => parser.Parse(["--analyze"]));
     }
 
+    [Fact]
+    public void Single_template_error_keeps_token_context_and_location_in_analysis_and_generation()
+    {
+        var path = WriteTemplate(Docx.Create(Docx.P(Docx.Run("Invoice reference: {Name"))));
+        try
+        {
+            using var provider = new ServiceCollection().AddMonoReport().BuildServiceProvider();
+            var app = new CliApplication(new CliOptionsParser(), provider.GetRequiredService<MergeEngine>(), provider.GetRequiredService<TemplateAnalyzer>());
+            using var output = new MemoryStream();
+            using var errors = new StringWriter();
+            Assert.Equal(1, app.Run(["--analyze", "--template", path], Stream.Null, output, errors));
+            using var analysis = JsonDocument.Parse(output.ToArray());
+            var issue = Assert.Single(analysis.RootElement.GetProperty("errors").EnumerateArray());
+            var message = issue.GetProperty("message").GetString()!;
+            Assert.Equal("{Name", issue.GetProperty("field").GetString());
+            Assert.Contains("Invoice reference:", message);
+            Assert.Equal("/word/document.xml, paragraph 1", issue.GetProperty("location").GetString());
+            using var generation = new MemoryStream();
+            Assert.Equal(1, app.Run(["--template", path, "--json", "{}"], Stream.Null, generation, errors));
+            Assert.Empty(generation.ToArray());
+            Assert.Contains(message, errors.ToString());
+            Assert.Contains("template.unmatched_brace", errors.ToString());
+            Assert.Contains("field={Name", errors.ToString());
+            Assert.Contains("location=/word/document.xml, paragraph 1", errors.ToString());
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Theory]
+    [InlineData("crossing-bookmark")] [InlineData("external-bookmark-link")] [InlineData("nested-bookmark-link")]
+    [InlineData("tracked-cell-deletion")] [InlineData("tracked-move-range")] [InlineData("expression-crosses-content-control-exit")]
+    public void Final_corrections_preserve_analyze_generate_diagnostics_and_never_write_partial_output(string name)
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "review-reproductions", name + ".template.docx");
+        var json = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "review-reproductions", name + ".json"));
+        var outputPath = Path.Combine(Path.GetTempPath(), "feature010-rejected-" + Guid.NewGuid().ToString("N") + ".docx");
+        using var provider = new ServiceCollection().AddMonoReport().BuildServiceProvider();
+        var app = new CliApplication(new CliOptionsParser(), provider.GetRequiredService<MergeEngine>(), provider.GetRequiredService<TemplateAnalyzer>());
+        using var analysisBytes = new MemoryStream(); using var diagnostics = new StringWriter();
+        Assert.Equal(1, app.Run(["--analyze", "--template", path], Stream.Null, analysisBytes, diagnostics));
+        using var analysis = JsonDocument.Parse(analysisBytes.ToArray());
+        Assert.False(analysis.RootElement.GetProperty("valid").GetBoolean());
+        foreach (var outputArguments in new[] { Array.Empty<string>(), new[] { "--output", outputPath } })
+        {
+            using var output = new MemoryStream(); using var errors = new StringWriter();
+            Assert.Equal(1, app.Run(["--template", path, "--json", json, .. outputArguments], Stream.Null, output, errors));
+            Assert.Empty(output.ToArray()); Assert.False(File.Exists(outputPath));
+            foreach (var issue in analysis.RootElement.GetProperty("errors").EnumerateArray())
+            {
+                Assert.Contains(issue.GetProperty("code").GetString()!, errors.ToString());
+                Assert.Contains(issue.GetProperty("message").GetString()!, errors.ToString());
+                Assert.Contains(issue.GetProperty("location").GetString()!, errors.ToString());
+            }
+        }
+    }
+
+    [Fact]
+    public void Comment_image_correction_generates_valid_output_through_cli()
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "review-reproductions", "comment-with-image.template.docx");
+        using var provider = new ServiceCollection().AddMonoReport().BuildServiceProvider();
+        var app = new CliApplication(new CliOptionsParser(), provider.GetRequiredService<MergeEngine>(), provider.GetRequiredService<TemplateAnalyzer>());
+        using var output = new MemoryStream(); using var errors = new StringWriter();
+        Assert.Equal(0, app.Run(["--template", path, "--json", "{\"Items\":[\"A\",\"B\"]}"], Stream.Null, output, errors));
+        Assert.Empty(errors.ToString());
+        Docx.AssertValid(output.ToArray(), DocumentFormat.OpenXml.FileFormatVersions.Office2010);
+        Assert.Equal(2, Docx.Read(output.ToArray()).Descendants(MonoReport.Services.WordXml.WordprocessingNamespace + "commentReference").Count());
+    }
+
     private static string WriteTemplate(byte[] bytes)
     {
         var path = Path.Combine(Path.GetTempPath(), $"monoreport-cli-{Guid.NewGuid():N}.docx");

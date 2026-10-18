@@ -1,6 +1,6 @@
 # Feature Spec — Unified Template Syntax and Conditional Blocks
 
-**Status:** Implemented — automated verification complete; Product Owner acceptance pending
+**Status:** FAIL / Pending Acceptance — final corrections implemented; independent verification pending
 
 **Scope:** DOCX implementation; syntax and data semantics designed for future XLSX reuse
 
@@ -86,6 +86,8 @@
 10. Paragraph-delimited blocks may clone or select an intact table, including a table with vertical merges, because the complete table structure moves together.
 11. Preserve paragraphs, runs, styles, tables, rows, cells, images, drawings, relationships, and other unrelated XML. Preservation does not imply specialized interpretation. Marker-only containers and unselected branches must not remain in the output.
 12. Inline control blocks within a paragraph or run are not supported. Scalar substitutions remain inline within ordinary text.
+
+13. Match bookmark and permission endpoints, and comment start/end/reference attachments, by source identity within independent story roots. Their ordered ownership sequences must agree: root, exact loop body, exact conditional branch, or one deleted marker container. Preserve complete local ranges (including overlapping pairs with identical ownership), enclosing ranges, and reference-only point comments. Reject crossing, split-branch, deleted-marker-to-body, duplicate, or missing affected endpoints before rendering with `template.invalid_structure`, identifying both endpoints and the conflicting control. Each footnote/endnote is an independent root. Self-contained marker ranges may disappear; surviving links to them are unsupported.
 
 ## 7. Merged cells
 
@@ -186,7 +188,7 @@
 1. Preserve current coverage of the main document, headers, footers, footnotes, and endnotes.
 2. Blocks cannot cross document parts or independent story roots.
 3. Use one DOCX text-span adapter for supported ordinary paragraph and table content. Do not add special-purpose content parsers, a universal OOXML traversal framework, public content-scope options, or speculative extension points.
-4. Preserve hyperlinks and their contents unchanged. Do not promise scalar substitution or structural markers inside hyperlink text, and never concatenate an expression token across a hyperlink boundary.
+4. Preserve hyperlink content and relationships; explicit internal anchors follow the source/scope contract in section 11.12. Do not promise scalar substitution or structural markers inside hyperlink text, and never concatenate an expression token across a hyperlink boundary.
 5. Do not interpret template expressions inside shapes, floating text boxes, SmartArt, charts, or other embedded or specialized content. Preserve these structures unchanged. Their presence, and the presence of images, drawings, hyperlinks, or other unsupported structures, is not itself an error.
 6. Treat Word fields as opaque content. Preserve their instructions and cached results unchanged and never interpret either as MonoReport syntax. This includes MERGEFIELD instances remaining in a document; removing obsolete MERGEFIELD processing means deleting the legacy recognition and rendering mechanisms, not deleting field XML from generated documents.
 7. Require tracked revisions to be accepted or rejected before processing. Detect recognized WordprocessingML revision markup during existing traversal of supported paragraph and table content whenever practical, including insertion, deletion, move, and property-change elements. If any is present, reject the template with a location-bearing Analyzer structural diagnostic; Analyzer and Generate must reject before producing output or performing irreversible document mutations. Do not attempt revision-aware parsing or rendering, and do not require a separate validation traversal when the existing traversal can detect revisions reliably.
@@ -194,6 +196,10 @@
 9. Do not flatten or rewrite unrelated XML while substituting fields, unescaping literal braces, cloning blocks, or removing branches.
 10. Generated DOCX packages must pass applicable Open XML validation and open in Microsoft Word without repair warnings.
 11. Remove all processed scalar expressions, control markers, and escape syntax from supported content. Expressions in unsupported content may remain unchanged as described in item 8.
+
+12. Bind explicit internal `w:hyperlink/@w:anchor` references to source bookmarks before cloning. The target loop sequence must be a prefix of the reference loop sequence, and each target conditional branch must enclose the reference. Support local forward/backward and inner-to-ancestor references; reject enclosing-to-inner, sibling-loop, outside-to-repeated, potentially removed, and ambiguous affected targets in shared preflight, irrespective of runtime cardinality. Preserve unrelated unresolved anchors and external relationships. Preserve non-repeated bookmark names; allocate unique package-wide names of at most 40 characters for repeated bookmarks and cloned comment-definition bookmarks. Opaque Word fields, including `REF`, `PAGEREF`, and field-code hyperlinks, are not rewritten and are not guaranteed to resolve after structural operations.
+13. All `w:sdt` content controls are opaque. Preserve complete subtrees, properties, data binding, and relationships; exclude their descendants from expression scanning and structural planning, with hard expression boundaries at entry and exit. Presence alone is not an error; visible outside fragments retain normal syntax diagnostics. Revision preflight remains independent of opacity.
+14. Reject the documented WordprocessingML content, cell, move/custom-XML range, deleted-payload, and property-change revision families, plus Office 2010 conflict revisions, as specified in review section 16.6. Preserve source order and nearest paragraph/table/row/cell/property coordinates and shared Analyze/Generate rejection. Do not classify ordinary bookmarks, permissions, comments, proofing/session metadata, vertical merges, or the setting to track future edits as revisions.
 
 ## 12. Legacy removal
 
@@ -229,10 +235,13 @@
 22. Empty-input tests prove that explicit null and empty strings render empty without conversion for every formatter while missing expressions still use every supported `MergeOptions.MissingValues` policy. Analyzer tests prove that invalid formatter syntax and statically invalid patterns are reported even when corresponding data would be null or empty.
 23. `spellout` tests preserve existing positive, negative, grammatical, rounding-away-from-zero, and numeric-kopeck behavior; cover zero and the supported lower and upper boundaries; and apply the same numeric-string cases as `number`, including accepted invariant decimal, exponent, and surrounding-whitespace forms and rejected group separators, culture-specific decimal separators, non-finite values, invalid strings, and overflow. They also reject the first out-of-range rounded ruble amount, Booleans, objects, and arrays; prove culture-independent RUB-only output regardless of `MergeOptions.Culture`; and verify that incompatible inputs produce aggregated generation diagnostics rather than uncaught exceptions.
 24. Supported-content fixtures verify scalar replacement and paragraph- and row-level `For`/`If` rendering in ordinary paragraphs, tables, and nested tables across every supported story, while preserving styles, runs, lists, numbering references, merged cells, images, drawings, relationships, and unrelated OOXML.
-25. Hyperlink fixtures verify that hyperlinks, relationships, and visible hyperlink text remain unchanged; expression-looking text inside a hyperlink remains unprocessed; and tokens split by a hyperlink boundary are not concatenated into an expression.
+25. Hyperlink fixtures verify that explicit anchors follow section 11.12 while relationships and visible hyperlink text remain unchanged; expression-looking text inside a hyperlink remains unprocessed; and tokens split by a hyperlink boundary are not concatenated into an expression.
 26. Unsupported-content fixtures verify that shapes, floating text boxes, SmartArt, charts, and other embedded or specialized structures are preserved unchanged and do not make an otherwise valid ordinary document fail. Tests distinguish any diagnostic reliably produced by supported traversal from the documented case where an unsupported expression remains undiscovered and unchanged.
 27. Word-field fixtures verify that unrelated fields, their instructions, and cached results are preserved byte-for-byte where practical or semantically unchanged, that expression-looking cached text is inert, and that remaining MERGEFIELD instances are not processed or deleted.
-28. Revision fixtures cover insertion, deletion, move, and property-change markup in supported paragraph and table content. Analyzer and Generate must reject the template before output or irreversible mutation with deterministic, location-bearing structural diagnostics, while revision-free documents continue normally. Behavioral tests must not prescribe or depend on a separate validation pass.
+28. Revision fixtures cover insertion, deletion, cell changes, both ends of move/custom-XML revision ranges, deleted payloads, property changes including table exceptions, and Office 2010 conflict revisions in supported paragraph and table content. Analyzer and Generate must reject the template before output or irreversible mutation with deterministic, location-bearing structural diagnostics, while revision-free documents continue normally. Behavioral tests must not prescribe or depend on a separate validation pass.
+
+29. Range/reference fixtures verify the ownership and survival contracts in sections 6.13 and 11.12, including zero/one/many iteration independence, both conditional branches, local/ancestor/ambiguous links, package-wide drawing identity uniqueness in cloned comments, and semantic per-iteration anchor targets. Analyze/Generate diagnostic parity and no partial outputs apply through Core, CLI, and HTTP.
+30. Content-control fixtures verify complete opacity/preservation and hard entry/exit boundaries for inline, block, row, cell, nested, adjacent, and empty controls, including when an enclosing operation moves a complete control. All seven persisted review inputs remain unchanged and source-valid; successful corrected outputs pass Office 2010 validation.
 
 ## 14. Samples and documentation
 
@@ -263,3 +272,9 @@
 4. Report changed public contracts, removed capabilities and code, verification results, manual-check limitations, and migration implications.
 5. Do not stage, commit, tag, push, merge, publish, or release without separate Product Owner authorization.
 6. The Feature is done only when Analyze and Generate use the new syntax and shared parse-once model; supported nested loops, conditions, mixed blocks, tables, and lists behave as specified; obsolete MERGEFIELD and formatter-extension mechanisms are removed; analyzer/API/sample/documentation contracts agree; generated DOCX files remain valid; and all required verification passes or disclosed limitations receive Product Owner acceptance.
+
+## 17. Approved final correction decision on 2026-10-18
+
+1. The Product Owner explicitly approved D1 (range ownership), D2 (static explicit-anchor scope/survival with opaque-field limitation), D3 (fully opaque content controls), Implementation Plan section 13, and implementation of F1–F4 and R1 in the current request. Sections 6.13 and 11.12–11.14 make those contracts normative; historical review sections 15–16 remain unchanged.
+2. Acceptance additionally requires the regression matrix in Implementation Plan section 13.3: all seven unchanged persisted inputs, range ownership, scoped anchor semantics, package-wide clone identities including comments, revision families, content-control boundaries/preservation, diagnostic/transport parity and no partial outputs, Office 2010 validation, and all five example generations. Existing acceptance requirements remain in force.
+3. Implementation authorization is not acceptance. Feature 010 remains FAIL / Pending Acceptance until independent verification and explicit Product Owner acceptance. No new independent review or Git publishing operation is authorized.

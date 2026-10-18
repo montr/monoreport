@@ -22,4 +22,7 @@
     <None Include="../Samples/sample.json" Link="sample.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Samples/sample.docx" Link="sample.docx" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="../.docs/features/010-unified-template-syntax/review-reproductions/*.template.docx;../.docs/features/010-unified-template-syntax/review-reproductions/*.json" Link="review-reproductions/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

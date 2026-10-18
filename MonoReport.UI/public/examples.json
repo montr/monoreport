@@ -9,8 +9,15 @@
       "dataPath": "/examples/orders-report.json"
     },
     {
+      "id": "project-costs",
+      "title": "Project Costs Estimate",
+      "format": "docx",
+      "templatePath": "/examples/project-costs.template.docx",
+      "dataPath": "/examples/project-costs.json"
+    },
+    {
       "id": "syntax-showcase",
-      "title": "MonoReport Syntax & Formatting Showcase",
+      "title": "Syntax & Formatting Showcase",
       "format": "docx",
       "templatePath": "/examples/syntax-showcase.template.docx",
       "dataPath": "/examples/syntax-showcase.json"

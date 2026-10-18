@@ -63,7 +63,8 @@ namespace MonoReport.Tests.Services
                 new TemplateAnalyzer(storyReader, new DocxTemplatePlanner(language)));
         }
 
-        internal static MergeResult Merge(byte[] template, string json, MergeOptions? options = null)
+        internal static MergeResult Merge(byte[] template, string json, MergeOptions? options = null,
+            FileFormatVersions validationVersion = FileFormatVersions.Office2007)
         {
             using (var stream = new MemoryStream(template))
             {
@@ -72,7 +73,7 @@ namespace MonoReport.Tests.Services
                     var result = CreateEngine().Merge(stream, data, options);
                     Assert.True(stream.CanRead);
                     Assert.Equal(template, stream.ToArray());
-                    AssertValid(result.Document);
+                    AssertValid(result.Document, validationVersion);
                     return result;
                 }
             }
@@ -94,13 +95,13 @@ namespace MonoReport.Tests.Services
 
         internal static string Text(XContainer xml) => string.Concat(xml.Descendants(WordXml.TextElementName).Select(x => x.Value));
 
-        internal static void AssertValid(byte[] bytes)
+        internal static void AssertValid(byte[] bytes, FileFormatVersions version = FileFormatVersions.Office2007)
         {
             using (var stream = new MemoryStream(bytes))
             {
                 using (var doc = WordprocessingDocument.Open(stream, false))
                 {
-                    var errors = new OpenXmlValidator().Validate(doc).Select(x => x.Description + " " + x.Path?.XPath).ToArray();
+                    var errors = new OpenXmlValidator(version).Validate(doc).Select(x => x.Description + " " + x.Path?.XPath).ToArray();
                     Assert.True(errors.Length == 0, string.Join(Environment.NewLine, errors));
                 }
             }

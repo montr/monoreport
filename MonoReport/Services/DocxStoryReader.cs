@@ -40,11 +40,14 @@ public sealed class DocxStoryReader
     {
         var main = document.MainDocumentPart;
         if (main is null)
-            return new([], [new("template.unsupported_structure", "DOCX has no main document part.")]);
+            return new([], [new("template.unsupported_structure", "DOCX has no main document part.")],
+                new Dictionary<string, int>(StringComparer.Ordinal), []);
         var stories = new List<(OpenXmlPart, XDocument)>();
         var diagnostics = new List<StructuralDiagnostic>();
+        var partOrder = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (var part in Parts(main))
         {
+            partOrder.Add(part.Uri.ToString(), partOrder.Count);
             try
             {
                 using var input = part.GetStream(FileMode.Open, FileAccess.Read);
@@ -69,7 +72,37 @@ public sealed class DocxStoryReader
                 diagnostics.Add(new("template.invalid_xml", "Invalid DOCX story XML.", Location: part.Uri.ToString()));
             }
         }
-        return new(stories, diagnostics);
+        var packageXml = new List<(OpenXmlPart Part, XDocument Xml)>(stories);
+        foreach (var part in PackageParts(document).OrderBy(part => part.Uri.ToString(), StringComparer.Ordinal))
+        {
+            if (partOrder.ContainsKey(part.Uri.ToString())) continue;
+            partOrder.Add(part.Uri.ToString(), partOrder.Count);
+            if (!part.ContentType.EndsWith("xml", StringComparison.OrdinalIgnoreCase) &&
+                !part.ContentType.EndsWith("+xml", StringComparison.OrdinalIgnoreCase)) continue;
+            try
+            {
+                using var input = part.GetStream(FileMode.Open, FileAccess.Read);
+                using var reader = XmlReader.Create(input, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit });
+                packageXml.Add((part, XDocument.Load(reader, LoadOptions.PreserveWhitespace)));
+            }
+            catch (XmlException)
+            {
+                diagnostics.Add(new("template.invalid_xml", "Invalid DOCX auxiliary XML.", Location: part.Uri.ToString()));
+            }
+        }
+        return new(stories, diagnostics, partOrder, packageXml);
+    }
+
+    private static IEnumerable<OpenXmlPart> PackageParts(WordprocessingDocument document)
+    {
+        var pending = new Queue<OpenXmlPart>(document.Parts.Select(item => item.OpenXmlPart));
+        var seen = new HashSet<OpenXmlPart>();
+        while (pending.TryDequeue(out var part))
+        {
+            if (!seen.Add(part)) continue;
+            foreach (var child in part.Parts) pending.Enqueue(child.OpenXmlPart);
+            yield return part;
+        }
     }
 
     private static IEnumerable<OpenXmlPart> Parts(MainDocumentPart main)

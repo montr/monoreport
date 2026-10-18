@@ -243,11 +243,15 @@ describe("MonoReport playground", () => {
 
   it("shows analysis failures without replacing JSON", async () => {
     const user = userEvent.setup();
-    mockPlaygroundFetch(async () => analysis([], false));
+    mockPlaygroundFetch(async () => new Response(JSON.stringify({ valid: false,
+      errors: [{ code: "template.unmatched_brace", field: "{Name", location: "/word/document.xml, paragraph 40",
+        message: "Template braces are not balanced or escaped correctly. Token: «{Name». Nearby source text: «Invoice reference: {Name»." }],
+      warnings: [], requirements: [], occurrences: [] }), { status: 200 }));
     render(<App />);
     await selectTemplate(user);
     await user.click(screen.getByRole("button", { name: "Generate JSON" }));
-    expect(await screen.findByText("template.invalid_structure", { selector: "strong" })).toBeInTheDocument();
+    expect(await screen.findByText("template.unmatched_brace", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText(/Invoice reference: \{Name/, { selector: ".issue p" })).toHaveTextContent("/word/document.xml, paragraph 40");
     expect(screen.getByLabelText("JSON data")).toHaveValue(sampleData);
   });
 

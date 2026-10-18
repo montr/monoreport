@@ -22,11 +22,24 @@ namespace MonoReport.Models
             FieldCode = first.FieldCode;
             Location = first.Location;
             Formatter = first.Formatter;
+            SourceContext = first.SourceContext;
+            Explanation = first.Explanation;
             Errors = Array.AsReadOnly(errors.ToArray());
             LimitReached = limitReached;
         }
 
+        internal TemplateException(StructuralDiagnostic diagnostic)
+            : this(diagnostic.Detail, diagnostic.Field, diagnostic.FieldCode, diagnostic.Location,
+                diagnostic.Formatter, code: diagnostic.Code)
+        {
+            SourceContext = diagnostic.SourceContext;
+            Explanation = diagnostic.Explanation;
+            Errors = Array.AsReadOnly(new[] { ToDiagnostic(this, null) });
+        }
+
         public string Code { get; }
+        internal string? SourceContext { get; }
+        internal string? Explanation { get; }
         public string? Field { get; }
 
         public string? FieldCode { get; }
@@ -46,9 +59,20 @@ namespace MonoReport.Models
             string? location = null)
         {
             var resolvedLocation = location ?? error.Location;
-            return new(error.Code, SafeMessage(error.Code), error.Field, Part(resolvedLocation),
+            var message = SafeMessage(error.Code);
+            if (error.Code.StartsWith("template.", StringComparison.Ordinal) && error.Field is not null)
+                message += $" Token: «{Excerpt(error.Field, 100)}».";
+            if (error.Explanation is not null) message += " " + Excerpt(error.Explanation, 1600);
+            if (error.SourceContext is not null)
+            {
+                message += $" Nearby source text: «{Excerpt(error.SourceContext, 162)}».";
+            }
+            return new(error.Code, message, error.Field, Part(resolvedLocation),
                 resolvedLocation, error.Formatter, dataPath);
         }
+
+        private static string Excerpt(string value, int limit) =>
+            (value.Length > limit ? value[..limit] + "…" : value).Replace('\r', ' ').Replace('\n', ' ').Replace('\t', ' ');
 
         private static string? Part(string? location) => location?.Split(',', 2)[0];
 

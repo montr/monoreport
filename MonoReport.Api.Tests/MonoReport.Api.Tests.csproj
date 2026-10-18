@@ -19,4 +19,7 @@
     <ProjectReference Include="../MonoReport.Api/MonoReport.Api.csproj" />
     <Compile Include="../MonoReport.Tests/Services/Docx.cs" Link="Services/Docx.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="../.docs/features/010-unified-template-syntax/review-reproductions/*.template.docx;../.docs/features/010-unified-template-syntax/review-reproductions/*.json" Link="review-reproductions/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

@@ -31,7 +31,7 @@ public sealed partial class TemplateLanguageParser
                 if (end < 0)
                 {
                     diagnostics.Add(Error("template.unmatched_brace", "Template expression has no closing brace.",
-                        text[index..], location));
+                        text[index..], location, index));
                     break;
                 }
 
@@ -40,7 +40,7 @@ public sealed partial class TemplateLanguageParser
                 if (content.Contains('{', StringComparison.Ordinal))
                 {
                     diagnostics.Add(Error("template.invalid_expression", "Nested opening braces are not valid inside an expression.",
-                        source, location));
+                        source, location, index));
                 }
                 else if (TryParseExpression(content, source, location, out var expression, out var diagnostic))
                 {
@@ -48,7 +48,7 @@ public sealed partial class TemplateLanguageParser
                 }
                 else
                 {
-                    diagnostics.Add(diagnostic!);
+                    diagnostics.Add(diagnostic! with { SourceOrder = index });
                 }
                 index = end + 1;
                 continue;
@@ -63,7 +63,7 @@ public sealed partial class TemplateLanguageParser
                     continue;
                 }
                 diagnostics.Add(Error("template.unmatched_brace", "Template text contains an unmatched closing brace.",
-                    "}", location));
+                    "}", location, index));
             }
             index++;
         }
@@ -203,8 +203,9 @@ public sealed partial class TemplateLanguageParser
         return -1;
     }
 
-    private static StructuralDiagnostic Error(string code, string detail, string expression, string location) =>
-        new(code, detail, expression, expression, location);
+    private static StructuralDiagnostic Error(string code, string detail, string expression, string location,
+        int sourceOrder = int.MaxValue) =>
+        new(code, detail, expression, expression, location, SourceOrder: sourceOrder);
 
     [GeneratedRegex(@"^[\p{L}_][\p{L}\p{Nd}_]*$", RegexOptions.CultureInvariant)]
     private static partial Regex IdentifierRegex();

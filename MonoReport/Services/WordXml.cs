@@ -25,6 +25,7 @@ namespace MonoReport.Services
 
         public static readonly XName RunElementName = WordprocessingNamespace + "r";
         public static readonly XName RunPropertiesElementName = WordprocessingNamespace + "rPr";
+        public static readonly XName ParagraphPropertiesElementName = WordprocessingNamespace + "pPr";
         public static readonly XName TextElementName = WordprocessingNamespace + "t";
         public static readonly XName SimpleFieldElementName = WordprocessingNamespace + "fldSimple";
         public static readonly XName FieldCharacterElementName = WordprocessingNamespace + "fldChar";
@@ -39,6 +40,8 @@ namespace MonoReport.Services
         public static readonly XName BreakElementName = WordprocessingNamespace + "br";
         public static readonly XName TabElementName = WordprocessingNamespace + "tab";
         public static readonly XName TablePropertiesElementName = WordprocessingNamespace + "tblPr";
+        public static readonly XName TableRowPropertiesElementName = WordprocessingNamespace + "trPr";
+        public static readonly XName TableCellPropertiesElementName = WordprocessingNamespace + "tcPr";
         public static readonly XName TableGridElementName = WordprocessingNamespace + "tblGrid";
         public static readonly XName GridColumnElementName = WordprocessingNamespace + "gridCol";
         public static readonly XName RunFontsElementName = WordprocessingNamespace + "rFonts";

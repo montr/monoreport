@@ -23,10 +23,11 @@ describe("analysis client", () => {
   });
 
   it("preserves location-bearing diagnostics", async () => {
-    const payload = { valid: false, errors: [{ code: "template.invalid_structure", message: "Invalid block", part: "/word/document.xml", location: "paragraph 2" }], warnings: [], requirements: [], occurrences: [] };
+    const message = "Invalid block. Token: «{For:Tags}». Nearby source text: «Invoice reference: {For:Tags} extra».";
+    const payload = { valid: false, errors: [{ code: "template.invalid_structure", message, field: "{For:Tags}", part: "/word/document.xml", location: "paragraph 2" }], warnings: [], requirements: [], occurrences: [] };
     vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(new Response(JSON.stringify(payload), { status: 200 })));
     await expect(analyzeTemplate(new File([], "bad.docx"))).rejects.toMatchObject<Partial<AnalysisFailure>>({
-      diagnostics: [{ title: "template.invalid_structure", detail: "Invalid block", part: "/word/document.xml", location: "paragraph 2" }]
+      diagnostics: [{ title: "template.invalid_structure", detail: message, field: "{For:Tags}", part: "/word/document.xml", location: "paragraph 2" }]
     });
   });
 

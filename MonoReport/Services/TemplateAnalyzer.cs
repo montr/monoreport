@@ -29,32 +29,29 @@ public sealed class TemplateAnalyzer(DocxStoryReader storyReader, DocxTemplatePl
     {
         var storyInspection = _storyReader.Inspect(document);
         var stories = storyInspection.Stories.Select(story => _planner.Plan(story.Part, story.Xml)).ToArray();
-        var diagnostics = storyInspection.Diagnostics.Concat(stories.SelectMany(story => story.Diagnostics)).ToList();
+        var identities = _planner.InspectIdentities(storyInspection, stories);
         var builder = new RequirementBuilder();
         foreach (var dependency in stories.SelectMany(story => story.Dependencies)) builder.Add(dependency);
-        diagnostics.AddRange(builder.Diagnostics);
-        return new(stories, diagnostics, [], builder.Requirements, builder.Occurrences);
+        var diagnostics = storyInspection.Diagnostics.Concat(stories.SelectMany(story => story.Diagnostics))
+            .Concat(builder.Diagnostics).Concat(identities.Diagnostics)
+            .OrderBy(item => DiagnosticPartOrder(item, storyInspection.PartOrder))
+            .ThenBy(item => item.SourceOrder)
+            .ToArray();
+        return new(stories, diagnostics, [], builder.Requirements, builder.Occurrences, storyInspection, identities);
+    }
+
+    private static int DiagnosticPartOrder(StructuralDiagnostic diagnostic,
+        IReadOnlyDictionary<string, int> partOrder)
+    {
+        var part = diagnostic.Location?.Split(',', 2)[0];
+        return part is not null && partOrder.TryGetValue(part, out var order) ? order : int.MaxValue;
     }
 
     private static TemplateValidationIssue Issue(StructuralDiagnostic diagnostic)
     {
         var part = diagnostic.Location?.Split(',', 2)[0];
-        return new(diagnostic.Code, Message(diagnostic.Code), diagnostic.Field, part, diagnostic.Location);
+        return new(diagnostic.Code, diagnostic.ToException().ToDiagnostic(null).Message, diagnostic.Field, part, diagnostic.Location);
     }
-
-    private static string Message(string code) => code switch
-    {
-        "template.invalid_package" => "The content is not a readable DOCX package.",
-        "template.unsupported_structure" => "The DOCX document structure is unsupported.",
-        "template.invalid_xml" => "A document part contains invalid XML.",
-        "template.invalid_expression" => "A template expression has invalid syntax.",
-        "template.unmatched_brace" => "Template braces are not balanced or escaped correctly.",
-        "template.invalid_context" => "A template path is invalid in its current loop context.",
-        "template.invalid_structure" => "A template block has an unsupported or ambiguous structure.",
-        "template.requirement_conflict" => "The same dependency path is used with incompatible requirement types.",
-        "template.tracked_revision" => "Tracked revisions must be accepted or rejected before processing.",
-        _ => "The template is invalid."
-    };
 
     private sealed class RequirementBuilder
     {
@@ -67,7 +64,7 @@ public sealed class TemplateAnalyzer(DocxStoryReader storyReader, DocxTemplatePl
             .SelectMany(node => node.Uses.Select(use => new StructuralDiagnostic(
                 "template.requirement_conflict",
                 $"Dependency '{node.Path}' has incompatible requirement types.", use.Expression.Source,
-                use.Expression.Source, use.Location))).ToArray();
+                use.Expression.Source, use.Location, SourceOrder: use.SourceOrder))).ToArray();
 
         internal void Add(PlannedDependency dependency)
         {

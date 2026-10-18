@@ -38,6 +38,7 @@ namespace MonoReport.Services
                             structural.Select(error => TemplateException.ToDiagnostic(error.ToException(), null)),
                             structural.Length == MergeContext.ErrorLimit);
                     }
+                    context.InitializePackageIds(document, analysis);
                     foreach (var story in analysis.Stories)
                     {
                         if (!_renderer.Render(story, context)) break;
@@ -49,6 +50,7 @@ namespace MonoReport.Services
 
                     if (context.Errors.Count != 0)
                         throw new TemplateException(context.FirstError!, context.Errors, context.LimitReached);
+                    context.SavePackageIdentities();
                 }
 
                 return new(output.ToArray(), context.Warnings.AsReadOnly());

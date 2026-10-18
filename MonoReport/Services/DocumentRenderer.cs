@@ -90,16 +90,25 @@ public sealed class DocumentRenderer(DataResolver resolver, ValueFormatter forma
         XElement targetStart, Dictionary<XElement, XElement> parentMap, MergeContext context)
     {
         if (selected.Count == 0) return true;
-        var cloneMap = new Dictionary<XElement, XElement>();
-        var clones = selected.Select(source => Clone(source, cloneMap)).ToArray();
-        var holder = new XElement("holder", clones);
-        var selectedParagraphs = plan.Paragraphs.Where(paragraph => selected.Any(root =>
-            paragraph.Paragraph == root || paragraph.Paragraph.Ancestors().Contains(root))).ToArray();
-        var selectedBlocks = block.Children.Where(child => selected.Any(root =>
-            child.StartContainer == root || child.StartContainer.Ancestors().Contains(root))).ToArray();
-        if (!RenderScope(plan, selectedParagraphs, selectedBlocks, cloneMap, context)) return false;
-        targetStart.AddBeforeSelf(holder.Elements().ToArray());
-        return true;
+        var previousFrame = context.ActiveIdentities;
+        context.ActiveIdentities = context.CreateIdentityFrame(block, selected);
+        try
+        {
+            var cloneMap = new Dictionary<XElement, XElement>();
+            var clones = context.Clone(selected, cloneMap);
+            var holder = new XElement("holder", clones);
+            var selectedParagraphs = plan.Paragraphs.Where(paragraph => selected.Any(root =>
+                paragraph.Paragraph == root || paragraph.Paragraph.Ancestors().Contains(root))).ToArray();
+            var selectedBlocks = block.Children.Where(child => selected.Any(root =>
+                child.StartContainer == root || child.StartContainer.Ancestors().Contains(root))).ToArray();
+            if (!RenderScope(plan, selectedParagraphs, selectedBlocks, cloneMap, context)) return false;
+            targetStart.AddBeforeSelf(holder.Elements().ToArray());
+            return true;
+        }
+        finally
+        {
+            context.ActiveIdentities = previousFrame;
+        }
     }
 
     private bool RenderParagraph(ParagraphPlan paragraph, Dictionary<XElement, XElement> map, MergeContext context)
@@ -169,13 +178,6 @@ public sealed class DocumentRenderer(DataResolver resolver, ValueFormatter forma
         for (var index = 0; index < spans.Count; index++)
             if (offset >= spans[index].Start && offset < spans[index].Start + spans[index].Length) return index;
         return Math.Max(0, spans.Count - 1);
-    }
-
-    private static XElement Clone(XElement source, Dictionary<XElement, XElement> map)
-    {
-        var clone = new XElement(source);
-        foreach (var pair in source.DescendantsAndSelf().Zip(clone.DescendantsAndSelf())) map.Add(pair.First, pair.Second);
-        return clone;
     }
 
     private static bool Contains(BlockPlan block, XElement element)

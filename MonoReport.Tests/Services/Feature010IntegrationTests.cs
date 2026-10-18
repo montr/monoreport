@@ -25,16 +25,26 @@ public sealed class Feature010IntegrationTests
         using var provider = new ServiceCollection().AddMonoReport().BuildServiceProvider();
         var engine = provider.GetRequiredService<MergeEngine>();
         var template = Docx.Create(Docx.P(Docx.Run("{For:Items}")),
-            Docx.P(Docx.Run("{.}")), Docx.P(Docx.Run("{EndFor}")));
+            Docx.P(Feature010IdentityTests.Bookmark(0, "Item", "{.}"), Feature010IdentityTests.Link("Item", "link")),
+            Docx.P(Docx.Run("{EndFor}")));
 
         var outputs = await Task.WhenAll(Enumerable.Range(0, 20).Select(index => Task.Run(() =>
         {
             using var input = new MemoryStream(template);
             using var data = JsonDocument.Parse($"{{\"Items\":[\"{index}\",\"x\"]}}");
-            return Docx.Text(Docx.Read(engine.Merge(input, data).Document));
+            var result = engine.Merge(input, data).Document;
+            Docx.AssertValid(result);
+            var xml = Docx.Read(result);
+            var w = MonoReport.Services.WordXml.WordprocessingNamespace;
+            var bookmarks = xml.Descendants(w + "bookmarkStart").ToArray();
+            Assert.Equal(2, bookmarks.Select(e => (string?)e.Attribute(w + "name")).Distinct().Count());
+            var links = xml.Descendants(w + "hyperlink").ToArray();
+            for (var i = 0; i < links.Length; i++)
+                Assert.Equal((string?)bookmarks[i].Attribute(w + "name"), (string?)links[i].Attribute(w + "anchor"));
+            return Docx.Text(xml);
         })));
 
-        Assert.Equal(Enumerable.Range(0, 20).Select(index => index + "x"), outputs);
+        Assert.Equal(Enumerable.Range(0, 20).Select(index => index + "linkxlink"), outputs);
     }
 
     [Fact]

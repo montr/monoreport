@@ -172,6 +172,72 @@ public sealed class Feature010DocxTests
         Assert.Contains(analysis.Errors, issue => issue.Code == "template.invalid_structure");
     }
 
+    [Theory]
+    [InlineData("{For:Items}", "symbol")]
+    [InlineData("{If:Show}", "symbol")]
+    [InlineData("{Else}", "symbol")]
+    [InlineData("{EndIf}", "symbol")]
+    [InlineData("{EndFor}", "symbol")]
+    [InlineData("{For:Items}", "drawing")]
+    [InlineData("{If:Show}", "drawing")]
+    [InlineData("{Else}", "drawing")]
+    [InlineData("{EndIf}", "drawing")]
+    [InlineData("{EndFor}", "drawing")]
+    public void Analyzer_rejects_marker_paragraphs_with_non_text_content(string marker, string content)
+    {
+        var contaminant = content == "symbol"
+            ? new XElement(WordXml.WordprocessingNamespace + "sym",
+                new XAttribute(WordXml.WordprocessingNamespace + "font", "Wingdings"),
+                new XAttribute(WordXml.WordprocessingNamespace + "char", "F0FC"))
+            : Drawing(41);
+        XElement Marker(string text)
+        {
+            var paragraph = Docx.P(Docx.Run(text));
+            if (text == marker) paragraph.Add(new XElement(WordXml.RunElementName, contaminant));
+            return paragraph;
+        }
+        var paragraphs = marker switch
+        {
+            "{For:Items}" => new[] { Marker("{For:Items}"), Docx.P(Docx.Run("{.}")), Marker("{EndFor}") },
+            "{EndFor}" => new[] { Marker("{For:Items}"), Docx.P(Docx.Run("{.}")), Marker("{EndFor}") },
+            "{If:Show}" => new[] { Marker("{If:Show}"), Docx.P(Docx.Run("yes")), Marker("{EndIf}") },
+            "{Else}" => new[] { Marker("{If:Show}"), Docx.P(Docx.Run("yes")), Marker("{Else}"),
+                Docx.P(Docx.Run("no")), Marker("{EndIf}") },
+            _ => new[] { Marker("{If:Show}"), Docx.P(Docx.Run("yes")), Marker("{EndIf}") }
+        };
+        var template = Docx.Create(paragraphs);
+        Docx.AssertValid(template);
+        using var stream = new MemoryStream(template);
+
+        var analysis = Analyzer().Analyze(stream);
+
+        Assert.False(analysis.Valid);
+        Assert.Contains(analysis.Errors, issue => issue.Code == "template.invalid_structure");
+    }
+
+    [Theory]
+    [InlineData("For")]
+    [InlineData("If")]
+    public void Formatting_only_marker_paragraphs_remain_valid(string blockKind)
+    {
+        var w = WordXml.WordprocessingNamespace;
+        XElement Marker(string text) => new(WordXml.ParagraphElementName,
+            new XElement(WordXml.ParagraphPropertiesElementName,
+                new XElement(w + "keepNext")),
+            new XElement(WordXml.RunElementName,
+                new XElement(WordXml.RunPropertiesElementName, new XElement(w + "b")),
+                new XElement(WordXml.TextElementName, text)));
+        var template = blockKind == "For"
+            ? Docx.Create(Marker("{For:Items}"), Docx.P(Docx.Run("{.}")), Marker("{EndFor}"))
+            : Docx.Create(Marker("{If:Show}"), Docx.P(Docx.Run("yes")), Marker("{Else}"),
+                Docx.P(Docx.Run("no")), Marker("{EndIf}"));
+        using var stream = new MemoryStream(template);
+
+        var analysis = Analyzer().Analyze(stream);
+
+        Assert.True(analysis.Valid);
+    }
+
     [Fact]
     public void Analyzer_rejects_vertical_merge_in_row_region()
     {
@@ -208,6 +274,32 @@ public sealed class Feature010DocxTests
             Docx.P(Docx.Run("{EndFor}")));
         var paragraphResult = Docx.Merge(paragraphTemplate, """{"Items":[1,2]}""");
         Assert.Equal(4, Docx.Read(paragraphResult.Document).Descendants(w + "vMerge").Count());
+    }
+
+    [Fact]
+    public void Outer_row_loop_clones_complete_nested_table_with_vertical_merge()
+    {
+        var w = WordXml.WordprocessingNamespace;
+        XElement MergedRow(string value) => new(WordXml.TableRowElementName,
+            new XElement(WordXml.TableCellElementName,
+                new XElement(WordXml.TableCellPropertiesElementName,
+                    new XElement(WordXml.VerticalMergeElementName, new XAttribute(w + "val", value))),
+                Docx.P(Docx.Run("merged"))));
+        var nested = Docx.Table(MergedRow("restart"), MergedRow("continue"));
+        var body = new XElement(WordXml.TableRowElementName,
+            new XElement(WordXml.TableCellElementName, Docx.P(Docx.Run("{Name}")), nested));
+        var template = Docx.Create(Docx.Table(
+            Docx.Row(Docx.Run("{For:Items}")), body, Docx.Row(Docx.Run("{EndFor}"))));
+        Docx.AssertValid(template);
+
+        var result = Docx.Merge(template, """{"Items":[{"Name":"A"},{"Name":"B"}]}""");
+        var xml = Docx.Read(result.Document);
+        var outer = xml.Descendants(WordXml.TableElementName).First();
+
+        Assert.Equal(2, outer.Elements(WordXml.TableRowElementName).Count());
+        Assert.Equal(2, outer.Descendants(WordXml.TableElementName).Count());
+        Assert.Equal(4, outer.Descendants(WordXml.VerticalMergeElementName).Count());
+        Assert.Equal("AmergedmergedBmergedmerged", Docx.Text(xml));
     }
 
     [Fact]
@@ -335,6 +427,432 @@ public sealed class Feature010DocxTests
         Assert.False(result.Valid);
         Assert.Empty(result.Occurrences);
         Assert.All(result.Errors, error => Assert.Contains(error.Code, new[] { "template.unmatched_brace" }));
+    }
+
+    [Theory]
+    [InlineData("symbol")]
+    [InlineData("tab")]
+    [InlineData("break")]
+    public void Expression_text_is_not_joined_across_non_text_run_content(string kind)
+    {
+        var w = WordXml.WordprocessingNamespace;
+        var boundary = kind switch
+        {
+            "symbol" => new XElement(w + "sym", new XAttribute(w + "font", "Wingdings"),
+                new XAttribute(w + "char", "F0FC")),
+            "tab" => new XElement(WordXml.TabElementName),
+            _ => new XElement(WordXml.BreakElementName)
+        };
+        var template = Docx.Create(Docx.P(Docx.Run("{Na"),
+            new XElement(WordXml.RunElementName, boundary), Docx.Run("me}")));
+        Docx.AssertValid(template);
+        using var stream = new MemoryStream(template);
+
+        var analysis = Analyzer().Analyze(stream);
+
+        Assert.False(analysis.Valid);
+        Assert.Empty(analysis.Occurrences);
+        Assert.All(analysis.Errors, issue => Assert.Equal("template.unmatched_brace", issue.Code));
+    }
+
+    [Theory]
+    [InlineData("hyperlink")]
+    [InlineData("field")]
+    [InlineData("drawing")]
+    [InlineData("picture")]
+    public void Analyzer_rejects_marker_rows_with_additional_opaque_visible_content(string kind)
+    {
+        var start = new XElement(WordXml.TableRowElementName,
+            new XElement(WordXml.TableCellElementName, Docx.P(Docx.Run("{For:Items}"))),
+            new XElement(WordXml.TableCellElementName, Docx.P(OpaqueContent(kind, visible: true))));
+        var template = Docx.Create(Docx.Table(start, Docx.Row(Docx.Run("{.}")),
+            Docx.Row(Docx.Run("{EndFor}"))));
+        using var stream = new MemoryStream(template);
+
+        var analysis = Analyzer().Analyze(stream);
+
+        Assert.False(analysis.Valid);
+        Assert.Contains(analysis.Errors, issue => issue.Code == "template.invalid_structure");
+    }
+
+    [Theory]
+    [InlineData("hyperlink")]
+    [InlineData("field")]
+    public void Analyzer_rejects_marker_rows_with_visible_symbols_inside_opaque_content(string kind)
+    {
+        var w = WordXml.WordprocessingNamespace;
+        var symbol = new XElement(w + "sym", new XAttribute(w + "font", "Wingdings"),
+            new XAttribute(w + "char", "F0FC"));
+        var opaque = kind == "hyperlink"
+            ? new XElement(WordXml.HyperlinkElementName, new XElement(WordXml.RunElementName, symbol))
+            : new XElement(WordXml.SimpleFieldElementName, new XAttribute(WordXml.InstructionAttributeName, "PAGE"),
+                new XElement(WordXml.RunElementName, symbol));
+        var start = new XElement(WordXml.TableRowElementName,
+            new XElement(WordXml.TableCellElementName, Docx.P(Docx.Run("{For:Items}"))),
+            new XElement(WordXml.TableCellElementName, Docx.P(opaque)));
+        var template = Docx.Create(Docx.Table(start, Docx.Row(Docx.Run("{.}")),
+            Docx.Row(Docx.Run("{EndFor}"))));
+        Docx.AssertValid(template);
+        using var stream = new MemoryStream(template);
+
+        var analysis = Analyzer().Analyze(stream);
+
+        Assert.False(analysis.Valid);
+        Assert.Contains(analysis.Errors, issue => issue.Code == "template.invalid_structure");
+    }
+
+    [Theory]
+    [InlineData("hyperlink")]
+    [InlineData("field")]
+    [InlineData("drawing")]
+    [InlineData("picture")]
+    public void Empty_opaque_content_splits_expression_text_groups(string kind)
+    {
+        var template = Docx.Create(Docx.P(Docx.Run("{Na"), OpaqueContent(kind, visible: false), Docx.Run("me}")));
+        using var stream = new MemoryStream(template);
+
+        var analysis = Analyzer().Analyze(stream);
+
+        Assert.False(analysis.Valid);
+        Assert.Empty(analysis.Occurrences);
+        Assert.All(analysis.Errors, issue => Assert.Equal("template.unmatched_brace", issue.Code));
+    }
+
+    [Fact]
+    public void Complex_word_field_state_remains_opaque_across_paragraphs()
+    {
+        var template = Docx.Create(
+            Docx.P(new XElement(WordXml.RunElementName, Docx.Character(WordXml.FieldBeginValue),
+                new XElement(WordXml.InstructionTextElementName, "PAGE"))),
+            Docx.P(Docx.Run("{Hidden}"), new XElement(WordXml.RunElementName,
+                Docx.Character(WordXml.FieldEndValue))),
+            Docx.P(Docx.Run("{Visible}")));
+        using var stream = new MemoryStream(template);
+
+        var analysis = Analyzer().Analyze(stream);
+
+        Assert.True(analysis.Valid);
+        var occurrence = Assert.Single(analysis.Occurrences);
+        Assert.Equal("{Visible}", occurrence.Expression);
+        var result = Docx.Merge(template, """{"Hidden":"NO","Visible":"OK"}""");
+        Assert.Equal("{Hidden}OK", Docx.Text(Docx.Read(result.Document)));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Complex_word_field_state_crosses_hyperlink_wrappers_without_processing_hyperlink_text(
+        bool beginInsideHyperlink)
+    {
+        var w = WordXml.WordprocessingNamespace;
+        XElement Hyperlink(params object[] content) => new(WordXml.HyperlinkElementName,
+            new XAttribute(WordXml.AnchorAttributeName, "target"), content);
+        var field = beginInsideHyperlink
+            ? Docx.P(Hyperlink(new XElement(WordXml.RunElementName, Docx.Character(WordXml.FieldBeginValue),
+                    new XElement(WordXml.InstructionTextElementName, " PAGE "))),
+                Docx.Run("{Hidden}"),
+                new XElement(WordXml.RunElementName, Docx.Character(WordXml.FieldEndValue)), Docx.Run("{Visible}"))
+            : Docx.P(new XElement(WordXml.RunElementName, Docx.Character(WordXml.FieldBeginValue),
+                    new XElement(WordXml.InstructionTextElementName, " PAGE ")),
+                Hyperlink(Docx.Run("{Hidden}"),
+                    new XElement(WordXml.RunElementName, Docx.Character(WordXml.FieldEndValue))),
+                Docx.Run("{Visible}"));
+        var template = Docx.Create(
+            new XElement(WordXml.ParagraphElementName,
+                new XElement(w + "bookmarkStart", new XAttribute(w + "id", 0),
+                    new XAttribute(w + "name", "target")),
+                Docx.Run("target"), new XElement(w + "bookmarkEnd", new XAttribute(w + "id", 0))),
+            field);
+        Docx.AssertValid(template);
+        using var stream = new MemoryStream(template);
+
+        var analysis = Analyzer().Analyze(stream);
+
+        Assert.True(analysis.Valid);
+        var occurrence = Assert.Single(analysis.Occurrences);
+        Assert.Equal("{Visible}", occurrence.Expression);
+        var result = Docx.Merge(template, """{"Hidden":"NO","Visible":"OK"}""");
+        Assert.Equal("target{Hidden}OK", Docx.Text(Docx.Read(result.Document)));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Complete_bookmark_pairs_are_allowed_around_paragraph_and_row_markers(bool rowMarker)
+    {
+        var w = WordXml.WordprocessingNamespace;
+        XElement MarkerParagraph(string marker, int id) => new(WordXml.ParagraphElementName,
+            new XElement(w + "bookmarkStart", new XAttribute(w + "id", id),
+                new XAttribute(w + "name", "marker" + id)),
+            Docx.Run(marker), new XElement(w + "bookmarkEnd", new XAttribute(w + "id", id)));
+        var template = rowMarker
+            ? Docx.Create(Docx.Table(
+                new XElement(WordXml.TableRowElementName,
+                    new XElement(WordXml.TableCellElementName, MarkerParagraph("{For:Items}", 4))),
+                Docx.Row(Docx.Run("{.}")),
+                new XElement(WordXml.TableRowElementName,
+                    new XElement(WordXml.TableCellElementName, MarkerParagraph("{EndFor}", 5)))))
+            : Docx.Create(MarkerParagraph("{For:Items}", 4), Docx.P(Docx.Run("{.}")),
+                MarkerParagraph("{EndFor}", 5));
+        Docx.AssertValid(template);
+        using var stream = new MemoryStream(template);
+
+        var analysis = Analyzer().Analyze(stream);
+
+        Assert.True(analysis.Valid);
+        Assert.Equal("AB", Docx.Text(Docx.Read(Docx.Merge(template, """{"Items":["A","B"]}""").Document)));
+    }
+
+    [Fact]
+    public void Repeated_bookmark_and_permission_ranges_receive_local_ids_and_bookmark_references_follow_names()
+    {
+        var w = WordXml.WordprocessingNamespace;
+        var body = new XElement(WordXml.ParagraphElementName,
+            new XElement(w + "bookmarkStart", new XAttribute(w + "id", 8),
+                new XAttribute(w + "name", "item")),
+            new XElement(w + "permStart", new XAttribute(w + "id", 9), new XAttribute(w + "edGrp", "everyone")),
+            Docx.Run("{Name}"),
+            new XElement(w + "permEnd", new XAttribute(w + "id", 9)),
+            new XElement(w + "bookmarkEnd", new XAttribute(w + "id", 8)),
+            new XElement(WordXml.HyperlinkElementName, new XAttribute(WordXml.AnchorAttributeName, "item"),
+                Docx.Run("link")));
+        var template = Docx.Create(Docx.P(Docx.Run("{For:Items}")), body,
+            Docx.P(Docx.Run("{EndFor}")));
+        Docx.AssertValid(template);
+
+        var result = Docx.Merge(template, """{"Items":[{"Name":"A"},{"Name":"B"}]}""");
+        var xml = Docx.Read(result.Document);
+        var bookmarkStarts = xml.Descendants(w + "bookmarkStart").ToArray();
+        var bookmarkEnds = xml.Descendants(w + "bookmarkEnd").ToArray();
+        var permissionStarts = xml.Descendants(w + "permStart").ToArray();
+        var permissionEnds = xml.Descendants(w + "permEnd").ToArray();
+        var names = bookmarkStarts.Select(item => (string)item.Attribute(w + "name")!).ToArray();
+
+        Assert.Equal(2, names.Distinct().Count());
+        Assert.Equal(bookmarkStarts.Select(item => (string)item.Attribute(w + "id")!),
+            bookmarkEnds.Select(item => (string)item.Attribute(w + "id")!));
+        Assert.Equal(permissionStarts.Select(item => (string)item.Attribute(w + "id")!),
+            permissionEnds.Select(item => (string)item.Attribute(w + "id")!));
+        Assert.Equal(2, permissionStarts.Select(item => (string)item.Attribute(w + "id")!).Distinct().Count());
+        Assert.Equal(names, xml.Descendants(WordXml.HyperlinkElementName)
+            .Select(item => (string)item.Attribute(WordXml.AnchorAttributeName)!));
+    }
+
+    [Fact]
+    public void Repeated_comment_ranges_receive_matching_cloned_comment_identities()
+    {
+        var w = WordXml.WordprocessingNamespace;
+        var body = new XElement(WordXml.ParagraphElementName,
+            new XElement(w + "commentRangeStart", new XAttribute(w + "id", 0)),
+            Docx.Run("{Name}"),
+            new XElement(w + "commentRangeEnd", new XAttribute(w + "id", 0)),
+            new XElement(WordXml.RunElementName,
+                new XElement(w + "commentReference", new XAttribute(w + "id", 0))));
+        var template = Docx.Create(Docx.P(Docx.Run("{For:Items}")), body,
+            Docx.P(Docx.Run("{EndFor}")));
+        using var prepared = new MemoryStream();
+        prepared.Write(template);
+        prepared.Position = 0;
+        using (var document = WordprocessingDocument.Open(prepared, true))
+        {
+            var comments = document.MainDocumentPart!.AddNewPart<WordprocessingCommentsPart>();
+            using var target = comments.GetStream(FileMode.Create, FileAccess.Write);
+            new XDocument(new XElement(w + "comments",
+                new XElement(w + "comment", new XAttribute(w + "id", 0), new XAttribute(w + "author", "A"),
+                    new XAttribute(w + "initials", "A"),
+                    new XAttribute(w + "date", "2026-10-18T00:00:00Z"), Docx.P(Docx.Run("comment"))))).Save(target);
+        }
+        var preparedBytes = prepared.ToArray();
+        Docx.AssertValid(preparedBytes);
+
+        var result = Docx.Merge(preparedBytes, """{"Items":[{"Name":"A"},{"Name":"B"}]}""");
+        var xml = Docx.Read(result.Document);
+
+        Assert.Equal(2, xml.Descendants(w + "commentRangeStart").Count());
+        var starts = xml.Descendants(w + "commentRangeStart").Select(item => (string)item.Attribute(w + "id")!).ToArray();
+        Assert.Equal(2, starts.Distinct().Count());
+        Assert.Equal(starts, xml.Descendants(w + "commentRangeEnd").Select(item => (string)item.Attribute(w + "id")!));
+        Assert.Equal(starts, xml.Descendants(w + "commentReference").Select(item => (string)item.Attribute(w + "id")!));
+        using var resultStream = new MemoryStream(result.Document);
+        using var generated = WordprocessingDocument.Open(resultStream, false);
+        var commentIds = generated.MainDocumentPart!.WordprocessingCommentsPart!.Comments!
+            .Elements<DocumentFormat.OpenXml.Wordprocessing.Comment>()
+            .Select(item => item.Id!.Value!).ToArray();
+        Assert.Equal(3, commentIds.Length);
+        Assert.All(starts, id => Assert.Contains(id, commentIds));
+    }
+
+    [Fact]
+    public void Repeated_drawings_receive_unique_document_property_ids()
+    {
+        var template = Docx.Create(
+            Docx.P(Docx.Run("{For:Items}")),
+            Docx.P(new XElement(WordXml.RunElementName, Drawing(7))),
+            Docx.P(Docx.Run("{EndFor}")));
+        var image = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        string relationshipId;
+        using var prepared = new MemoryStream();
+        prepared.Write(template);
+        prepared.Position = 0;
+        using (var document = WordprocessingDocument.Open(prepared, true))
+        {
+            var main = document.MainDocumentPart!;
+            var imagePart = main.AddImagePart(ImagePartType.Png);
+            using (var target = imagePart.GetStream(FileMode.Create, FileAccess.Write)) target.Write(image);
+            relationshipId = main.GetIdOfPart(imagePart);
+            XDocument preparedXml;
+            using (var source = main.GetStream()) preparedXml = XDocument.Load(source);
+            XNamespace a = "http://schemas.openxmlformats.org/drawingml/2006/main";
+            preparedXml.Descendants(a + "blip").Single().SetAttributeValue(WordXml.RelationshipsNamespace + "embed",
+                relationshipId);
+            using var output = main.GetStream(FileMode.Create, FileAccess.Write);
+            preparedXml.Save(output);
+        }
+
+        var result = Docx.Merge(prepared.ToArray(), """{"Items":[1,2]}""");
+        var xml = Docx.Read(result.Document);
+        XNamespace wp = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing";
+        XNamespace drawing = "http://schemas.openxmlformats.org/drawingml/2006/main";
+        var ids = xml.Descendants(wp + "docPr").Select(item => (uint)item.Attribute("id")!).ToArray();
+
+        Assert.Equal(2, ids.Length);
+        Assert.Equal(ids.Length, ids.Distinct().Count());
+        Assert.All(xml.Descendants(drawing + "blip"), blip =>
+            Assert.Equal(relationshipId, (string?)blip.Attribute(WordXml.RelationshipsNamespace + "embed")));
+        using var resultStream = new MemoryStream(result.Document);
+        using var generated = WordprocessingDocument.Open(resultStream, false);
+        using var preserved = generated.MainDocumentPart!.GetPartById(relationshipId).GetStream();
+        using var bytes = new MemoryStream();
+        preserved.CopyTo(bytes);
+        Assert.Equal(image, bytes.ToArray());
+    }
+
+    [Fact]
+    public void Repeated_drawings_receive_ids_unique_across_main_and_header_stories()
+    {
+        var template = Docx.Create(
+            Docx.P(Docx.Run("{For:Items}")),
+            Docx.P(new XElement(WordXml.RunElementName, Drawing(7))),
+            Docx.P(Docx.Run("{EndFor}")));
+        using var prepared = new MemoryStream();
+        prepared.Write(template);
+        prepared.Position = 0;
+        using (var document = WordprocessingDocument.Open(prepared, true))
+        {
+            var header = document.MainDocumentPart!.AddNewPart<HeaderPart>();
+            using var target = header.GetStream(FileMode.Create, FileAccess.Write);
+            new XDocument(new XElement(WordXml.HeaderElementName,
+                Docx.P(new XElement(WordXml.RunElementName, Drawing(1))))).Save(target);
+        }
+
+        var result = Docx.Merge(prepared.ToArray(), """{"Items":[1,2]}""");
+        XNamespace wp = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing";
+        var stories = Docx.ReadStories(result.Document);
+        var properties = stories.Values.SelectMany(story => story.Descendants(wp + "docPr")).ToArray();
+        var ids = properties.Select(item => (uint)item.Attribute("id")!).ToArray();
+
+        Assert.Equal(3, ids.Length);
+        Assert.Equal(ids.Length, ids.Distinct().Count());
+        Assert.Contains(properties, item => (string?)item.Attribute("name") == "Picture 1");
+        Assert.Equal(2, properties.Count(item => (string?)item.Attribute("name") == "Picture 7"));
+    }
+
+    [Fact]
+    public void Repeated_drawings_reserve_ids_from_comments_and_glossary_parts()
+    {
+        var w = WordXml.WordprocessingNamespace;
+        var template = Docx.Create(Docx.P(Docx.Run("{For:Items}")),
+            Docx.P(new XElement(WordXml.RunElementName, Drawing(1))),
+            Docx.P(Docx.Run("{EndFor}")));
+        using var prepared = new MemoryStream();
+        prepared.Write(template);
+        prepared.Position = 0;
+        using (var document = WordprocessingDocument.Open(prepared, true))
+        {
+            var main = document.MainDocumentPart!;
+            var comments = main.AddNewPart<WordprocessingCommentsPart>();
+            using (var target = comments.GetStream(FileMode.Create, FileAccess.Write))
+                new XDocument(new XElement(w + "comments",
+                    new XElement(w + "comment", new XAttribute(w + "id", 0), new XAttribute(w + "author", "A"),
+                        new XAttribute(w + "initials", "A"),
+                        new XAttribute(w + "date", "2026-10-18T00:00:00Z"),
+                        Docx.P(new XElement(WordXml.RunElementName, Drawing(2)))))).Save(target);
+            var glossary = main.AddNewPart<GlossaryDocumentPart>();
+            using var glossaryTarget = glossary.GetStream(FileMode.Create, FileAccess.Write);
+            new XDocument(new XElement(w + "glossaryDocument",
+                new XElement(w + "docParts",
+                    new XElement(w + "docPart",
+                        new XElement(w + "docPartPr", new XElement(w + "name", new XAttribute(w + "val", "Entry"))),
+                        new XElement(w + "docPartBody",
+                            Docx.P(new XElement(WordXml.RunElementName, Drawing(3)))))))).Save(glossaryTarget);
+        }
+        var preparedBytes = prepared.ToArray();
+        Docx.AssertValid(preparedBytes);
+
+        var result = Docx.Merge(preparedBytes, """{"Items":[1,2]}""");
+        using var resultStream = new MemoryStream(result.Document);
+        using var generated = WordprocessingDocument.Open(resultStream, false);
+        var ids = generated.MainDocumentPart!.Document!.Descendants<DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties>()
+            .Select(item => item.Id!.Value).ToArray();
+
+        Assert.Equal(2, ids.Length);
+        Assert.All(ids, id => Assert.DoesNotContain(id, new uint[] { 1, 2, 3 }));
+        Assert.Equal(2, ids.Distinct().Count());
+    }
+
+    [Fact]
+    public void Analyzer_diagnostics_follow_source_order_across_processing_phases()
+    {
+        var template = Docx.Create(
+            Docx.P(Docx.Run("{Value}")),
+            Docx.P(Docx.Run("{For:Value}")),
+            Docx.P(Docx.Run("{EndFor}")),
+            Docx.P(Docx.Run("{Broken")));
+        using var stream = new MemoryStream(template);
+
+        var analysis = Analyzer().Analyze(stream);
+
+        Assert.False(analysis.Valid);
+        Assert.Equal(new[] { 1, 2, 4 }, analysis.Errors.Select(issue =>
+            int.Parse(issue.Location!.Split("paragraph ", StringSplitOptions.None)[1].Split(',')[0])));
+        Assert.Equal(new[] { "template.requirement_conflict", "template.requirement_conflict", "template.unmatched_brace" },
+            analysis.Errors.Select(issue => issue.Code));
+
+        using var sameParagraph = new MemoryStream(Docx.Create(
+            Docx.P(Docx.Run("{Value}{For:Value}{EndFor}{Broken"))));
+        var sameParagraphAnalysis = Analyzer().Analyze(sameParagraph);
+        Assert.Equal(new[]
+        {
+            "template.requirement_conflict",
+            "template.invalid_structure",
+            "template.requirement_conflict",
+            "template.invalid_structure",
+            "template.unmatched_brace"
+        }, sameParagraphAnalysis.Errors.Select(issue => issue.Code));
+    }
+
+    [Fact]
+    public void Analyzer_anchors_parser_diagnostics_to_the_actual_text_node_after_a_formatting_revision()
+    {
+        var w = WordXml.WordprocessingNamespace;
+        var template = Docx.Create(Docx.P(
+            Docx.Run("prefix"),
+            new XElement(WordXml.RunElementName,
+                new XElement(WordXml.RunPropertiesElementName,
+                    new XElement(w + "rPrChange", new XAttribute(w + "id", 1),
+                        new XAttribute(w + "author", "Reviewer"),
+                        new XAttribute(w + "date", "2026-10-18T00:00:00Z"),
+                        new XElement(WordXml.RunPropertiesElementName))),
+                new XElement(WordXml.TextElementName, "middle")),
+            Docx.Run("{Broken")));
+        Docx.AssertValid(template);
+        using var stream = new MemoryStream(template);
+
+        var analysis = Analyzer().Analyze(stream);
+
+        Assert.Equal(new[] { "template.tracked_revision", "template.unmatched_brace" },
+            analysis.Errors.Select(issue => issue.Code));
     }
 
     [Theory]
@@ -553,5 +1071,51 @@ public sealed class Feature010DocxTests
     {
         var reader = new DocxStoryReader();
         return new(reader, new DocxTemplatePlanner(new TemplateLanguageParser()));
+    }
+
+    private static XElement OpaqueContent(string kind, bool visible)
+    {
+        var text = visible ? "visible" : string.Empty;
+        XNamespace v = "urn:schemas-microsoft-com:vml";
+        return kind switch
+        {
+            "hyperlink" => new XElement(WordXml.HyperlinkElementName, visible ? Docx.Run(text) : null),
+            "field" => Docx.Field("PAGE", text),
+            "drawing" => Drawing(1),
+            "picture" => new XElement(WordXml.PictureElementName,
+                new XElement(v + "shape", visible ? new XElement(v + "textbox", Docx.P(Docx.Run(text))) : null)),
+            _ => throw new ArgumentOutOfRangeException(nameof(kind))
+        };
+    }
+
+    private static XElement Drawing(uint id)
+    {
+        XNamespace a = "http://schemas.openxmlformats.org/drawingml/2006/main";
+        XNamespace pic = "http://schemas.openxmlformats.org/drawingml/2006/picture";
+        XNamespace wp = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing";
+        return new XElement(WordXml.DrawingElementName,
+            new XElement(wp + "inline",
+                new XElement(wp + "extent", new XAttribute("cx", 9525), new XAttribute("cy", 9525)),
+                new XElement(wp + "effectExtent", new XAttribute("l", 0), new XAttribute("t", 0),
+                    new XAttribute("r", 0), new XAttribute("b", 0)),
+                new XElement(wp + "docPr", new XAttribute("id", id), new XAttribute("name", $"Picture {id}")),
+                new XElement(wp + "cNvGraphicFramePr",
+                    new XElement(a + "graphicFrameLocks", new XAttribute("noChangeAspect", 1))),
+                new XElement(a + "graphic",
+                    new XElement(a + "graphicData",
+                        new XAttribute("uri", "http://schemas.openxmlformats.org/drawingml/2006/picture"),
+                        new XElement(pic + "pic",
+                            new XElement(pic + "nvPicPr",
+                                new XElement(pic + "cNvPr", new XAttribute("id", 0),
+                                    new XAttribute("name", "image.png")),
+                                new XElement(pic + "cNvPicPr")),
+                            new XElement(pic + "blipFill", new XElement(a + "blip"),
+                                new XElement(a + "stretch", new XElement(a + "fillRect"))),
+                            new XElement(pic + "spPr",
+                                new XElement(a + "xfrm",
+                                    new XElement(a + "off", new XAttribute("x", 0), new XAttribute("y", 0)),
+                                    new XElement(a + "ext", new XAttribute("cx", 9525), new XAttribute("cy", 9525))),
+                                new XElement(a + "prstGeom", new XAttribute("prst", "rect"),
+                                    new XElement(a + "avLst"))))))));
     }
 }

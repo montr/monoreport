@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Xml.Linq;
+using System.IO.Compression;
 using DocumentFormat.OpenXml.Packaging;
 using MonoReport.Models;
 using MonoReport.Services;
@@ -258,6 +259,42 @@ public sealed class UnifiedTemplateTests
         Assert.Equal(expectedParts, second.Occurrences.Select(item => item.Part));
         Assert.Equal(7, first.Occurrences.Count);
         Assert.Single(first.Requirements);
+    }
+
+    [Fact]
+    public void Analyzer_orders_failed_and_successful_story_diagnostics_by_traversal_order()
+    {
+        var w = WordXml.WordprocessingNamespace;
+        using var prepared = new MemoryStream();
+        prepared.Write(Docx.Create(Docx.P(Docx.Run("main"))));
+        prepared.Position = 0;
+        using (var document = WordprocessingDocument.Open(prepared, true))
+        {
+            var main = document.MainDocumentPart!;
+            var header = main.AddNewPart<HeaderPart>();
+            using (var target = header.GetStream(FileMode.Create, FileAccess.Write))
+                new XDocument(new XElement(w + "hdr", Docx.P(Docx.Run("header")))).Save(target);
+            var footer = main.AddNewPart<FooterPart>();
+            using (var target = footer.GetStream(FileMode.Create, FileAccess.Write))
+                new XDocument(new XElement(w + "ftr", Docx.P(Docx.Run("{Broken")))).Save(target);
+        }
+        using var corrupted = new MemoryStream(prepared.ToArray());
+        using (var archive = new ZipArchive(corrupted, ZipArchiveMode.Update, leaveOpen: true))
+        {
+            var header = archive.GetEntry("word/header1.xml")!;
+            header.Delete();
+            using var target = archive.CreateEntry("word/header1.xml").Open();
+            using var writer = new StreamWriter(target);
+            writer.Write("<w:hdr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:p>");
+        }
+        corrupted.Position = 0;
+
+        var analysis = Analyzer().Analyze(corrupted);
+
+        Assert.Equal(new[] { "/word/header1.xml", "/word/footer1.xml" },
+            analysis.Errors.Select(issue => issue.Part));
+        Assert.Equal(new[] { "template.invalid_xml", "template.unmatched_brace" },
+            analysis.Errors.Select(issue => issue.Code));
     }
 
     private static byte[] MultiStoryTemplate()
