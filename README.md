@@ -59,6 +59,10 @@ MonoReport generates DOCX reports, contracts, acts, protocols, invoices, and sim
 5. Explicit null and empty strings render empty. Missing scalar values follow `MergeOptions.MissingValues`.
 6. Inserted JSON text and emitted literal braces are never reinterpreted as template syntax.
 
+## DOCX compatibility
+
+For the intended support, preservation, and rejection policy for Microsoft Word features, see [DOCX Template Compatibility](docs/docx-template-compatibility.md). This is a **draft target policy for a future simplification Feature**, not a guarantee of current engine behavior. The syntax and behavior documented below describe the currently accepted implementation.
+
 ## DOCX structure
 
 1. Scalar expressions work in ordinary paragraphs and tables in the main document, headers, footers, footnotes, and endnotes.
