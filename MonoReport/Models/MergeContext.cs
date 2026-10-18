@@ -97,7 +97,7 @@ namespace MonoReport.Models
                         ActiveIdentities?.Find(range) ?? new(NextBookmarkId(), range.First.Loops.Count == 0 ? range.Name! : NextBookmarkName(range.Name!)));
                 else if (range.Kind == "permission" && !permissionIds.ContainsKey(range)) permissionIds.Add(range, NextPermissionId());
                 else if (range.Kind == "comment" && !definition && !commentIds.ContainsKey(range))
-                    commentIds.Add(range, CloneComment(int.Parse(range.Id)));
+                    commentIds.Add(range, CloneComment(range));
             }
             foreach (var (source, clone) in map)
             {
@@ -113,7 +113,8 @@ namespace MonoReport.Models
                     else if (permissionIds.TryGetValue(range, out var permissionId)) clone.SetAttributeValue(WordprocessingNamespace + "id", permissionId);
                     else if (commentIds.TryGetValue(range, out var commentId)) clone.SetAttributeValue(WordprocessingNamespace + "id", commentId);
                 }
-                if (source.Name != WordprocessingNamespace + "hyperlink") continue;
+                if (source.Name != WordprocessingNamespace + "hyperlink" ||
+                    source.Attribute(XNamespace.Get("http://schemas.openxmlformats.org/officeDocument/2006/relationships") + "id") is not null) continue;
                 SourceRange? target = null;
                 if (definition)
                 {
@@ -148,11 +149,10 @@ namespace MonoReport.Models
 
         internal int NextPermissionId() => NextId(_permissionIds);
 
-        internal int CloneComment(int sourceId)
+        private int CloneComment(SourceRange range)
         {
-            var source = _commentsXml?.Root?.Elements(WordprocessingNamespace + "comment")
-                .SingleOrDefault(item => (string?)item.Attribute(WordprocessingNamespace + "id") == sourceId.ToString());
-            if (source is null) return sourceId;
+            var source = range.CommentDefinition ??
+                throw new InvalidOperationException("Comment cloning requires a preflight-bound source definition.");
             var id = NextId(_commentIds);
             var clone = Clone([source], new Dictionary<XElement, XElement>(), definition: true)[0];
             clone.SetAttributeValue(WordprocessingNamespace + "id", id);

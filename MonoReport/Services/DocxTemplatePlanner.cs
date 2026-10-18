@@ -21,7 +21,15 @@ public sealed class DocxTemplatePlanner(TemplateLanguageParser parser)
         foreach (var paragraph in xml.Root!.Descendants(WordXml.ParagraphElementName))
         {
             paragraphNumber++;
-            if (IsSpecialized(paragraph)) continue;
+            if (IsSpecialized(paragraph))
+            {
+                // Controls are opaque to syntax, but their field delimiters still enclose outside text.
+                if (!paragraph.Ancestors().Any(ancestor => ancestor.Name == WordXml.DrawingElementName ||
+                        ancestor.Name == WordXml.PictureElementName))
+                    foreach (var character in paragraph.Descendants(WordXml.FieldCharacterElementName))
+                        fieldDepth = UpdatedFieldDepth(fieldDepth, character);
+                continue;
+            }
             var location = Location(xml.Root, paragraph, partName, paragraphNumber);
             foreach (var textNodes in EligibleTextGroups(paragraph, fieldDepth, out fieldDepth))
             {
@@ -78,6 +86,9 @@ public sealed class DocxTemplatePlanner(TemplateLanguageParser parser)
         }
         var ranges = new Dictionary<XElement, SourceRange>();
         var diagnostics = new List<StructuralDiagnostic>();
+        var commentsPart = package.PackageXml.FirstOrDefault(item => item.Part is WordprocessingCommentsPart).Xml;
+        var commentDefinitions = (commentsPart?.Root?.Elements(WordXml.WordprocessingNamespace + "comment") ?? [])
+            .ToLookup(element => CommentIdentity(element));
         foreach (var family in new[]
         {
             (Kind: "bookmark", Names: new[] { "bookmarkStart", "bookmarkEnd" }),
@@ -87,12 +98,21 @@ public sealed class DocxTemplatePlanner(TemplateLanguageParser parser)
         {
             var names = family.Names.Select(name => WordXml.WordprocessingNamespace + name).ToHashSet();
             foreach (var group in locations.Values.Where(item => names.Contains(item.Element.Name))
-                         .GroupBy(item => (item.Root, Id: (string?)item.Element.Attribute(WordXml.WordprocessingNamespace + "id") ?? "")))
+                         .GroupBy(item => (item.Root, Id: family.Kind == "comment" ? CommentIdentity(item.Element) :
+                             (string?)item.Element.Attribute(WordXml.WordprocessingNamespace + "id") ?? "")))
             {
                 var members = group.OrderBy(item => item.SourceOrder).ToArray();
-                var range = new SourceRange(family.Kind, group.Key.Id, members);
+                var definitions = family.Kind == "comment" ? commentDefinitions[group.Key.Id].ToArray() : [];
+                var range = new SourceRange(family.Kind, group.Key.Id, members,
+                    definitions.Length == 1 ? definitions[0] : null);
                 foreach (var member in members) ranges.Add(member.Element, range);
                 if (!members.Any(member => member.Owners.Count != 0)) continue;
+                if (family.Kind == "comment" && definitions.Length != 1)
+                {
+                    var definitionError = $"Comment '{Bound(range.Id)}' must resolve to exactly one source definition before cloning.";
+                    diagnostics.Add(new("template.invalid_structure", definitionError,
+                        Location: members[0].Location, SourceOrder: members[0].SourceOrder, Explanation: definitionError));
+                }
                 var point = family.Kind == "comment" && members.Length == 1 &&
                     members[0].Element.Name == WordXml.WordprocessingNamespace + "commentReference";
                 var shape = point || (members.Length == family.Names.Length && family.Names.All(name =>
@@ -112,6 +132,7 @@ public sealed class DocxTemplatePlanner(TemplateLanguageParser parser)
             .GroupBy(range => range.Name!, StringComparer.Ordinal).ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
         var anchors = new Dictionary<XElement, SourceRange>();
         foreach (var use in locations.Values.Where(item => item.Element.Name == WordXml.HyperlinkElementName &&
+                     item.Element.Attribute(WordXml.RelationshipsNamespace + "id") is null &&
                      item.Element.Attribute(WordXml.AnchorAttributeName) is not null))
         {
             var anchor = (string)use.Element.Attribute(WordXml.AnchorAttributeName)!;
@@ -139,6 +160,14 @@ public sealed class DocxTemplatePlanner(TemplateLanguageParser parser)
     }
 
     private static string Bound(string? value) => value is null ? "" : value[..Math.Min(value.Length, 80)];
+
+    private static string CommentIdentity(XElement element)
+    {
+        var value = (string?)element.Attribute(WordXml.WordprocessingNamespace + "id") ?? "";
+        return int.TryParse(value, System.Globalization.NumberStyles.Integer,
+            System.Globalization.CultureInfo.InvariantCulture, out var id)
+            ? id.ToString(System.Globalization.CultureInfo.InvariantCulture) : value;
+    }
 
     private static IReadOnlyList<StructuralOwner> Ownership(XElement element, IReadOnlyList<BlockPlan> blocks)
     {
@@ -373,19 +402,19 @@ public sealed class DocxTemplatePlanner(TemplateLanguageParser parser)
         var current = new List<XElement>();
         foreach (var element in paragraph.Descendants())
         {
+            if (element.Ancestors().TakeWhile(ancestor => ancestor != paragraph).Any(IsOpaque)) continue;
             if (IsOpaque(element))
             {
                 Flush();
-                if (element.Name == WordXml.HyperlinkElementName)
+                if (element.Name == WordXml.HyperlinkElementName || element.Name == WordXml.WordprocessingNamespace + "sdt")
                     foreach (var fieldCharacter in element.Descendants(WordXml.FieldCharacterElementName))
-                        UpdateFieldDepth(fieldCharacter);
+                        fieldDepth = UpdatedFieldDepth(fieldDepth, fieldCharacter);
                 continue;
             }
-            if (element.Ancestors().TakeWhile(ancestor => ancestor != paragraph).Any(IsOpaque)) continue;
             if (element.Name == WordXml.FieldCharacterElementName)
             {
                 Flush();
-                UpdateFieldDepth(element);
+                fieldDepth = UpdatedFieldDepth(fieldDepth, element);
                 continue;
             }
             if (element.Name == WordXml.TextElementName)
@@ -413,14 +442,13 @@ public sealed class DocxTemplatePlanner(TemplateLanguageParser parser)
             groups.Add(current.ToArray());
             current.Clear();
         }
+    }
 
-
-        void UpdateFieldDepth(XElement fieldCharacter)
-        {
-            var type = (string?)fieldCharacter.Attribute(WordXml.FieldCharacterTypeAttributeName);
-            if (type == WordXml.FieldBeginValue) fieldDepth++;
-            else if (type == WordXml.FieldEndValue && fieldDepth > 0) fieldDepth--;
-        }
+    private static int UpdatedFieldDepth(int fieldDepth, XElement fieldCharacter)
+    {
+        var type = (string?)fieldCharacter.Attribute(WordXml.FieldCharacterTypeAttributeName);
+        if (type == WordXml.FieldBeginValue) return fieldDepth + 1;
+        return type == WordXml.FieldEndValue && fieldDepth > 0 ? fieldDepth - 1 : fieldDepth;
     }
 
     private static bool IsSpecialized(XElement paragraph) => paragraph.Ancestors().Any(ancestor =>

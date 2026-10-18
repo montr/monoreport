@@ -71,7 +71,8 @@ internal sealed record IdentityLocation(XElement Element, string Part, string Lo
         owner.Block.Kind == TemplateExpressionKind.For && !owner.Branch.StartsWith("marker", StringComparison.Ordinal)).Select(owner => owner.Block).ToArray();
 }
 
-internal sealed record SourceRange(string Kind, string Id, IReadOnlyList<IdentityLocation> Members)
+internal sealed record SourceRange(string Kind, string Id, IReadOnlyList<IdentityLocation> Members,
+    XElement? CommentDefinition = null)
 {
     internal IdentityLocation First => Members[0];
     internal string? Name => (string?)First.Element.Attribute(

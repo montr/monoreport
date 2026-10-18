@@ -1,5 +1,7 @@
 # Feature 010 — Implementation Plan
 
+**Status:** Accepted — explicit Product Owner acceptance on 2026-10-18; see [review section 21](review.md#21-product-owner-acceptance-on-2026-10-18). Historical planning and handoff statuses below remain unchanged.
+
 ## 1. Summary and gates
 
 1. Treat Feature 010 as a high-risk breaking Feature because it replaces template syntax and public analyzer contracts and changes DOCX structural processing.

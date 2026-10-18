@@ -1,6 +1,6 @@
 # Feature Spec — Unified Template Syntax and Conditional Blocks
 
-**Status:** FAIL / Pending Acceptance — final corrections implemented; independent verification pending
+**Status:** Accepted — explicit Product Owner acceptance on 2026-10-18; see [review section 21](review.md#21-product-owner-acceptance-on-2026-10-18)
 
 **Scope:** DOCX implementation; syntax and data semantics designed for future XLSX reuse
 
