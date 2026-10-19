@@ -37,19 +37,19 @@ app.Use(async (context, next) =>
     try
     {
         if (context.Request.ContentLength > requestLimit)
-            throw new RequestInputException(413, "request.too_large");
+            throw new RequestInputException(413, ApiDiagnosticCodes.RequestTooLarge);
         var feature = context.Features.Get<IHttpMaxRequestBodySizeFeature>();
         if (feature is { IsReadOnly: false }) feature.MaxRequestBodySize = requestLimit;
         await next(context);
     }
     catch (RequestInputException error) { await problems.Create(context, error.Status, error.Code, error.Field).ExecuteAsync(context); }
-    catch (BadHttpRequestException error) { await problems.Create(context, error.StatusCode == 413 ? 413 : 400, error.StatusCode == 413 ? "request.too_large" : "request.invalid_multipart").ExecuteAsync(context); }
+    catch (BadHttpRequestException error) { await problems.Create(context, error.StatusCode == 413 ? 413 : 400, error.StatusCode == 413 ? ApiDiagnosticCodes.RequestTooLarge : ApiDiagnosticCodes.RequestInvalidMultipart).ExecuteAsync(context); }
     catch (TemplateException error) { await problems.Create(context, error).ExecuteAsync(context); }
     catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested) { }
     catch (Exception error)
     {
         app.Logger.LogError(error, "Document request failed ({TraceId})", context.TraceIdentifier);
-        if (!context.Response.HasStarted) await problems.Create(context, 500, "server.internal_error").ExecuteAsync(context);
+        if (!context.Response.HasStarted) await problems.Create(context, 500, ApiDiagnosticCodes.ServerInternalError).ExecuteAsync(context);
     }
 });
 app.UseDefaultFiles();

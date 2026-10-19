@@ -41,7 +41,7 @@ public sealed partial class ValueFormatter(RubSpellOutFormatter spellOut)
         catch (Exception exception) when (exception is FormatException or ArgumentException or OverflowException or InvalidOperationException)
         {
             var code = value.ValueKind is JsonValueKind.Object or JsonValueKind.Array
-                ? "generation.invalid_data" : "generation.invalid_format";
+                ? DiagnosticCodes.GenerationInvalidData : DiagnosticCodes.GenerationInvalidFormat;
             throw new TemplateException($"Cannot format '{expression.Source}' using '{active}'. {exception.Message}",
                 expression.Source, expression.Source, location, active, exception, code);
         }

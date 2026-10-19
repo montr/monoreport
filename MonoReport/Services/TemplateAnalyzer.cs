@@ -62,7 +62,7 @@ public sealed class TemplateAnalyzer(DocxStoryReader storyReader, DocxTemplatePl
         internal IReadOnlyList<TemplateOccurrence> Occurrences => _occurrences;
         internal IReadOnlyList<StructuralDiagnostic> Diagnostics => Conflicted(_root)
             .SelectMany(node => node.Uses.Select(use => new StructuralDiagnostic(
-                "template.requirement_conflict",
+                DiagnosticCodes.TemplateRequirementConflict,
                 $"Dependency '{node.Path}' has incompatible requirement types.", use.Expression.Source,
                 use.Expression.Source, use.Location, SourceOrder: use.SourceOrder))).ToArray();
 

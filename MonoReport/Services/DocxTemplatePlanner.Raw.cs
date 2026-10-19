@@ -78,7 +78,7 @@ public sealed partial class DocxTemplatePlanner
                     problem = "a surviving vertical merge chain";
             }
             if (problem is not null)
-                diagnostics.Add(Error("template.invalid_structure",
+                diagnostics.Add(Error(DiagnosticCodes.TemplateInvalidStructure,
                     $"Removing Raw delimiters would remove or damage {problem}. Move the delimiters to ordinary paragraphs/rows outside that structure in Word; preserve section boundaries, required table rows, and vertical merge chains.",
                     block.StartExpression, block.Location, (long)orders[block.StartContainer] << 32));
         }

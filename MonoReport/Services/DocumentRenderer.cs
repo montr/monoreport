@@ -221,7 +221,7 @@ public sealed class DocumentRenderer(DataResolver resolver, ValueFormatter forma
     private bool RecordTypeError(BlockPlan block, MergeContext context, string detail)
     {
         var error = new TemplateException(detail, block.StartExpression.Source, block.StartExpression.Source,
-            block.Location, code: "generation.invalid_data");
+            block.Location, code: DiagnosticCodes.GenerationInvalidData);
         return context.Record(error, _resolver.DataPath(block.StartExpression.Path!, context), block.Location);
     }
 }

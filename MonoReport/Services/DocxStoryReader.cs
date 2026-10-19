@@ -24,7 +24,7 @@ public sealed class DocxStoryReader
         }
         catch (Exception error) when (error is OpenXmlPackageException or InvalidDataException or FileFormatException)
         {
-            diagnostic = new("template.invalid_package", "DOCX package is unreadable.");
+            diagnostic = new(DiagnosticCodes.TemplateInvalidPackage, "DOCX package is unreadable.");
             return null;
         }
     }
@@ -40,7 +40,7 @@ public sealed class DocxStoryReader
     {
         var main = document.MainDocumentPart;
         if (main is null)
-            return new([], [new("template.unsupported_structure", "DOCX has no main document part.")],
+            return new([], [new(DiagnosticCodes.TemplateUnsupportedStructure, "DOCX has no main document part.")],
                 new Dictionary<string, int>(StringComparer.Ordinal), []);
         var stories = new List<(OpenXmlPart, XDocument)>();
         var diagnostics = new List<StructuralDiagnostic>();
@@ -61,7 +61,7 @@ public sealed class DocxStoryReader
                 if (xml.Root?.Name != WordXml.DocumentElementName.Namespace + expected ||
                     (part is MainDocumentPart && xml.Root.Element(WordXml.BodyElementName) is null))
                 {
-                    diagnostics.Add(new("template.unsupported_structure", "Unsupported DOCX story structure.",
+                    diagnostics.Add(new(DiagnosticCodes.TemplateUnsupportedStructure, "Unsupported DOCX story structure.",
                         Location: part.Uri.ToString()));
                     continue;
                 }
@@ -69,7 +69,7 @@ public sealed class DocxStoryReader
             }
             catch (XmlException)
             {
-                diagnostics.Add(new("template.invalid_xml", "Invalid DOCX story XML.", Location: part.Uri.ToString()));
+                diagnostics.Add(new(DiagnosticCodes.TemplateInvalidXml, "Invalid DOCX story XML.", Location: part.Uri.ToString()));
             }
         }
         var packageXml = new List<(OpenXmlPart Part, XDocument Xml)>(stories);
@@ -87,7 +87,7 @@ public sealed class DocxStoryReader
             }
             catch (XmlException)
             {
-                diagnostics.Add(new("template.invalid_xml", "Invalid DOCX auxiliary XML.", Location: part.Uri.ToString()));
+                diagnostics.Add(new(DiagnosticCodes.TemplateInvalidXml, "Invalid DOCX auxiliary XML.", Location: part.Uri.ToString()));
             }
         }
         return new(stories, diagnostics, partOrder, packageXml);

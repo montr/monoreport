@@ -60,7 +60,7 @@ public sealed partial class DocxTemplatePlanner
                 var detail = $"Unsupported {family.Kind} '{Bound(range.Id)}' '{Bound(range.Name)}': invalid range/attachment or structural ownership. {coordinates}. {remedy}";
                 if (family.Kind == "comment" && matched.Length != 1)
                     detail += " Each affected comment must resolve to exactly one source definition.";
-                diagnostics.Add(new("template.invalid_structure", detail, Location: members[0].Location,
+                diagnostics.Add(new(DiagnosticCodes.TemplateInvalidStructure, detail, Location: members[0].Location,
                     SourceOrder: members[0].SourceOrder, Explanation: detail));
             }
         }
@@ -103,7 +103,7 @@ public sealed partial class DocxTemplatePlanner
             var detail = $"Internal anchor '{Bound(anchor)}' is inside For/If or has a removed, repeated, ambiguous or invalid target" +
                 (targets is { Length: > 0 } ? $" at {targets[0].First.Location}. " : ". ") +
                 "Move the internal link and its unchanged target outside For/If and off Raw delimiters, or remove the link in Word.";
-            diagnostics.Add(new("template.invalid_structure", detail, Location: use.Location,
+            diagnostics.Add(new(DiagnosticCodes.TemplateInvalidStructure, detail, Location: use.Location,
                 SourceOrder: use.SourceOrder, Explanation: detail));
         }
         return new(ranges, diagnostics, deletedDefinitions.ToArray());

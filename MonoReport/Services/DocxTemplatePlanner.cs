@@ -127,7 +127,7 @@ public sealed partial class DocxTemplatePlanner(TemplateLanguageParser parser)
                 var expression = token.Expression!;
                 if (!MarkerOnlyContainer(paragraph.Paragraph, expression.Source))
                 {
-                    diagnostics.Add(Error("template.invalid_structure",
+                    diagnostics.Add(Error(DiagnosticCodes.TemplateInvalidStructure,
                         "Control expressions must be the only visible content in their marker paragraph or row.",
                         expression, paragraph.Location, paragraph.PositionAt(token.Start)));
                     continue;
@@ -150,7 +150,7 @@ public sealed partial class DocxTemplatePlanner(TemplateLanguageParser parser)
                 case TemplateExpressionKind.Else:
                     if (!stack.TryPeek(out var conditional) || conditional.Start.Expression.Kind != TemplateExpressionKind.If ||
                         conditional.Else is not null)
-                        diagnostics.Add(Error("template.invalid_structure", "Else must occur once inside the nearest open If.",
+                        diagnostics.Add(Error(DiagnosticCodes.TemplateInvalidStructure, "Else must occur once inside the nearest open If.",
                             marker.Expression, marker.Paragraph.Location, marker.SourceOrder));
                     else conditional.Else = marker;
                     break;
@@ -164,7 +164,7 @@ public sealed partial class DocxTemplatePlanner(TemplateLanguageParser parser)
                             _ => TemplateExpressionKind.EndRaw
                         }))
                     {
-                        diagnostics.Add(Error("template.invalid_structure", "Closing marker does not match the open block.",
+                        diagnostics.Add(Error(DiagnosticCodes.TemplateInvalidStructure, "Closing marker does not match the open block.",
                             marker.Expression, marker.Paragraph.Location, marker.SourceOrder));
                         break;
                     }
@@ -176,7 +176,7 @@ public sealed partial class DocxTemplatePlanner(TemplateLanguageParser parser)
             }
         }
         foreach (var unmatched in stack)
-            diagnostics.Add(Error("template.invalid_structure", "Block has no matching closing marker. Add a dedicated closing paragraph or row under the same parent.",
+            diagnostics.Add(Error(DiagnosticCodes.TemplateInvalidStructure, "Block has no matching closing marker. Add a dedicated closing paragraph or row under the same parent.",
                 unmatched.Start.Expression, unmatched.Start.Paragraph.Location,
                 unmatched.Start.SourceOrder));
         return top;
@@ -209,7 +209,7 @@ public sealed partial class DocxTemplatePlanner(TemplateLanguageParser parser)
                 !MarkerOnlyRow(endRow, end.Expression.Source) ||
                 (elseRow is not null && !MarkerOnlyRow(elseRow, opened.Else!.Expression.Source)))
             {
-                diagnostics.Add(Error("template.invalid_structure",
+                diagnostics.Add(Error(DiagnosticCodes.TemplateInvalidStructure,
                     "Block markers must delimit sibling paragraphs or dedicated sibling rows under one parent.",
                     opened.Start.Expression, opened.Start.Paragraph.Location,
                     opened.Start.SourceOrder));
@@ -226,7 +226,7 @@ public sealed partial class DocxTemplatePlanner(TemplateLanguageParser parser)
         var elseIndex = elseContainer is null ? -1 : siblings.IndexOf(elseContainer);
         if (startIndex < 0 || endIndex <= startIndex || (elseIndex >= 0 && (elseIndex <= startIndex || elseIndex >= endIndex)))
         {
-            diagnostics.Add(Error("template.invalid_structure", "Block markers are crossing or misordered.",
+            diagnostics.Add(Error(DiagnosticCodes.TemplateInvalidStructure, "Block markers are crossing or misordered.",
                 opened.Start.Expression, opened.Start.Paragraph.Location,
                 opened.Start.SourceOrder));
             return null;
@@ -236,7 +236,7 @@ public sealed partial class DocxTemplatePlanner(TemplateLanguageParser parser)
             siblings.Skip(startIndex).Take(endIndex - startIndex + 1).Any(row =>
                 RowHasVerticalMerge(row)))
         {
-            diagnostics.Add(Error("template.invalid_structure",
+            diagnostics.Add(Error(DiagnosticCodes.TemplateInvalidStructure,
                 "Row blocks cannot contain or intersect vertical merges.", opened.Start.Expression,
                 opened.Start.Paragraph.Location, opened.Start.SourceOrder));
             return null;
@@ -264,20 +264,20 @@ public sealed partial class DocxTemplatePlanner(TemplateLanguageParser parser)
                 case TemplateExpressionKind.Field:
                     if (expression.Path!.CurrentElement && loops.Count == 0)
                     {
-                        diagnostics.Add(Error("template.invalid_context", "The current-element expression is valid only inside For.",
+                        diagnostics.Add(Error(DiagnosticCodes.TemplateInvalidContext, "The current-element expression is valid only inside For.",
                             expression, paragraph.Location, paragraph.PositionAt(token.Start)));
                         break;
                     }
                     if (TryCanonical(expression.Path, loops, out var fieldPath))
                         dependencies.Add(new("field", expression, fieldPath, "value", part, paragraph.Location,
                             paragraph.PositionAt(token.Start)));
-                    else diagnostics.Add(Error("template.invalid_context", "The path moves beyond the available loop context.",
+                    else diagnostics.Add(Error(DiagnosticCodes.TemplateInvalidContext, "The path moves beyond the available loop context.",
                         expression, paragraph.Location, paragraph.PositionAt(token.Start)));
                     break;
                 case TemplateExpressionKind.For:
                     if (!TryCanonical(expression.Path!, loops, out var arrayPath))
                     {
-                        diagnostics.Add(Error("template.invalid_context", "The path moves beyond the available loop context.",
+                        diagnostics.Add(Error(DiagnosticCodes.TemplateInvalidContext, "The path moves beyond the available loop context.",
                             expression, paragraph.Location, paragraph.SourceOrder + token.Start));
                         break;
                     }
@@ -290,7 +290,7 @@ public sealed partial class DocxTemplatePlanner(TemplateLanguageParser parser)
                     if (TryCanonical(expression.Path!, loops, out var booleanPath))
                         dependencies.Add(new("if", expression, booleanPath, "boolean", part, paragraph.Location,
                             paragraph.PositionAt(token.Start)));
-                    else diagnostics.Add(Error("template.invalid_context", "The path moves beyond the available loop context.",
+                    else diagnostics.Add(Error(DiagnosticCodes.TemplateInvalidContext, "The path moves beyond the available loop context.",
                         expression, paragraph.Location, paragraph.PositionAt(token.Start)));
                     controls.Push(TemplateExpressionKind.If);
                     break;
@@ -494,7 +494,7 @@ public sealed partial class DocxTemplatePlanner(TemplateLanguageParser parser)
                 ? StructuralLocation(root, revision, part)
                 : Location(root, paragraph, part,
                     root.Descendants(WordXml.ParagraphElementName).TakeWhile(item => item != paragraph).Count() + 1);
-            yield return new("template.tracked_revision", "Tracked revisions must be accepted or rejected before processing.",
+            yield return new(DiagnosticCodes.TemplateTrackedRevision, "Tracked revisions must be accepted or rejected before processing.",
                 Location: location + ", tracked revision " + revision.Name.LocalName,
                 SourceOrder: (long)sourceOrders[revision] << 32);
         }

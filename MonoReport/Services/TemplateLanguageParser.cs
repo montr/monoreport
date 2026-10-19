@@ -30,7 +30,7 @@ public sealed partial class TemplateLanguageParser
                 var end = text.IndexOf('}', index + 1);
                 if (end < 0)
                 {
-                    diagnostics.Add(Error("template.unmatched_brace", "Template expression has no closing brace.",
+                    diagnostics.Add(Error(DiagnosticCodes.TemplateUnmatchedBrace, "Template expression has no closing brace.",
                         text[index..], location, index));
                     break;
                 }
@@ -39,7 +39,7 @@ public sealed partial class TemplateLanguageParser
                 var content = text[(index + 1)..end];
                 if (content.Contains('{', StringComparison.Ordinal))
                 {
-                    diagnostics.Add(Error("template.invalid_expression", "Nested opening braces are not valid inside an expression.",
+                    diagnostics.Add(Error(DiagnosticCodes.TemplateInvalidExpression, "Nested opening braces are not valid inside an expression.",
                         source, location, index));
                 }
                 else if (TryParseExpression(content, source, location, out var expression, out var diagnostic))
@@ -62,7 +62,7 @@ public sealed partial class TemplateLanguageParser
                     index += 2;
                     continue;
                 }
-                diagnostics.Add(Error("template.unmatched_brace", "Template text contains an unmatched closing brace.",
+                diagnostics.Add(Error(DiagnosticCodes.TemplateUnmatchedBrace, "Template text contains an unmatched closing brace.",
                     "}", location, index));
             }
             index++;
@@ -122,7 +122,7 @@ public sealed partial class TemplateLanguageParser
     private static bool Invalid(string source, string location, string message,
         out StructuralDiagnostic? diagnostic)
     {
-        diagnostic = Error("template.invalid_expression", message, source, location);
+        diagnostic = Error(DiagnosticCodes.TemplateInvalidExpression, message, source, location);
         return false;
     }
 

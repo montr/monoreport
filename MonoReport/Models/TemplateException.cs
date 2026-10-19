@@ -4,7 +4,7 @@ namespace MonoReport.Models
     {
         public TemplateException(string message, string? field = null, string? fieldCode = null,
             string? location = null, string? formatter = null, Exception? inner = null,
-            string code = "generation.invalid_data") : base(message, inner)
+            string code = DiagnosticCodes.GenerationInvalidData) : base(message, inner)
         {
             Code = code;
             Field = field;
@@ -78,16 +78,16 @@ namespace MonoReport.Models
 
         private static string SafeMessage(string code) => code switch
         {
-            "template.invalid_package" => "The content is not a readable DOCX package.",
-            "template.invalid_xml" => "A document part contains invalid XML.",
-            "template.unsupported_structure" => "The DOCX document structure is unsupported.",
-            "template.invalid_expression" => "A template expression has invalid syntax.",
-            "template.unmatched_brace" => "Template braces are not balanced or escaped correctly.",
-            "template.invalid_context" => "A template path is invalid in its current loop context.",
-            "template.invalid_structure" => "A template block has an unsupported or ambiguous structure.",
-            "template.requirement_conflict" => "The same dependency path is used with incompatible requirement types.",
-            "template.tracked_revision" => "Tracked revisions must be accepted or rejected before processing.",
-            "generation.invalid_format" => "A value cannot be formatted as requested.",
+            DiagnosticCodes.TemplateInvalidPackage => "The content is not a readable DOCX package.",
+            DiagnosticCodes.TemplateInvalidXml => "A document part contains invalid XML.",
+            DiagnosticCodes.TemplateUnsupportedStructure => "The DOCX document structure is unsupported.",
+            DiagnosticCodes.TemplateInvalidExpression => "A template expression has invalid syntax.",
+            DiagnosticCodes.TemplateUnmatchedBrace => "Template braces are not balanced or escaped correctly.",
+            DiagnosticCodes.TemplateInvalidContext => "A template path is invalid in its current loop context.",
+            DiagnosticCodes.TemplateInvalidStructure => "A template block has an unsupported or ambiguous structure.",
+            DiagnosticCodes.TemplateRequirementConflict => "The same dependency path is used with incompatible requirement types.",
+            DiagnosticCodes.TemplateTrackedRevision => "Tracked revisions must be accepted or rejected before processing.",
+            DiagnosticCodes.GenerationInvalidFormat => "A value cannot be formatted as requested.",
             _ => "The data is incompatible with the template."
         };
     }

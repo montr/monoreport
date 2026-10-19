@@ -1,6 +1,9 @@
+using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using MonoReport.Api.Services;
+using MonoReport.Models;
 
 namespace MonoReport.Tests.Services;
 
@@ -35,5 +38,60 @@ public sealed class OpenApiContractTests
             .GetProperty("application/problem+json").GetProperty("schema").GetProperty("properties").GetProperty("errors");
         foreach (var name in new[] { "code", "message", "field", "part", "location", "formatter", "dataPath" })
             Assert.True(errors.GetProperty("items").GetProperty("properties").TryGetProperty(name, out _));
+    }
+
+    [Fact]
+    public async Task OpenApi_error_code_lists_match_the_endpoint_diagnostic_contract()
+    {
+        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder => builder.UseEnvironment("Development"));
+        using var client = factory.CreateClient();
+        using var response = await client.GetAsync("/openapi/v1.json");
+        response.EnsureSuccessStatusCode();
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var generate = json.RootElement.GetProperty("paths").GetProperty("/api/documents/generate")
+            .GetProperty("post").GetProperty("responses");
+        var analyze = json.RootElement.GetProperty("paths").GetProperty("/api/documents/analyze")
+            .GetProperty("post").GetProperty("responses");
+
+        static string[] Codes(JsonElement responses, string status) => responses
+            .GetProperty(status).GetProperty("content").GetProperty("application/problem+json")
+            .GetProperty("schema").GetProperty("properties").GetProperty("code")
+            .GetProperty("description").GetString()!.Split(", ");
+
+        var generationCodes = new[]
+        {
+            DiagnosticCodes.TemplateInvalidPackage, DiagnosticCodes.TemplateInvalidXml,
+            DiagnosticCodes.TemplateUnsupportedStructure, DiagnosticCodes.TemplateInvalidExpression,
+            DiagnosticCodes.TemplateUnmatchedBrace, DiagnosticCodes.TemplateInvalidContext,
+            DiagnosticCodes.TemplateInvalidStructure, DiagnosticCodes.TemplateRequirementConflict,
+            DiagnosticCodes.TemplateTrackedRevision, DiagnosticCodes.GenerationInvalidData,
+            DiagnosticCodes.GenerationInvalidFormat
+        };
+        Assert.Equal(generationCodes, Codes(generate, "422"));
+        var problemFactory = new ApiProblemFactory();
+        Assert.All(generationCodes, code => Assert.NotEqual("The server could not complete the operation.", problemFactory.SafeMessage(code)));
+
+        Assert.Equal(new[]
+        {
+            ApiDiagnosticCodes.RequestMissingInput, ApiDiagnosticCodes.RequestEmptyInput,
+            ApiDiagnosticCodes.RequestDuplicateInput, ApiDiagnosticCodes.RequestInvalidInput,
+            ApiDiagnosticCodes.RequestInvalidMultipart, ApiDiagnosticCodes.DataInvalidJson,
+            ApiDiagnosticCodes.CultureInvalid
+        }, Codes(generate, "400"));
+        Assert.Equal(new[]
+        {
+            ApiDiagnosticCodes.RequestMissingInput, ApiDiagnosticCodes.RequestEmptyInput,
+            ApiDiagnosticCodes.RequestDuplicateInput, ApiDiagnosticCodes.RequestInvalidInput,
+            ApiDiagnosticCodes.RequestInvalidMultipart, ApiDiagnosticCodes.RequestUnexpectedInput
+        }, Codes(analyze, "400"));
+        Assert.Equal([ApiDiagnosticCodes.RequestUnsupportedMediaType], Codes(generate, "415"));
+        Assert.Equal([ApiDiagnosticCodes.ServerInternalError], Codes(generate, "500"));
+
+        using var form = HttpApiTests.Form(Docx.Create(Docx.P(Docx.Run("{Raw}"))), "{}");
+        using var failure = await client.PostAsync("/api/documents/generate", form);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, failure.StatusCode);
+        using var problem = JsonDocument.Parse(await failure.Content.ReadAsStringAsync());
+        var actual = problem.RootElement.GetProperty("code").GetString()!;
+        Assert.Contains(actual, generationCodes);
     }
 }

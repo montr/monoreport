@@ -17,7 +17,7 @@ public sealed class DocumentEndpoints(MultipartRequestReader reader, MergeEngine
         var form = await _reader.Read(context.Request, false, context.RequestAborted);
         JsonDocument data;
         try { data = JsonDocument.Parse(form["data"].ToString()); }
-        catch (JsonException) { throw new RequestInputException(400, "data.invalid_json", "data"); }
+        catch (JsonException) { throw new RequestInputException(400, ApiDiagnosticCodes.DataInvalidJson, "data"); }
         using (data)
         {
             var culture = CultureInfo.InvariantCulture;
@@ -25,7 +25,7 @@ public sealed class DocumentEndpoints(MultipartRequestReader reader, MergeEngine
             if (!string.IsNullOrWhiteSpace(name))
             {
                 try { culture = CultureInfo.GetCultureInfo(name); }
-                catch (CultureNotFoundException) { throw new RequestInputException(400, "culture.invalid", "culture"); }
+                catch (CultureNotFoundException) { throw new RequestInputException(400, ApiDiagnosticCodes.CultureInvalid, "culture"); }
             }
             using var template = form.Files.GetFile("template")!.OpenReadStream();
             var result = _engine.Merge(template, data, _options.Create(culture));

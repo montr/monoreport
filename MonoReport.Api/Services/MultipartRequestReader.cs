@@ -8,22 +8,22 @@ public sealed class MultipartRequestReader
     {
         if (!MediaTypeHeaderValue.TryParse(request.ContentType, out var media) ||
             !string.Equals(media.MediaType.Value, "multipart/form-data", StringComparison.OrdinalIgnoreCase))
-            throw new RequestInputException(415, "request.unsupported_media_type");
+            throw new RequestInputException(415, ApiDiagnosticCodes.RequestUnsupportedMediaType);
         if (!media.Boundary.HasValue)
-            throw new RequestInputException(400, "request.invalid_multipart");
+            throw new RequestInputException(400, ApiDiagnosticCodes.RequestInvalidMultipart);
         IFormCollection form;
         try { form = await request.ReadFormAsync(cancellation); }
         catch (IOException error) when (ContainsStatus(error, StatusCodes.Status413PayloadTooLarge))
         {
-            throw new RequestInputException(413, "request.too_large");
+            throw new RequestInputException(413, ApiDiagnosticCodes.RequestTooLarge);
         }
         catch (Exception error) when (error is InvalidDataException or IOException)
         {
-            throw new RequestInputException(400, "request.invalid_multipart");
+            throw new RequestInputException(400, ApiDiagnosticCodes.RequestInvalidMultipart);
         }
         RequireFile(form, "template");
         if (analysis && (form.Keys.Any(key => key != "template") || form.Files.Any(f => f.Name != "template")))
-            throw new RequestInputException(400, "request.unexpected_input");
+            throw new RequestInputException(400, ApiDiagnosticCodes.RequestUnexpectedInput);
         if (!analysis)
         {
             RequireText(form, "data", true);
@@ -44,10 +44,10 @@ public sealed class MultipartRequestReader
     {
         var files = form.Files.Where(f => f.Name == name).ToArray();
         var count = files.Length + (form.TryGetValue(name, out var values) ? values.Count : 0);
-        if (count == 0) throw new RequestInputException(400, "request.missing_input", name);
-        if (count > 1) throw new RequestInputException(400, "request.duplicate_input", name);
-        if (files.Length != 1) throw new RequestInputException(400, "request.invalid_input", name);
-        if (files[0].Length == 0) throw new RequestInputException(400, "request.empty_input", name);
+        if (count == 0) throw new RequestInputException(400, ApiDiagnosticCodes.RequestMissingInput, name);
+        if (count > 1) throw new RequestInputException(400, ApiDiagnosticCodes.RequestDuplicateInput, name);
+        if (files.Length != 1) throw new RequestInputException(400, ApiDiagnosticCodes.RequestInvalidInput, name);
+        if (files[0].Length == 0) throw new RequestInputException(400, ApiDiagnosticCodes.RequestEmptyInput, name);
     }
 
     private static void RequireText(IFormCollection form, string name, bool required)
@@ -55,9 +55,9 @@ public sealed class MultipartRequestReader
         var files = form.Files.Count(f => f.Name == name);
         var values = form[name];
         var count = files + values.Count;
-        if (required && count == 0) throw new RequestInputException(400, "request.missing_input", name);
-        if (count > 1) throw new RequestInputException(400, "request.duplicate_input", name);
-        if (files != 0) throw new RequestInputException(400, "request.invalid_input", name);
-        if (required && string.IsNullOrWhiteSpace(values.ToString())) throw new RequestInputException(400, "request.empty_input", name);
+        if (required && count == 0) throw new RequestInputException(400, ApiDiagnosticCodes.RequestMissingInput, name);
+        if (count > 1) throw new RequestInputException(400, ApiDiagnosticCodes.RequestDuplicateInput, name);
+        if (files != 0) throw new RequestInputException(400, ApiDiagnosticCodes.RequestInvalidInput, name);
+        if (required && string.IsNullOrWhiteSpace(values.ToString())) throw new RequestInputException(400, ApiDiagnosticCodes.RequestEmptyInput, name);
     }
 }

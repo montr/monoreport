@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
+using MonoReport.Models;
 
 namespace MonoReport.Api.Services;
 
@@ -8,6 +9,29 @@ public sealed class ApiOperationTransformer : IOpenApiOperationTransformer
     public Task TransformAsync(OpenApiOperation operation, OpenApiOperationTransformerContext context, CancellationToken cancellationToken)
     {
         var generation = context.Description.RelativePath == "api/documents/generate";
+        var requestCodes = generation
+            ? new[]
+            {
+                ApiDiagnosticCodes.RequestMissingInput, ApiDiagnosticCodes.RequestEmptyInput,
+                ApiDiagnosticCodes.RequestDuplicateInput, ApiDiagnosticCodes.RequestInvalidInput,
+                ApiDiagnosticCodes.RequestInvalidMultipart, ApiDiagnosticCodes.DataInvalidJson,
+                ApiDiagnosticCodes.CultureInvalid
+            }
+            : new[]
+            {
+                ApiDiagnosticCodes.RequestMissingInput, ApiDiagnosticCodes.RequestEmptyInput,
+                ApiDiagnosticCodes.RequestDuplicateInput, ApiDiagnosticCodes.RequestInvalidInput,
+                ApiDiagnosticCodes.RequestInvalidMultipart, ApiDiagnosticCodes.RequestUnexpectedInput
+            };
+        var generationCodes = new[]
+        {
+            DiagnosticCodes.TemplateInvalidPackage, DiagnosticCodes.TemplateInvalidXml,
+            DiagnosticCodes.TemplateUnsupportedStructure, DiagnosticCodes.TemplateInvalidExpression,
+            DiagnosticCodes.TemplateUnmatchedBrace, DiagnosticCodes.TemplateInvalidContext,
+            DiagnosticCodes.TemplateInvalidStructure, DiagnosticCodes.TemplateRequirementConflict,
+            DiagnosticCodes.TemplateTrackedRevision, DiagnosticCodes.GenerationInvalidData,
+            DiagnosticCodes.GenerationInvalidFormat
+        };
         var properties = new Dictionary<string, IOpenApiSchema>
         {
             ["template"] = new OpenApiSchema { Type = JsonSchemaType.String, Format = "binary", Description = "Required nonempty DOCX template." }
@@ -53,11 +77,11 @@ public sealed class ApiOperationTransformer : IOpenApiOperationTransformer
             if (response is not OpenApiResponse concrete) continue;
             response.Description = status switch
             {
-                "400" => "request.missing_input, request.empty_input, request.duplicate_input, request.invalid_input, request.invalid_multipart" + (generation ? ", data.invalid_json, culture.invalid" : ", request.unexpected_input"),
-                "413" => "request.too_large (pre-application host/proxy rejection may use a host-owned response)",
-                "415" => "request.unsupported_media_type",
-                "422" => "template.invalid_package, template.invalid_xml, template.invalid_syntax, template.invalid_context, template.invalid_structure, template.tracked_revision, template.invalid_format, generation.invalid_data, generation.invalid_format",
-                _ => "server.internal_error"
+                "400" => string.Join(", ", requestCodes),
+                "413" => ApiDiagnosticCodes.RequestTooLarge + " (pre-application host/proxy rejection may use a host-owned response)",
+                "415" => ApiDiagnosticCodes.RequestUnsupportedMediaType,
+                "422" => string.Join(", ", generationCodes),
+                _ => ApiDiagnosticCodes.ServerInternalError
             };
             concrete.Content = new Dictionary<string, OpenApiMediaType>
             {
