@@ -13,6 +13,25 @@ public sealed class Feature011CompatibilityTests
     private static XElement Start(string family, int id) => Feature010IdentityTests.Start(family, id);
     private static XElement End(string family, int id) => Feature010IdentityTests.End(family, id);
 
+    private static XDocument MergeCell(XElement cell, string json)
+    {
+        var source = Docx.Create(Docx.Table(new XElement(W + "tr", cell)));
+        using var input = new MemoryStream(source);
+        var analysis = Feature010IdentityTests.Analyzer().Analyze(input);
+        Assert.True(analysis.Valid, string.Join("; ", analysis.Errors.Select(error => error.Message)));
+        return Docx.Read(Docx.Merge(source, json, validationVersion: FileFormatVersions.Office2010).Document);
+    }
+
+    private static void AssertCompatibleCells(XContainer xml)
+    {
+        foreach (var cell in xml.Descendants(W + "tc"))
+        {
+            var blocks = cell.Elements().Where(element => element.Name != W + "tcPr").ToArray();
+            Assert.NotEmpty(blocks);
+            Assert.Equal(W + "p", blocks[^1].Name);
+        }
+    }
+
     internal static byte[] Comments(byte[] source, params string[] ids) => Feature010IdentityTests.Prepare(source, document =>
     {
         var main = document.MainDocumentPart!;
@@ -88,12 +107,122 @@ public sealed class Feature011CompatibilityTests
     }
 
     [Fact]
-    public void Raw_section_boundary_deletion_and_missing_cell_content_reject()
+    public void Raw_section_boundary_deletion_rejects()
     {
         var section = new XElement(W + "p", new XElement(W + "pPr", new XElement(W + "sectPr")), Docx.Run("{Raw}"));
-        Feature010IdentityTests.Reject(Docx.Create(section, P("body"), P("{/Raw}")), "{}", "template.invalid_structure");
-        var cell = new XElement(W + "tc", P("{Raw}"), P("{/Raw}"));
-        Feature010IdentityTests.Reject(Docx.Create(Docx.Table(new XElement(W + "tr", cell))), "{}", "template.invalid_structure");
+        var source = Docx.Create(section, P("body"), P("{/Raw}"));
+        Docx.AssertValid(source);
+        var analysis = Feature010IdentityTests.Reject(source, "{}", "template.invalid_structure");
+        var error = Assert.Single(analysis.Errors);
+        Assert.Contains("Removing Raw delimiters would remove or damage a section boundary.", error.Message);
+        Assert.Contains("Move the delimiters to ordinary paragraphs/rows outside that structure in Word", error.Message);
+        Assert.Contains("preserve section boundaries", error.Message);
+        Assert.Equal("{Raw}", error.Field);
+        Assert.Equal("/word/document.xml", error.Part);
+        Assert.Contains("paragraph 1", error.Location);
+
+        using var input = new MemoryStream(source);
+        using var data = System.Text.Json.JsonDocument.Parse("{}");
+        MergeResult? result = null;
+        Assert.Throws<TemplateException>(() => result = Docx.CreateEngine().Merge(input, data));
+        Assert.Null(result);
+        Assert.Equal(source, input.ToArray());
+    }
+
+    [Theory]
+    [InlineData("Raw", false)]
+    [InlineData("If:Show", false)]
+    [InlineData("Raw", true)]
+    public void Surviving_cell_bookmark_markers_do_not_hide_empty_or_table_ending_blocks(string control, bool nestedTable)
+    {
+        var properties = new XElement(W + "tcPr", new XElement(W + "tcW", new XAttribute(W + "w", 2400)));
+        var start = Start("bookmark", 7);
+        var end = End("bookmark", 7);
+        var table = Docx.Table(Docx.Row(Docx.Run("literal {Hidden}")));
+        var source = Docx.Create(Docx.Table(new XElement(W + "tr", new XElement(W + "tc",
+            properties, start, P("{" + control + "}"), nestedTable ? table : null,
+            P(control == "Raw" ? "{/Raw}" : "{/If}"), end))), P("unrelated"));
+        Docx.AssertValid(source, FileFormatVersions.Office2010);
+        using var input = new MemoryStream(source);
+        var analysis = Feature010IdentityTests.Analyzer().Analyze(input);
+        Assert.True(analysis.Valid, string.Join("; ", analysis.Errors.Select(error => error.Message)));
+        Assert.DoesNotContain(analysis.Requirements, requirement => requirement.Name == "Hidden");
+
+        var output = Docx.Read(Docx.Merge(source, "{\"Show\":false}",
+            validationVersion: FileFormatVersions.Office2010).Document);
+        var cell = output.Descendants(W + "tc").First();
+        var children = cell.Elements().ToArray();
+        Assert.Equal(nestedTable
+            ? new[] { W + "tcPr", W + "bookmarkStart", W + "tbl", W + "bookmarkEnd", W + "p" }
+            : new[] { W + "tcPr", W + "bookmarkStart", W + "bookmarkEnd", W + "p" },
+            children.Select(element => element.Name));
+        Assert.True(XNode.DeepEquals(properties, children[0]));
+        Assert.True(XNode.DeepEquals(start, children[1]));
+        Assert.True(XNode.DeepEquals(end, children[^2]));
+        var paragraph = Assert.Single(cell.Elements(W + "p"));
+        Assert.Empty(paragraph.Attributes());
+        Assert.Empty(paragraph.Nodes());
+        if (nestedTable) Assert.True(XNode.DeepEquals(table, children[2]));
+        Assert.True(XNode.DeepEquals(P("unrelated"), output.Root!.Element(W + "body")!.Elements().Last()));
+    }
+
+    [Fact]
+    public void Surviving_cell_bookmark_after_a_formatted_paragraph_does_not_add_another_paragraph()
+    {
+        var retained = Docx.P(new XElement(W + "pPr", new XElement(W + "keepNext")), Docx.Run("retained"));
+        var expected = new XElement(W + "tc", Start("bookmark", 7), retained, End("bookmark", 7));
+        var output = MergeCell(new XElement(W + "tc", Start("bookmark", 7),
+            P("{Raw}"), retained, P("{/Raw}"), End("bookmark", 7)), "{}");
+
+        Assert.True(XNode.DeepEquals(expected, output.Descendants(W + "tc").Single()));
+    }
+
+    [Fact]
+    public void Raw_only_cell_gets_one_empty_compatible_paragraph()
+    {
+        var properties = new XElement(W + "tcPr", new XElement(W + "tcW", new XAttribute(W + "w", 2400)));
+        var output = MergeCell(new XElement(W + "tc", properties, P("{Raw}"), P("{/Raw}")), "{}");
+        var cell = output.Descendants(W + "tc").Single();
+
+        Assert.True(XNode.DeepEquals(properties, cell.Element(W + "tcPr")));
+        Assert.Empty(cell.Elements(W + "p").Single().Elements());
+        AssertCompatibleCells(output);
+    }
+
+    [Theory]
+    [InlineData("{For:Items}", "{/For}", "{\"Items\":[]}")]
+    [InlineData("{If:Show}", "{/If}", "{\"Show\":false}")]
+    public void Empty_For_and_If_cell_results_get_one_compatible_paragraph(string open, string close, string json)
+    {
+        var output = MergeCell(new XElement(W + "tc", P(open), P(close)), json);
+
+        var paragraph = Assert.Single(output.Descendants(W + "tc").Single().Elements(W + "p"));
+        Assert.Empty(paragraph.Elements());
+        AssertCompatibleCells(output);
+    }
+
+    [Fact]
+    public void Mixed_For_If_and_Raw_that_remove_all_cell_content_leave_one_paragraph()
+    {
+        var output = MergeCell(new XElement(W + "tc", P("{For:Items}"), P("{If:Show}"),
+            P("{Raw}"), P("{/Raw}"), P("{/If}"), P("{/For}")), "{\"Items\":[{\"Show\":true}]}");
+
+        Assert.Empty(Assert.Single(output.Descendants(W + "tc").Single().Elements(W + "p")).Elements());
+        AssertCompatibleCells(output);
+    }
+
+    [Fact]
+    public void Cell_with_a_normal_trailing_paragraph_is_not_changed_or_extended()
+    {
+        var retained = Docx.P(new XElement(W + "pPr", new XElement(W + "keepNext")),
+            new XElement(W + "r", Docx.Properties(), new XElement(W + "t", "retained")));
+        var output = MergeCell(new XElement(W + "tc", P("{If:Show}"), P("discarded"),
+            P("{/If}"), retained), "{\"Show\":false}");
+        var paragraphs = output.Descendants(W + "tc").Single().Elements(W + "p").ToArray();
+
+        Assert.Single(paragraphs);
+        Assert.True(XNode.DeepEquals(retained, paragraphs[0]));
+        AssertCompatibleCells(output);
     }
 
     [Fact]
@@ -131,8 +260,6 @@ public sealed class Feature011CompatibilityTests
         var output = Docx.Merge(source, "{}", validationVersion: FileFormatVersions.Office2010).Document;
         if (family == "comment" && !point)
         {
-            Directory.CreateDirectory("/private/tmp/feature011-evidence/artifacts");
-            File.WriteAllBytes("/private/tmp/feature011-evidence/artifacts/raw-annotation-cleanup.docx", output);
         }
         var xml = Docx.Read(output);
         Assert.Equal("{Literal}link", Docx.Text(xml));
@@ -212,15 +339,46 @@ public sealed class Feature011CompatibilityTests
     }
 
     [Fact]
-    public void Nested_table_requires_a_surviving_final_cell_paragraph_after_Raw_delimiters()
+    public void Nested_tables_get_a_trailing_cell_paragraph_after_Raw_and_repeated_For_rendering()
     {
         var nested = Docx.Table(Docx.Row(Docx.Run("nested")));
-        var invalid = Docx.Create(Docx.Table(new XElement(W + "tr", new XElement(W + "tc",
-            P("{Raw}"), nested, P("{/Raw}")))));
-        Feature010IdentityTests.Reject(invalid, "{}", "template.invalid_structure");
-        var valid = Docx.Create(Docx.Table(new XElement(W + "tr", new XElement(W + "tc",
-            P("{Raw}"), new XElement(nested), P("{/Raw}"), P("tail")))));
-        Assert.Equal("nestedtail", Docx.Text(Docx.Read(Docx.Merge(valid, "{}").Document)));
+        foreach (var (cell, json, expectedTables) in new[]
+        {
+            (new XElement(W + "tc", P("{Raw}"), new XElement(nested), P("{/Raw}")), "{}", 1),
+            (new XElement(W + "tc", P("{For:Items}"), new XElement(nested), P("{/For}")),
+                "{\"Items\":[1,2]}", 2)
+        })
+        {
+            var output = MergeCell(cell, json);
+            var outerCell = output.Descendants(W + "tc").First();
+            var blocks = outerCell.Elements().ToArray();
+
+            Assert.Equal(expectedTables, blocks.Count(element => element.Name == W + "tbl"));
+            Assert.Equal(W + "p", blocks[^1].Name);
+            Assert.Empty(blocks[^1].Elements());
+            AssertCompatibleCells(output);
+        }
+    }
+
+    [Fact]
+    public void Repeated_nested_tables_and_nested_empty_blocks_leave_compatible_cells()
+    {
+        var nestedCell = new XElement(W + "tc", P("{If:Show}"), P("{Raw}"), P("{/Raw}"), P("{/If}"));
+        var repeatedTable = Docx.Table(new XElement(W + "tr", nestedCell));
+        var source = Docx.Create(P("{For:Items}"), repeatedTable, P("{/For}"));
+        using var input = new MemoryStream(source);
+        Assert.True(Feature010IdentityTests.Analyzer().Analyze(input).Valid);
+
+        var output = Docx.Read(Docx.Merge(source,
+            "{\"Items\":[{\"Show\":true},{\"Show\":false}]}", validationVersion: FileFormatVersions.Office2010).Document);
+
+        Assert.Equal(2, output.Descendants(W + "tbl").Count());
+        Assert.All(output.Descendants(W + "tc"), cell =>
+        {
+            var paragraph = Assert.Single(cell.Elements(W + "p"));
+            Assert.Empty(paragraph.Elements());
+        });
+        AssertCompatibleCells(output);
     }
 
     [Fact]
@@ -341,8 +499,6 @@ public sealed class Feature011CompatibilityTests
     {
         var source = SupportedCopyTemplate();
         var output = Docx.Merge(source, "{\"Items\":[\"A\",\"B\"]}", validationVersion: FileFormatVersions.Office2010).Document;
-        Directory.CreateDirectory("/private/tmp/feature011-evidence/artifacts");
-        File.WriteAllBytes("/private/tmp/feature011-evidence/artifacts/repeated-raw-drawings-permissions.docx", output);
         var xml = Docx.Read(output);
         Assert.Equal("{Malformed{{ {Literal}A{{ {Literal}B", Docx.Text(xml));
         var starts = xml.Descendants(W + "permStart").Select(e => (string?)e.Attribute(W + "id")).ToArray();

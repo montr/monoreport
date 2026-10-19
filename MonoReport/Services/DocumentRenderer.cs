@@ -37,8 +37,7 @@ public sealed class DocumentRenderer(DataResolver resolver, ValueFormatter forma
         if (!parentMap.TryGetValue(block.StartContainer, out var targetStart) || targetStart.Parent is null) return true;
         if (block.Kind == TemplateExpressionKind.Raw)
         {
-            targetStart.Remove();
-            parentMap[block.EndContainer].Remove();
+            RemoveAndEnsureCellStructure([targetStart, parentMap[block.EndContainer]]);
             return true;
         }
         var resolution = _resolver.Resolve(block.StartExpression.Path!, context);
@@ -187,8 +186,26 @@ public sealed class DocumentRenderer(DataResolver resolver, ValueFormatter forma
     {
         if (!map.TryGetValue(block.StartContainer, out var start) ||
             !map.TryGetValue(block.EndContainer, out var end) || start.Parent != end.Parent) return;
-        start.Parent!.Elements().SkipWhile(element => element != start).TakeWhile(element => element != end)
-            .Append(end).ToList().ForEach(element => element.Remove());
+        RemoveAndEnsureCellStructure(start.Parent!.Elements().SkipWhile(element => element != start)
+            .TakeWhile(element => element != end).Append(end).ToArray());
+    }
+
+    private static void RemoveAndEnsureCellStructure(IReadOnlyCollection<XElement> elements)
+    {
+        var cells = elements.Select(element => element.Parent)
+            .Where(parent => parent?.Name == WordXml.TableCellElementName)
+            .Cast<XElement>().Distinct().ToArray();
+        foreach (var element in elements) element.Remove();
+        foreach (var cell in cells)
+        {
+            // Range endpoints and other metadata do not supply cell block content.
+            var w = WordXml.WordprocessingNamespace;
+            var lastBlock = cell.Elements().LastOrDefault(element =>
+                element.Name == WordXml.ParagraphElementName || element.Name == WordXml.TableElementName ||
+                element.Name == w + "sdt" || element.Name == w + "customXml" || element.Name == w + "altChunk");
+            if (lastBlock is null || lastBlock.Name == WordXml.TableElementName)
+                cell.Add(new XElement(WordXml.ParagraphElementName));
+        }
     }
 
     private void WarnMissing(BlockPlan block, MergeContext context)

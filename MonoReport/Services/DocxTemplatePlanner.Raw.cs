@@ -68,15 +68,8 @@ public sealed partial class DocxTemplatePlanner
             {
                 if (delimiter.Descendants(WordXml.WordprocessingNamespace + "sectPr").Any())
                     problem = "a section boundary";
-                if (delimiter.Parent?.Name == WordXml.TableCellElementName)
-                {
-                    var surviving = delimiter.Parent.Elements().Where(element => !removed.Contains(element) &&
-                        element.Name != WordXml.TableCellPropertiesElementName).ToArray();
-                    if (surviving.Length == 0 || surviving[^1].Name != WordXml.ParagraphElementName)
-                        problem = "required cell block content or the final cell paragraph";
-                }
                 if (delimiter.Name != WordXml.TableRowElementName) continue;
-                var rows = delimiter.Parent!.Elements(WordXml.TableRowElementName).ToArray();
+                var rows = RawTableElements(delimiter.Parent!, WordXml.TableRowElementName).ToArray();
                 var survivingRows = rows.Where(row => !removed.Contains(row)).ToArray();
                 if (survivingRows.Length == 0) problem = "all required table rows";
                 var before = MergeOrigins(rows);
@@ -86,8 +79,26 @@ public sealed partial class DocxTemplatePlanner
             }
             if (problem is not null)
                 diagnostics.Add(Error("template.invalid_structure",
-                    $"Removing Raw delimiters would remove or damage {problem}. Move the delimiters to ordinary paragraphs/rows outside that structure in Word; retain required cell paragraphs and section boundaries.",
+                    $"Removing Raw delimiters would remove or damage {problem}. Move the delimiters to ordinary paragraphs/rows outside that structure in Word; preserve section boundaries, required table rows, and vertical merge chains.",
                     block.StartExpression, block.Location, (long)orders[block.StartContainer] << 32));
+        }
+    }
+
+    // Inspect physical rows or cells through supported wrappers without interpreting text.
+    // Stop at each requested element; nested tables and other opaque structures stay separate.
+    private static IEnumerable<XElement> RawTableElements(XElement container, XName elementName)
+    {
+        var w = WordXml.WordprocessingNamespace;
+        foreach (var child in container.Elements())
+        {
+            if (child.Name == elementName) yield return child;
+            else if (child.Name == w + "sdt")
+            {
+                if (child.Element(w + "sdtContent") is { } content)
+                    foreach (var element in RawTableElements(content, elementName)) yield return element;
+            }
+            else if (child.Name == w + "customXml")
+                foreach (var element in RawTableElements(child, elementName)) yield return element;
         }
     }
 
@@ -101,7 +112,7 @@ public sealed partial class DocxTemplatePlanner
         {
             var current = new Dictionary<(int Column, int Span), XElement?>();
             var column = (int?)row.Element(w + "trPr")?.Element(w + "gridBefore")?.Attribute(w + "val") ?? 0;
-            foreach (var cell in row.Elements(WordXml.TableCellElementName))
+            foreach (var cell in RawTableElements(row, WordXml.TableCellElementName))
             {
                 var properties = cell.Element(WordXml.TableCellPropertiesElementName);
                 var span = (int?)properties?.Element(w + "gridSpan")?.Attribute(w + "val") ?? 1;

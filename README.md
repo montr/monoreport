@@ -63,7 +63,7 @@ MonoReport generates DOCX reports, contracts, acts, protocols, invoices, and sim
 
 ## DOCX compatibility
 
-For the support, preservation, and rejection policy for Microsoft Word features, see [DOCX Template Compatibility](docs/docx-template-compatibility.md). Feature 011 implements this approved contract in the current source; Product Owner acceptance remains pending.
+For the support, preservation, and rejection policy for Microsoft Word features, see [DOCX Template Compatibility](docs/docx-template-compatibility.md). Feature 011 implements this approved contract in the current source and was accepted by the Product Owner on 2026-10-19.
 
 ## DOCX structure
 

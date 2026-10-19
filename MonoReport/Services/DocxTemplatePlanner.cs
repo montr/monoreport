@@ -529,7 +529,7 @@ public sealed partial class DocxTemplatePlanner(TemplateLanguageParser parser)
 
     private static StructuralDiagnostic Error(string code, string detail, TemplateExpression expression,
         string location, long sourceOrder) =>
-        new(code, detail, expression.Source, expression.Source, location, SourceOrder: sourceOrder);
+        new(code, detail, expression.Source, expression.Source, location, SourceOrder: sourceOrder, Explanation: detail);
 
     private sealed record Marker(TemplateExpression Expression, ParagraphPlan Paragraph, long SourceOrder);
 
