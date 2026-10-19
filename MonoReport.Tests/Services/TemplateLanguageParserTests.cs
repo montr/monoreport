@@ -10,7 +10,7 @@ public sealed class TemplateLanguageParserTests
     [Fact]
     public void Parses_paths_controls_formatters_and_strict_escapes()
     {
-        var result = _parser.Parse("{{{Customer.Name upper}}} {For:Orders} {../Title} {$.Company} {EndFor}", "part");
+        var result = _parser.Parse("{{{Customer.Name upper}}} {For:Orders} {../Title} {$.Company} {/For}", "part");
 
         Assert.Empty(result.Diagnostics);
         Assert.Equal(new[]

@@ -64,12 +64,7 @@ internal sealed record StoryPlan(
 internal sealed record StructuralOwner(BlockPlan Block, string Branch);
 
 internal sealed record IdentityLocation(XElement Element, string Part, string Location, long SourceOrder,
-    XElement Root, IReadOnlyList<StructuralOwner> Owners)
-{
-    internal bool Deleted => Owners.Any(owner => owner.Branch.StartsWith("marker", StringComparison.Ordinal));
-    internal IReadOnlyList<BlockPlan> Loops => Owners.Where(owner =>
-        owner.Block.Kind == TemplateExpressionKind.For && !owner.Branch.StartsWith("marker", StringComparison.Ordinal)).Select(owner => owner.Block).ToArray();
-}
+    XElement Root, IReadOnlyList<StructuralOwner> Owners);
 
 internal sealed record SourceRange(string Kind, string Id, IReadOnlyList<IdentityLocation> Members,
     XElement? CommentDefinition = null)
@@ -81,5 +76,5 @@ internal sealed record SourceRange(string Kind, string Id, IReadOnlyList<Identit
 
 internal sealed record DocxIdentityPlan(
     IReadOnlyDictionary<XElement, SourceRange> Ranges,
-    IReadOnlyDictionary<XElement, SourceRange> Anchors,
-    IReadOnlyList<StructuralDiagnostic> Diagnostics);
+    IReadOnlyList<StructuralDiagnostic> Diagnostics,
+    IReadOnlyList<XElement>? DeletedCommentDefinitions = null);

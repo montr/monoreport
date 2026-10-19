@@ -15,7 +15,7 @@ public sealed class HttpApiTests
             Docx.P(Docx.Run("{Customer.Name} {Customer.Name}")),
             Docx.P(Docx.Run("{For:Tags}")),
             Docx.P(Docx.Run("{.}")),
-            Docx.P(Docx.Run("{EndFor}")));
+            Docx.P(Docx.Run("{/For}")));
 
         using var form = Form(template);
         using var response = await client.PostAsync("/api/documents/analyze", form);
@@ -60,7 +60,7 @@ public sealed class HttpApiTests
     {
         using var factory = new WebApplicationFactory<Program>();
         using var client = factory.CreateClient();
-        var template = Docx.Create(Docx.P(Docx.Run("{EndFor}")));
+        var template = Docx.Create(Docx.P(Docx.Run("{Raw}")));
 
         using (var form = Form(template))
         using (var response = await client.PostAsync("/api/documents/analyze", form))
@@ -127,7 +127,7 @@ public sealed class HttpApiTests
     [InlineData("tracked-cell-deletion")] [InlineData("tracked-move-range")] [InlineData("expression-crosses-content-control-exit")]
     public async Task Final_corrections_preserve_diagnostic_parity_and_return_problem_details_without_docx(string name)
     {
-        var path = Path.Combine(AppContext.BaseDirectory, "review-reproductions", name);
+        var path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "review-reproductions", name);
         var template = File.ReadAllBytes(path + ".template.docx");
         using var factory = new WebApplicationFactory<Program>(); using var client = factory.CreateClient();
         using var analyze = Form(template); using var analyzed = await client.PostAsync("/api/documents/analyze", analyze);
@@ -149,16 +149,17 @@ public sealed class HttpApiTests
     }
 
     [Fact]
-    public async Task Comment_image_correction_generates_valid_output_through_http()
+    public async Task Raw_literal_and_following_expression_generate_through_http()
     {
-        var path = Path.Combine(AppContext.BaseDirectory, "review-reproductions", "comment-with-image.template.docx");
+        var template = Docx.Create(Docx.P(Docx.Run("{Raw}")), Docx.P(Docx.Run("{Hidden}")),
+            Docx.P(Docx.Run("{/Raw}")), Docx.P(Docx.Run("{Name}")));
         using var factory = new WebApplicationFactory<Program>(); using var client = factory.CreateClient();
-        using var form = Form(File.ReadAllBytes(path), "{\"Items\":[\"A\",\"B\"]}");
+        using var form = Form(template, "{\"Name\":\"OK\"}");
         using var response = await client.PostAsync("/api/documents/generate", form);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var output = await response.Content.ReadAsByteArrayAsync();
         Docx.AssertValid(output, DocumentFormat.OpenXml.FileFormatVersions.Office2010);
-        Assert.Equal(2, Docx.Read(output).Descendants(MonoReport.Services.WordXml.WordprocessingNamespace + "commentReference").Count());
+        Assert.Equal("{Hidden}OK", Docx.Text(Docx.Read(output)));
     }
 
     public static MultipartFormDataContent Form(byte[] template, string? data = null)

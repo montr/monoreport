@@ -30,10 +30,10 @@ public sealed partial class Feature010IdentityTests
         var inner = Control(Docx.Run("{Hidden}"));
         var control = placement switch
         {
-            "inline" => Control(Docx.Run("{For:Hidden}"), inner, Control([]), Control(Docx.Run("{EndFor}"))),
-            "block" => Control(Docx.P(Docx.Run("{For:Hidden}")), Docx.P(Control(Docx.Run("{Name}"))), Docx.P(Docx.Run("{EndFor}"))),
-            "row" => Control(Docx.Row(Docx.Run("{For:Hidden}")), Docx.Row(Docx.Run("{Name}")), Docx.Row(Docx.Run("{EndFor}"))),
-            _ => Control(new XElement(W + "tc", Docx.P(Docx.Run("{For:Hidden}")), Docx.P(Docx.Run("{Name}")), Docx.P(Docx.Run("{EndFor}"))))
+            "inline" => Control(Docx.Run("{For:Hidden}"), inner, Control([]), Control(Docx.Run("{/For}"))),
+            "block" => Control(Docx.P(Docx.Run("{For:Hidden}")), Docx.P(Control(Docx.Run("{Name}"))), Docx.P(Docx.Run("{/For}"))),
+            "row" => Control(Docx.Row(Docx.Run("{For:Hidden}")), Docx.Row(Docx.Run("{Name}")), Docx.Row(Docx.Run("{/For}"))),
+            _ => Control(new XElement(W + "tc", Docx.P(Docx.Run("{For:Hidden}")), Docx.P(Docx.Run("{Name}")), Docx.P(Docx.Run("{/For}"))))
         };
         control.Element(W + "sdtPr")!.Add(new XElement(W + "dataBinding", new XAttribute(W + "xpath", "/root/value"),
             new XAttribute(W + "storeItemID", "{01234567-89AB-CDEF-0123-456789ABCDEF}")), new XElement(W + "lock", new XAttribute(W + "val", "sdtLocked")));
@@ -44,7 +44,7 @@ public sealed partial class Feature010IdentityTests
             "cell" => Docx.Table(new XElement(W + "tr", control)),
             _ => control
         };
-        var template = Docx.Create(Docx.P(Docx.Run("{For:Items}")), body, Docx.P(Docx.Run("{EndFor}")), Docx.P(Docx.Run("{Visible}")));
+        var template = Docx.Create(Docx.P(Docx.Run("{For:Items}")), body, Docx.P(Docx.Run("{/For}")), Docx.P(Docx.Run("{Visible}")));
         Docx.AssertValid(template, FileFormatVersions.Office2010);
         using var input = new MemoryStream(template);
         var analysis = Analyzer().Analyze(input);
@@ -81,7 +81,7 @@ public sealed partial class Feature010IdentityTests
 
     [Theory]
     [InlineData(false)] [InlineData(true)]
-    public void Nested_comment_copies_normalize_all_drawings_and_local_definition_ranges(bool point)
+    public void Nested_local_comment_copies_are_rejected_before_identity_allocation(bool point)
     {
         var source = Fixture("comment-with-image", ".template.docx");
         var template = Prepare(source, document =>
@@ -97,8 +97,8 @@ public sealed partial class Feature010IdentityTests
                 attachment.Descendants(W + "commentRangeEnd").Remove();
             }
             body.ReplaceNodes(Docx.P(Docx.Run("{For:Items}")), Docx.P(Docx.Run("{If:Show}")),
-                Docx.P(Docx.Run("{For:Children}")), attachment, Docx.P(Docx.Run("{EndFor}")),
-                Docx.P(Docx.Run("{EndIf}")), Docx.P(Docx.Run("{EndFor}")));
+                Docx.P(Docx.Run("{For:Children}")), attachment, Docx.P(Docx.Run("{/For}")),
+                Docx.P(Docx.Run("{/If}")), Docx.P(Docx.Run("{/For}")));
             Save(main, xml.Root!);
             var commentsPart = main.WordprocessingCommentsPart!;
             using var commentsInput = commentsPart.GetStream(); var comments = XDocument.Load(commentsInput); commentsInput.Close();
@@ -129,53 +129,34 @@ public sealed partial class Feature010IdentityTests
         });
         Docx.AssertValid(template, FileFormatVersions.Office2010);
         foreach (var json in new[] { "{\"Items\":[]}", """{"Items":[{"Show":true,"Children":[{"Name":"A"},{"Name":"B"}]},{"Show":false,"Children":[{"Name":"NO"}]}]}""" })
-        {
-            var output = Docx.Merge(template, json, validationVersion: FileFormatVersions.Office2010).Document;
-            using var generated = WordprocessingDocument.Open(new MemoryStream(output), false);
-            var package = PackageXml(generated);
-            var ids = package.SelectMany(xml => xml.Descendants(Wp + "docPr")).Select(e => (string)e.Attribute("id")!).ToArray();
-            Assert.Equal(ids.Length, ids.Distinct().Count());
-            var names = package.SelectMany(xml => xml.Descendants(W + "bookmarkStart")).Select(e => (string)e.Attribute(W + "name")!).ToArray();
-            Assert.Equal(names.Length, names.Distinct().Count());
-            foreach (var comment in package.SelectMany(xml => xml.Descendants(W + "comment")))
-            {
-                Assert.Single(comment.Descendants(W + "bookmarkStart"));
-                Assert.Single(comment.Descendants(W + "bookmarkEnd"));
-                Assert.Single(comment.Descendants(W + "permStart"));
-                Assert.Single(comment.Descendants(W + "permEnd"));
-                Assert.Equal((string?)comment.Descendants(W + "bookmarkStart").Single().Attribute(W + "name"),
-                    (string?)comment.Descendants(W + "hyperlink").Single().Attribute(W + "anchor"));
-                Assert.Equal((string?)comment.Descendants(W + "bookmarkStart").Single().Attribute(W + "id"),
-                    (string?)comment.Descendants(W + "bookmarkEnd").Single().Attribute(W + "id"));
-                Assert.Equal((string?)comment.Descendants(W + "permStart").Single().Attribute(W + "id"),
-                    (string?)comment.Descendants(W + "permEnd").Single().Attribute(W + "id"));
-            }
-            var references = Docx.Read(output).Descendants(W + "commentReference").Select(e => (string)e.Attribute(W + "id")!).ToArray();
-            Assert.Equal(json.Contains("Name") ? 2 : 0, references.Length);
-            Assert.Equal(references.Length, references.Distinct().Count());
-            foreach (var reference in references) Assert.Single(package.SelectMany(xml => xml.Descendants(W + "comment")), e => (string?)e.Attribute(W + "id") == reference);
-            Assert.DoesNotContain("NO", Docx.Text(Docx.Read(output)));
-        }
+            Reject(template, json, "template.invalid_structure");
     }
 
     [Fact]
-    public async Task Reused_engine_isolates_real_comment_drawing_allocations_sequentially_and_concurrently()
+    public async Task Reused_engine_isolates_Raw_cleanup_drawing_and_permission_allocations()
     {
-        var template = Fixture("comment-with-image", ".template.docx");
+        var template = Feature011CompatibilityTests.SupportedCopyTemplate();
         var engine = Docx.CreateEngine();
         byte[] Run()
         {
             using var input = new MemoryStream(template); using var data = JsonDocument.Parse("{\"Items\":[\"A\",\"B\"]}");
             var output = engine.Merge(input, data).Document;
             Docx.AssertValid(output, FileFormatVersions.Office2010);
-            AssertCommentImages(template, output, 2);
+            using var generated = WordprocessingDocument.Open(new MemoryStream(output), false);
+            var ids = PackageXml(generated).SelectMany(xml => xml.Descendants(Wp + "docPr"))
+                .Select(element => (string)element.Attribute("id")!).ToArray();
+            Assert.Equal(ids.Length, ids.Distinct().Count());
+            var main = Docx.Read(output);
+            var permissions = main.Descendants(W + "permStart").Select(element => (string)element.Attribute(W + "id")!).ToArray();
+            Assert.Equal(2, permissions.Distinct().Count());
+            Assert.Equal(permissions, main.Descendants(W + "permEnd").Select(element => (string)element.Attribute(W + "id")!));
+            Assert.Single(generated.MainDocumentPart!.WordprocessingCommentsPart!.Comments!.Elements());
             Assert.Equal(template, input.ToArray()); Assert.True(input.CanRead);
             return output;
         }
         Run(); Run();
         await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Task.Run(Run)));
-        Directory.CreateDirectory("/private/tmp/feature010-final-corrections/artifacts");
-        File.WriteAllBytes("/private/tmp/feature010-final-corrections/artifacts/comment-images.docx", Run());
+        Run();
     }
 
     private static XElement Control(params object[] content) => new(W + "sdt", new XElement(W + "sdtPr",

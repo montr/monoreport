@@ -50,7 +50,7 @@ namespace MonoReport.Services
 
                     if (context.Errors.Count != 0)
                         throw new TemplateException(context.FirstError!, context.Errors, context.LimitReached);
-                    context.SavePackageIdentities();
+                    context.SaveDeletedCommentDefinitions();
                 }
 
                 return new(output.ToArray(), context.Warnings.AsReadOnly());

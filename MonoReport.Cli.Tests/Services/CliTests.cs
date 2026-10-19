@@ -11,7 +11,7 @@ public sealed class CliTests
     [Fact]
     public void Analyze_writes_the_new_contract_and_does_not_read_json()
     {
-        var path = WriteTemplate(Docx.Create(Docx.P(Docx.Run("{For:Tags}")), Docx.P(Docx.Run("{.}")), Docx.P(Docx.Run("{EndFor}"))));
+        var path = WriteTemplate(Docx.Create(Docx.P(Docx.Run("{For:Tags}")), Docx.P(Docx.Run("{.}")), Docx.P(Docx.Run("{/For}"))));
         try
         {
             using var provider = new ServiceCollection().AddMonoReport().BuildServiceProvider();
@@ -120,8 +120,8 @@ public sealed class CliTests
     [InlineData("tracked-cell-deletion")] [InlineData("tracked-move-range")] [InlineData("expression-crosses-content-control-exit")]
     public void Final_corrections_preserve_analyze_generate_diagnostics_and_never_write_partial_output(string name)
     {
-        var path = Path.Combine(AppContext.BaseDirectory, "review-reproductions", name + ".template.docx");
-        var json = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "review-reproductions", name + ".json"));
+        var path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "review-reproductions", name + ".template.docx");
+        var json = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "review-reproductions", name + ".json"));
         var outputPath = Path.Combine(Path.GetTempPath(), "feature010-rejected-" + Guid.NewGuid().ToString("N") + ".docx");
         using var provider = new ServiceCollection().AddMonoReport().BuildServiceProvider();
         var app = new CliApplication(new CliOptionsParser(), provider.GetRequiredService<MergeEngine>(), provider.GetRequiredService<TemplateAnalyzer>());
@@ -144,16 +144,21 @@ public sealed class CliTests
     }
 
     [Fact]
-    public void Comment_image_correction_generates_valid_output_through_cli()
+    public void Raw_literal_and_following_expression_generate_through_cli()
     {
-        var path = Path.Combine(AppContext.BaseDirectory, "review-reproductions", "comment-with-image.template.docx");
-        using var provider = new ServiceCollection().AddMonoReport().BuildServiceProvider();
-        var app = new CliApplication(new CliOptionsParser(), provider.GetRequiredService<MergeEngine>(), provider.GetRequiredService<TemplateAnalyzer>());
-        using var output = new MemoryStream(); using var errors = new StringWriter();
-        Assert.Equal(0, app.Run(["--template", path, "--json", "{\"Items\":[\"A\",\"B\"]}"], Stream.Null, output, errors));
-        Assert.Empty(errors.ToString());
-        Docx.AssertValid(output.ToArray(), DocumentFormat.OpenXml.FileFormatVersions.Office2010);
-        Assert.Equal(2, Docx.Read(output.ToArray()).Descendants(MonoReport.Services.WordXml.WordprocessingNamespace + "commentReference").Count());
+        var path = WriteTemplate(Docx.Create(Docx.P(Docx.Run("{Raw}")), Docx.P(Docx.Run("{Hidden}")),
+            Docx.P(Docx.Run("{/Raw}")), Docx.P(Docx.Run("{Name}"))));
+        try
+        {
+            using var provider = new ServiceCollection().AddMonoReport().BuildServiceProvider();
+            var app = new CliApplication(new CliOptionsParser(), provider.GetRequiredService<MergeEngine>(), provider.GetRequiredService<TemplateAnalyzer>());
+            using var output = new MemoryStream(); using var errors = new StringWriter();
+            Assert.Equal(0, app.Run(["--template", path, "--json", "{\"Name\":\"OK\"}"], Stream.Null, output, errors));
+            Assert.Empty(errors.ToString());
+            Docx.AssertValid(output.ToArray(), DocumentFormat.OpenXml.FileFormatVersions.Office2010);
+            Assert.Equal("{Hidden}OK", Docx.Text(Docx.Read(output.ToArray())));
+        }
+        finally { File.Delete(path); }
     }
 
     private static string WriteTemplate(byte[] bytes)

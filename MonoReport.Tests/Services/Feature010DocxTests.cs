@@ -20,9 +20,9 @@ public sealed class Feature010DocxTests
             Docx.P(Docx.Run("+")),
             Docx.P(Docx.Run("{Else}")),
             Docx.P(Docx.Run("-")),
-            Docx.P(Docx.Run("{EndIf}")),
-            Docx.P(Docx.Run("{EndFor}")),
-            Docx.P(Docx.Run("{EndFor}")));
+            Docx.P(Docx.Run("{/If}")),
+            Docx.P(Docx.Run("{/For}")),
+            Docx.P(Docx.Run("{/For}")));
 
         var result = Docx.Merge(template,
             """{"Company":"ACME","Orders":[{"Number":"1","Items":[{"Name":"A","Paid":true},{"Name":"B","Paid":false}]}]}""");
@@ -35,7 +35,7 @@ public sealed class Feature010DocxTests
     {
         var table = Docx.Table(Docx.Row(Docx.Run("{.}")));
         var template = Docx.Create(Docx.P(Docx.Run("{For:Values}")), table,
-            Docx.P(Docx.Run("{EndFor}")));
+            Docx.P(Docx.Run("{/For}")));
 
         var result = Docx.Merge(template, """{"Values":["A","B"]}""");
         var xml = Docx.Read(result.Document);
@@ -50,7 +50,7 @@ public sealed class Feature010DocxTests
     {
         var template = Docx.Create(Docx.P(Docx.Run("{If:Show}")),
             Docx.Table(Docx.Row(Docx.Run("shown"))), Docx.P(Docx.Run("{Else}")),
-            Docx.Table(Docx.Row(Docx.Run("hidden"))), Docx.P(Docx.Run("{EndIf}")));
+            Docx.Table(Docx.Row(Docx.Run("hidden"))), Docx.P(Docx.Run("{/If}")));
         var result = Docx.Merge(template, """{"Show":true}""");
         var xml = Docx.Read(result.Document);
         Assert.Equal("shown", Docx.Text(xml));
@@ -70,7 +70,7 @@ public sealed class Feature010DocxTests
                     new XElement(w + "pPr", new XElement(w + "numPr", new XElement(w + "ilvl", new XAttribute(w + "val", "1")), new XElement(w + "numId", new XAttribute(w + "val", "7")))),
                     Docx.Run("{Name}"))));
         var markerEnd = new XElement(WordXml.TableRowElementName,
-            new XElement(WordXml.TableCellElementName, Docx.P(Docx.Run("{EndFor}"))));
+            new XElement(WordXml.TableCellElementName, Docx.P(Docx.Run("{/For}"))));
         var template = Docx.Create(Docx.Table(markerStart, content, markerEnd));
 
         var result = Docx.Merge(template, """{"Items":[{"Name":"A"},{"Name":"B"}]}""");
@@ -96,7 +96,7 @@ public sealed class Feature010DocxTests
             ListParagraph("{Name}", 3, 0),
             ListParagraph("{Name} child", 3, 1),
             ListParagraph("{Name} bullet", 8, 0),
-            Docx.P(Docx.Run("{EndFor}")));
+            Docx.P(Docx.Run("{/For}")));
 
         var result = Docx.Merge(template, """{"Items":[{"Name":"A"},{"Name":"B"}]}""");
         var xml = Docx.Read(result.Document);
@@ -118,7 +118,7 @@ public sealed class Feature010DocxTests
                 new XElement(w + "pPr", new XElement(w + "numPr",
                     new XElement(w + "ilvl", new XAttribute(w + "val", "0")),
                     new XElement(w + "numId", new XAttribute(w + "val", "4")))), Docx.Run("{.}")),
-            Docx.P(Docx.Run("{EndFor}")));
+            Docx.P(Docx.Run("{/For}")));
         var numbering = new XDocument(new XElement(w + "numbering",
             new XElement(w + "abstractNum", new XAttribute(w + "abstractNumId", "2")),
             new XElement(w + "num", new XAttribute(w + "numId", "4"),
@@ -151,7 +151,7 @@ public sealed class Feature010DocxTests
     public void Nested_table_row_loop_operates_only_on_the_inner_table()
     {
         var inner = Docx.Table(Docx.Row(Docx.Run("{For:Values}")),
-            Docx.Row(Docx.Run("{.}")), Docx.Row(Docx.Run("{EndFor}")));
+            Docx.Row(Docx.Run("{.}")), Docx.Row(Docx.Run("{/For}")));
         var outerRow = new XElement(WordXml.TableRowElementName,
             new XElement(WordXml.TableCellElementName, Docx.P(Docx.Run("Outer")), inner, Docx.P()));
         var result = Docx.Merge(Docx.Create(Docx.Table(outerRow)), """{"Values":["A","B"]}""");
@@ -163,7 +163,7 @@ public sealed class Feature010DocxTests
 
     [Theory]
     [InlineData("{For:Items} extra")]
-    [InlineData("{For:Items}{EndFor}")]
+    [InlineData("{For:Items}{/For}")]
     public void Analyzer_rejects_mixed_or_multiple_control_markers(string text)
     {
         using var stream = new MemoryStream(Docx.Create(Docx.P(Docx.Run(text))));
@@ -176,13 +176,13 @@ public sealed class Feature010DocxTests
     [InlineData("{For:Items}", "symbol")]
     [InlineData("{If:Show}", "symbol")]
     [InlineData("{Else}", "symbol")]
-    [InlineData("{EndIf}", "symbol")]
-    [InlineData("{EndFor}", "symbol")]
+    [InlineData("{/If}", "symbol")]
+    [InlineData("{/For}", "symbol")]
     [InlineData("{For:Items}", "drawing")]
     [InlineData("{If:Show}", "drawing")]
     [InlineData("{Else}", "drawing")]
-    [InlineData("{EndIf}", "drawing")]
-    [InlineData("{EndFor}", "drawing")]
+    [InlineData("{/If}", "drawing")]
+    [InlineData("{/For}", "drawing")]
     public void Analyzer_rejects_marker_paragraphs_with_non_text_content(string marker, string content)
     {
         var contaminant = content == "symbol"
@@ -198,12 +198,12 @@ public sealed class Feature010DocxTests
         }
         var paragraphs = marker switch
         {
-            "{For:Items}" => new[] { Marker("{For:Items}"), Docx.P(Docx.Run("{.}")), Marker("{EndFor}") },
-            "{EndFor}" => new[] { Marker("{For:Items}"), Docx.P(Docx.Run("{.}")), Marker("{EndFor}") },
-            "{If:Show}" => new[] { Marker("{If:Show}"), Docx.P(Docx.Run("yes")), Marker("{EndIf}") },
+            "{For:Items}" => new[] { Marker("{For:Items}"), Docx.P(Docx.Run("{.}")), Marker("{/For}") },
+            "{/For}" => new[] { Marker("{For:Items}"), Docx.P(Docx.Run("{.}")), Marker("{/For}") },
+            "{If:Show}" => new[] { Marker("{If:Show}"), Docx.P(Docx.Run("yes")), Marker("{/If}") },
             "{Else}" => new[] { Marker("{If:Show}"), Docx.P(Docx.Run("yes")), Marker("{Else}"),
-                Docx.P(Docx.Run("no")), Marker("{EndIf}") },
-            _ => new[] { Marker("{If:Show}"), Docx.P(Docx.Run("yes")), Marker("{EndIf}") }
+                Docx.P(Docx.Run("no")), Marker("{/If}") },
+            _ => new[] { Marker("{If:Show}"), Docx.P(Docx.Run("yes")), Marker("{/If}") }
         };
         var template = Docx.Create(paragraphs);
         Docx.AssertValid(template);
@@ -228,9 +228,9 @@ public sealed class Feature010DocxTests
                 new XElement(WordXml.RunPropertiesElementName, new XElement(w + "b")),
                 new XElement(WordXml.TextElementName, text)));
         var template = blockKind == "For"
-            ? Docx.Create(Marker("{For:Items}"), Docx.P(Docx.Run("{.}")), Marker("{EndFor}"))
+            ? Docx.Create(Marker("{For:Items}"), Docx.P(Docx.Run("{.}")), Marker("{/For}"))
             : Docx.Create(Marker("{If:Show}"), Docx.P(Docx.Run("yes")), Marker("{Else}"),
-                Docx.P(Docx.Run("no")), Marker("{EndIf}"));
+                Docx.P(Docx.Run("no")), Marker("{/If}"));
         using var stream = new MemoryStream(template);
 
         var analysis = Analyzer().Analyze(stream);
@@ -247,7 +247,7 @@ public sealed class Feature010DocxTests
             new XElement(WordXml.TableRowElementName, new XElement(WordXml.TableCellElementName,
                 new XElement(w + "tcPr", new XElement(w + "vMerge", new XAttribute(w + "val", "restart"))),
                 Docx.P(Docx.Run("{Name}")))),
-            Docx.Row(Docx.Run("{EndFor}"))));
+            Docx.Row(Docx.Run("{/For}"))));
 
         using var stream = new MemoryStream(template);
         var result = Analyzer().Analyze(stream);
@@ -265,13 +265,13 @@ public sealed class Feature010DocxTests
                 new XElement(w + "tcPr", new XElement(w + "vMerge", new XAttribute(w + "val", value))),
                 Docx.P(Docx.Run("merged"))));
         var rowTemplate = Docx.Create(Docx.Table(MergedRow("restart"), MergedRow("continue"),
-            Docx.Row(Docx.Run("{For:Items}")), Docx.Row(Docx.Run("{.}")), Docx.Row(Docx.Run("{EndFor}"))));
+            Docx.Row(Docx.Run("{For:Items}")), Docx.Row(Docx.Run("{.}")), Docx.Row(Docx.Run("{/For}"))));
         var rowResult = Docx.Merge(rowTemplate, """{"Items":["A","B"]}""");
         Assert.Equal(2, Docx.Read(rowResult.Document).Descendants(w + "vMerge").Count());
 
         var completeTable = Docx.Table(MergedRow("restart"), MergedRow("continue"));
         var paragraphTemplate = Docx.Create(Docx.P(Docx.Run("{For:Items}")), completeTable,
-            Docx.P(Docx.Run("{EndFor}")));
+            Docx.P(Docx.Run("{/For}")));
         var paragraphResult = Docx.Merge(paragraphTemplate, """{"Items":[1,2]}""");
         Assert.Equal(4, Docx.Read(paragraphResult.Document).Descendants(w + "vMerge").Count());
     }
@@ -289,7 +289,7 @@ public sealed class Feature010DocxTests
         var body = new XElement(WordXml.TableRowElementName,
             new XElement(WordXml.TableCellElementName, Docx.P(Docx.Run("{Name}")), nested));
         var template = Docx.Create(Docx.Table(
-            Docx.Row(Docx.Run("{For:Items}")), body, Docx.Row(Docx.Run("{EndFor}"))));
+            Docx.Row(Docx.Run("{For:Items}")), body, Docx.Row(Docx.Run("{/For}"))));
         Docx.AssertValid(template);
 
         var result = Docx.Merge(template, """{"Items":[{"Name":"A"},{"Name":"B"}]}""");
@@ -307,16 +307,16 @@ public sealed class Feature010DocxTests
     {
         var template = Docx.Create(Docx.Table(Docx.Row(Docx.Run("{If:Show}")),
             Docx.Row(Docx.Run("yes")), Docx.Row(Docx.Run("{Else}")),
-            Docx.Row(Docx.Run("no")), Docx.Row(Docx.Run("{EndIf}"))));
+            Docx.Row(Docx.Run("no")), Docx.Row(Docx.Run("{/If}"))));
         var result = Docx.Merge(template, """{"Show":false}""");
         Assert.Equal("no", Docx.Text(Docx.Read(result.Document)));
     }
 
     [Theory]
-    [InlineData("{EndFor}")]
+    [InlineData("{/For}")]
     [InlineData("{Else}")]
     [InlineData("{For:Items}")]
-    [InlineData("{If:Flag}\n{Else}\n{Else}\n{EndIf}")]
+    [InlineData("{If:Flag}\n{Else}\n{Else}\n{/If}")]
     public void Analyzer_rejects_unmatched_misplaced_and_duplicate_markers(string markerText)
     {
         var paragraphs = markerText.Split('\n').Select(text => Docx.P(Docx.Run(text))).ToArray();
@@ -466,7 +466,7 @@ public sealed class Feature010DocxTests
             new XElement(WordXml.TableCellElementName, Docx.P(Docx.Run("{For:Items}"))),
             new XElement(WordXml.TableCellElementName, Docx.P(OpaqueContent(kind, visible: true))));
         var template = Docx.Create(Docx.Table(start, Docx.Row(Docx.Run("{.}")),
-            Docx.Row(Docx.Run("{EndFor}"))));
+            Docx.Row(Docx.Run("{/For}"))));
         using var stream = new MemoryStream(template);
 
         var analysis = Analyzer().Analyze(stream);
@@ -491,7 +491,7 @@ public sealed class Feature010DocxTests
             new XElement(WordXml.TableCellElementName, Docx.P(Docx.Run("{For:Items}"))),
             new XElement(WordXml.TableCellElementName, Docx.P(opaque)));
         var template = Docx.Create(Docx.Table(start, Docx.Row(Docx.Run("{.}")),
-            Docx.Row(Docx.Run("{EndFor}"))));
+            Docx.Row(Docx.Run("{/For}"))));
         Docx.AssertValid(template);
         using var stream = new MemoryStream(template);
 
@@ -578,7 +578,7 @@ public sealed class Feature010DocxTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void Complete_bookmark_pairs_are_allowed_around_paragraph_and_row_markers(bool rowMarker)
+    public void Complete_bookmark_pairs_on_operation_markers_are_rejected(bool rowMarker)
     {
         var w = WordXml.WordprocessingNamespace;
         XElement MarkerParagraph(string marker, int id) => new(WordXml.ParagraphElementName,
@@ -591,55 +591,36 @@ public sealed class Feature010DocxTests
                     new XElement(WordXml.TableCellElementName, MarkerParagraph("{For:Items}", 4))),
                 Docx.Row(Docx.Run("{.}")),
                 new XElement(WordXml.TableRowElementName,
-                    new XElement(WordXml.TableCellElementName, MarkerParagraph("{EndFor}", 5)))))
+                    new XElement(WordXml.TableCellElementName, MarkerParagraph("{/For}", 5)))))
             : Docx.Create(MarkerParagraph("{For:Items}", 4), Docx.P(Docx.Run("{.}")),
-                MarkerParagraph("{EndFor}", 5));
+                MarkerParagraph("{/For}", 5));
         Docx.AssertValid(template);
-        using var stream = new MemoryStream(template);
-
-        var analysis = Analyzer().Analyze(stream);
-
-        Assert.True(analysis.Valid);
-        Assert.Equal("AB", Docx.Text(Docx.Read(Docx.Merge(template, """{"Items":["A","B"]}""").Document)));
+        Feature010IdentityTests.Reject(template, """{"Items":["A","B"]}""", "template.invalid_structure");
     }
 
     [Fact]
-    public void Repeated_bookmark_and_permission_ranges_receive_local_ids_and_bookmark_references_follow_names()
+    public void Repeated_permission_ranges_receive_matching_local_ids()
     {
         var w = WordXml.WordprocessingNamespace;
         var body = new XElement(WordXml.ParagraphElementName,
-            new XElement(w + "bookmarkStart", new XAttribute(w + "id", 8),
-                new XAttribute(w + "name", "item")),
             new XElement(w + "permStart", new XAttribute(w + "id", 9), new XAttribute(w + "edGrp", "everyone")),
             Docx.Run("{Name}"),
-            new XElement(w + "permEnd", new XAttribute(w + "id", 9)),
-            new XElement(w + "bookmarkEnd", new XAttribute(w + "id", 8)),
-            new XElement(WordXml.HyperlinkElementName, new XAttribute(WordXml.AnchorAttributeName, "item"),
-                Docx.Run("link")));
+            new XElement(w + "permEnd", new XAttribute(w + "id", 9)));
         var template = Docx.Create(Docx.P(Docx.Run("{For:Items}")), body,
-            Docx.P(Docx.Run("{EndFor}")));
+            Docx.P(Docx.Run("{/For}")));
         Docx.AssertValid(template);
 
         var result = Docx.Merge(template, """{"Items":[{"Name":"A"},{"Name":"B"}]}""");
         var xml = Docx.Read(result.Document);
-        var bookmarkStarts = xml.Descendants(w + "bookmarkStart").ToArray();
-        var bookmarkEnds = xml.Descendants(w + "bookmarkEnd").ToArray();
         var permissionStarts = xml.Descendants(w + "permStart").ToArray();
         var permissionEnds = xml.Descendants(w + "permEnd").ToArray();
-        var names = bookmarkStarts.Select(item => (string)item.Attribute(w + "name")!).ToArray();
-
-        Assert.Equal(2, names.Distinct().Count());
-        Assert.Equal(bookmarkStarts.Select(item => (string)item.Attribute(w + "id")!),
-            bookmarkEnds.Select(item => (string)item.Attribute(w + "id")!));
         Assert.Equal(permissionStarts.Select(item => (string)item.Attribute(w + "id")!),
             permissionEnds.Select(item => (string)item.Attribute(w + "id")!));
         Assert.Equal(2, permissionStarts.Select(item => (string)item.Attribute(w + "id")!).Distinct().Count());
-        Assert.Equal(names, xml.Descendants(WordXml.HyperlinkElementName)
-            .Select(item => (string)item.Attribute(WordXml.AnchorAttributeName)!));
     }
 
     [Fact]
-    public void Repeated_comment_ranges_receive_matching_cloned_comment_identities()
+    public void Repeated_comment_ranges_are_rejected_before_cloning()
     {
         var w = WordXml.WordprocessingNamespace;
         var body = new XElement(WordXml.ParagraphElementName,
@@ -649,7 +630,7 @@ public sealed class Feature010DocxTests
             new XElement(WordXml.RunElementName,
                 new XElement(w + "commentReference", new XAttribute(w + "id", 0))));
         var template = Docx.Create(Docx.P(Docx.Run("{For:Items}")), body,
-            Docx.P(Docx.Run("{EndFor}")));
+            Docx.P(Docx.Run("{/For}")));
         using var prepared = new MemoryStream();
         prepared.Write(template);
         prepared.Position = 0;
@@ -665,21 +646,8 @@ public sealed class Feature010DocxTests
         var preparedBytes = prepared.ToArray();
         Docx.AssertValid(preparedBytes);
 
-        var result = Docx.Merge(preparedBytes, """{"Items":[{"Name":"A"},{"Name":"B"}]}""");
-        var xml = Docx.Read(result.Document);
-
-        Assert.Equal(2, xml.Descendants(w + "commentRangeStart").Count());
-        var starts = xml.Descendants(w + "commentRangeStart").Select(item => (string)item.Attribute(w + "id")!).ToArray();
-        Assert.Equal(2, starts.Distinct().Count());
-        Assert.Equal(starts, xml.Descendants(w + "commentRangeEnd").Select(item => (string)item.Attribute(w + "id")!));
-        Assert.Equal(starts, xml.Descendants(w + "commentReference").Select(item => (string)item.Attribute(w + "id")!));
-        using var resultStream = new MemoryStream(result.Document);
-        using var generated = WordprocessingDocument.Open(resultStream, false);
-        var commentIds = generated.MainDocumentPart!.WordprocessingCommentsPart!.Comments!
-            .Elements<DocumentFormat.OpenXml.Wordprocessing.Comment>()
-            .Select(item => item.Id!.Value!).ToArray();
-        Assert.Equal(3, commentIds.Length);
-        Assert.All(starts, id => Assert.Contains(id, commentIds));
+        Feature010IdentityTests.Reject(preparedBytes, """{"Items":[{"Name":"A"},{"Name":"B"}]}""",
+            "template.invalid_structure");
     }
 
     [Fact]
@@ -688,7 +656,7 @@ public sealed class Feature010DocxTests
         var template = Docx.Create(
             Docx.P(Docx.Run("{For:Items}")),
             Docx.P(new XElement(WordXml.RunElementName, Drawing(7))),
-            Docx.P(Docx.Run("{EndFor}")));
+            Docx.P(Docx.Run("{/For}")));
         var image = Convert.FromBase64String(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
         string relationshipId;
@@ -734,7 +702,7 @@ public sealed class Feature010DocxTests
         var template = Docx.Create(
             Docx.P(Docx.Run("{For:Items}")),
             Docx.P(new XElement(WordXml.RunElementName, Drawing(7))),
-            Docx.P(Docx.Run("{EndFor}")));
+            Docx.P(Docx.Run("{/For}")));
         using var prepared = new MemoryStream();
         prepared.Write(template);
         prepared.Position = 0;
@@ -764,7 +732,7 @@ public sealed class Feature010DocxTests
         var w = WordXml.WordprocessingNamespace;
         var template = Docx.Create(Docx.P(Docx.Run("{For:Items}")),
             Docx.P(new XElement(WordXml.RunElementName, Drawing(1))),
-            Docx.P(Docx.Run("{EndFor}")));
+            Docx.P(Docx.Run("{/For}")));
         using var prepared = new MemoryStream();
         prepared.Write(template);
         prepared.Position = 0;
@@ -807,7 +775,7 @@ public sealed class Feature010DocxTests
         var template = Docx.Create(
             Docx.P(Docx.Run("{Value}")),
             Docx.P(Docx.Run("{For:Value}")),
-            Docx.P(Docx.Run("{EndFor}")),
+            Docx.P(Docx.Run("{/For}")),
             Docx.P(Docx.Run("{Broken")));
         using var stream = new MemoryStream(template);
 
@@ -820,7 +788,7 @@ public sealed class Feature010DocxTests
             analysis.Errors.Select(issue => issue.Code));
 
         using var sameParagraph = new MemoryStream(Docx.Create(
-            Docx.P(Docx.Run("{Value}{For:Value}{EndFor}{Broken"))));
+            Docx.P(Docx.Run("{Value}{For:Value}{/For}{Broken"))));
         var sameParagraphAnalysis = Analyzer().Analyze(sameParagraph);
         Assert.Equal(new[]
         {

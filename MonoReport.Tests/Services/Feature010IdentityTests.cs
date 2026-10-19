@@ -45,15 +45,12 @@ public sealed partial class Feature010IdentityTests
     }
 
     [Fact]
-    public void Persisted_comment_images_clone_with_unique_package_ids_and_preserved_relationships()
+    public void Persisted_local_comment_images_are_rejected_before_copying()
     {
         var template = Fixture("comment-with-image", ".template.docx");
         Docx.AssertValid(template, FileFormatVersions.Office2010);
-        using var input = new MemoryStream(template);
-        Assert.True(Analyzer().Analyze(input).Valid);
-        var result = Docx.Merge(template, System.Text.Encoding.UTF8.GetString(Fixture("comment-with-image", ".json")),
-            validationVersion: FileFormatVersions.Office2010);
-        AssertCommentImages(template, result.Document, 2);
+        Reject(template, System.Text.Encoding.UTF8.GetString(Fixture("comment-with-image", ".json")),
+            "template.invalid_structure");
     }
 
     internal static void AssertCommentImages(byte[] template, byte[] output, int count)
@@ -93,7 +90,7 @@ public sealed partial class Feature010IdentityTests
     }
 
     internal static byte[] Fixture(string name, string extension) => File.ReadAllBytes(
-        Path.Combine(AppContext.BaseDirectory, "review-reproductions", name + extension));
+        Path.Combine(AppContext.BaseDirectory, "Fixtures", "review-reproductions", name + extension));
 
     internal static TemplateAnalysisResult Reject(byte[] template, string json, string code)
     {

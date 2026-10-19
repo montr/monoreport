@@ -35,6 +35,12 @@ public sealed class DocumentRenderer(DataResolver resolver, ValueFormatter forma
         MergeContext context)
     {
         if (!parentMap.TryGetValue(block.StartContainer, out var targetStart) || targetStart.Parent is null) return true;
+        if (block.Kind == TemplateExpressionKind.Raw)
+        {
+            targetStart.Remove();
+            parentMap[block.EndContainer].Remove();
+            return true;
+        }
         var resolution = _resolver.Resolve(block.StartExpression.Path!, context);
         if (block.Kind == TemplateExpressionKind.For)
         {
@@ -90,25 +96,16 @@ public sealed class DocumentRenderer(DataResolver resolver, ValueFormatter forma
         XElement targetStart, Dictionary<XElement, XElement> parentMap, MergeContext context)
     {
         if (selected.Count == 0) return true;
-        var previousFrame = context.ActiveIdentities;
-        context.ActiveIdentities = context.CreateIdentityFrame(block, selected);
-        try
-        {
-            var cloneMap = new Dictionary<XElement, XElement>();
-            var clones = context.Clone(selected, cloneMap);
-            var holder = new XElement("holder", clones);
-            var selectedParagraphs = plan.Paragraphs.Where(paragraph => selected.Any(root =>
-                paragraph.Paragraph == root || paragraph.Paragraph.Ancestors().Contains(root))).ToArray();
-            var selectedBlocks = block.Children.Where(child => selected.Any(root =>
-                child.StartContainer == root || child.StartContainer.Ancestors().Contains(root))).ToArray();
-            if (!RenderScope(plan, selectedParagraphs, selectedBlocks, cloneMap, context)) return false;
-            targetStart.AddBeforeSelf(holder.Elements().ToArray());
-            return true;
-        }
-        finally
-        {
-            context.ActiveIdentities = previousFrame;
-        }
+        var cloneMap = new Dictionary<XElement, XElement>();
+        var clones = context.Clone(selected, cloneMap);
+        var holder = new XElement("holder", clones);
+        var selectedParagraphs = plan.Paragraphs.Where(paragraph => selected.Any(root =>
+            paragraph.Paragraph == root || paragraph.Paragraph.Ancestors().Contains(root))).ToArray();
+        var selectedBlocks = block.Children.Where(child => selected.Any(root =>
+            child.StartContainer == root || child.StartContainer.Ancestors().Contains(root))).ToArray();
+        if (!RenderScope(plan, selectedParagraphs, selectedBlocks, cloneMap, context)) return false;
+        targetStart.AddBeforeSelf(holder.Elements().ToArray());
+        return true;
     }
 
     private bool RenderParagraph(ParagraphPlan paragraph, Dictionary<XElement, XElement> map, MergeContext context)

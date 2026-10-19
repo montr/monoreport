@@ -4,7 +4,7 @@ using MonoReport.Models;
 
 namespace MonoReport.Services;
 
-public sealed class DocxTemplatePlanner(TemplateLanguageParser parser)
+public sealed partial class DocxTemplatePlanner(TemplateLanguageParser parser)
 {
     private readonly TemplateLanguageParser _parser = parser ?? throw new ArgumentNullException(nameof(parser));
 
@@ -18,9 +18,13 @@ public sealed class DocxTemplatePlanner(TemplateLanguageParser parser)
             .ToDictionary(item => item.element, item => item.index);
         var paragraphNumber = 0;
         var fieldDepth = 0;
+        XElement? previousRoot = null;
         foreach (var paragraph in xml.Root!.Descendants(WordXml.ParagraphElementName))
         {
             paragraphNumber++;
+            var storyRoot = IndependentRoot(paragraph);
+            if (storyRoot != previousRoot) fieldDepth = 0;
+            previousRoot = storyRoot;
             if (IsSpecialized(paragraph))
             {
                 // Controls are opaque to syntax, but their field delimiters still enclose outside text.
@@ -42,16 +46,14 @@ public sealed class DocxTemplatePlanner(TemplateLanguageParser parser)
                     spans.Add(new(node, offset, node.Value.Length, sourceOrders[node]));
                     offset += node.Value.Length;
                 }
-                var parsed = _parser.Parse(text, location);
-                var paragraphPlan = new ParagraphPlan(paragraph, text, spans, parsed.Tokens, location, sourceOrder);
-                diagnostics.AddRange(parsed.Diagnostics.Select(item => item with
-                    { SourceOrder = paragraphPlan.PositionAt((int)item.SourceOrder) }));
-                paragraphs.Add(paragraphPlan);
+                paragraphs.Add(new(paragraph, text, spans, [], location, sourceOrder));
             }
         }
 
+        paragraphs = ParseOutsideRaw(paragraphs, diagnostics);
         diagnostics.AddRange(RevisionDiagnostics(xml.Root, partName, sourceOrders));
         var blocks = BuildBlocks(xml.Root, paragraphs, diagnostics);
+        ValidateRawDeletion(blocks, diagnostics, sourceOrders);
         var dependencies = BuildDependencies(paragraphs, diagnostics, partName);
         return new(part, xml, paragraphs, blocks, dependencies,
             diagnostics.OrderBy(item => item.SourceOrder).Select(item => item with
@@ -84,79 +86,7 @@ public sealed class DocxTemplatePlanner(TemplateLanguageParser parser)
                     (long)index << 32, root, Ownership(element, blocks)));
             }
         }
-        var ranges = new Dictionary<XElement, SourceRange>();
-        var diagnostics = new List<StructuralDiagnostic>();
-        var commentsPart = package.PackageXml.FirstOrDefault(item => item.Part is WordprocessingCommentsPart).Xml;
-        var commentDefinitions = (commentsPart?.Root?.Elements(WordXml.WordprocessingNamespace + "comment") ?? [])
-            .ToLookup(element => CommentIdentity(element));
-        foreach (var family in new[]
-        {
-            (Kind: "bookmark", Names: new[] { "bookmarkStart", "bookmarkEnd" }),
-            (Kind: "permission", Names: new[] { "permStart", "permEnd" }),
-            (Kind: "comment", Names: new[] { "commentRangeStart", "commentRangeEnd", "commentReference" })
-        })
-        {
-            var names = family.Names.Select(name => WordXml.WordprocessingNamespace + name).ToHashSet();
-            foreach (var group in locations.Values.Where(item => names.Contains(item.Element.Name))
-                         .GroupBy(item => (item.Root, Id: family.Kind == "comment" ? CommentIdentity(item.Element) :
-                             (string?)item.Element.Attribute(WordXml.WordprocessingNamespace + "id") ?? "")))
-            {
-                var members = group.OrderBy(item => item.SourceOrder).ToArray();
-                var definitions = family.Kind == "comment" ? commentDefinitions[group.Key.Id].ToArray() : [];
-                var range = new SourceRange(family.Kind, group.Key.Id, members,
-                    definitions.Length == 1 ? definitions[0] : null);
-                foreach (var member in members) ranges.Add(member.Element, range);
-                if (!members.Any(member => member.Owners.Count != 0)) continue;
-                if (family.Kind == "comment" && definitions.Length != 1)
-                {
-                    var definitionError = $"Comment '{Bound(range.Id)}' must resolve to exactly one source definition before cloning.";
-                    diagnostics.Add(new("template.invalid_structure", definitionError,
-                        Location: members[0].Location, SourceOrder: members[0].SourceOrder, Explanation: definitionError));
-                }
-                var point = family.Kind == "comment" && members.Length == 1 &&
-                    members[0].Element.Name == WordXml.WordprocessingNamespace + "commentReference";
-                var shape = point || (members.Length == family.Names.Length && family.Names.All(name =>
-                    members.Count(member => member.Element.Name == WordXml.WordprocessingNamespace + name) == 1) &&
-                    Array.FindIndex(members, member => member.Element.Name == WordXml.WordprocessingNamespace + family.Names[0]) <
-                    Array.FindIndex(members, member => member.Element.Name == WordXml.WordprocessingNamespace + family.Names[1]));
-                if (shape && members.All(member => member.Owners.SequenceEqual(members[0].Owners))) continue;
-                var control = members.SelectMany(member => member.Owners).FirstOrDefault(owner =>
-                    members.Any(member => !member.Owners.Contains(owner))) ?? members.SelectMany(member => member.Owners).First();
-                var coordinates = string.Join("; ", members.Take(4).Select(member => member.Element.Name.LocalName + " at " + member.Location));
-                var detail = $"Unsupported {family.Kind} '{Bound(range.Id)}' '{Bound(range.Name)}': endpoints/attachment must share ownership and be complete. {coordinates}. Conflicting control {Bound(control.Block.StartExpression.Source)} at {control.Block.Location}.";
-                diagnostics.Add(new("template.invalid_structure", detail,
-                    Location: members[0].Location, SourceOrder: members[0].SourceOrder, Explanation: detail));
-            }
-        }
-        var bookmarks = ranges.Values.Distinct().Where(range => range.Kind == "bookmark" && range.Name is not null)
-            .GroupBy(range => range.Name!, StringComparer.Ordinal).ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
-        var anchors = new Dictionary<XElement, SourceRange>();
-        foreach (var use in locations.Values.Where(item => item.Element.Name == WordXml.HyperlinkElementName &&
-                     item.Element.Attribute(WordXml.RelationshipsNamespace + "id") is null &&
-                     item.Element.Attribute(WordXml.AnchorAttributeName) is not null))
-        {
-            var anchor = (string)use.Element.Attribute(WordXml.AnchorAttributeName)!;
-            if (!bookmarks.TryGetValue(anchor, out var targets)) continue; // Preserve unrelated pre-existing unresolved anchors.
-            var affected = use.Owners.Count != 0 || targets.Any(target => target.First.Owners.Count != 0);
-            if (!affected) continue;
-            var target = targets[0];
-            var loops = target.First.Loops;
-            var branches = target.First.Owners.Where(owner => owner.Block.Kind == TemplateExpressionKind.If).ToArray();
-            var supported = targets.Length == 1 && !target.First.Deleted &&
-                loops.SequenceEqual(use.Loops.Take(loops.Count)) && branches.All(use.Owners.Contains);
-            if (supported)
-            {
-                anchors.Add(use.Element, target);
-                continue;
-            }
-            var cause = target.First.Owners.FirstOrDefault(owner => !use.Owners.Contains(owner)) ?? target.First.Owners.FirstOrDefault();
-            var detail = $"Internal anchor '{Bound(anchor)}' has an ambiguous or potentially removed source bookmark at {target.First.Location}. " +
-                (cause is null ? "Source bookmark names must be unique for affected references." :
-                    $"Conflicting control {Bound(cause.Block.StartExpression.Source)} at {cause.Block.Location}; the target must survive uniquely in the reference scope.");
-            diagnostics.Add(new("template.invalid_structure", detail,
-                Location: use.Location, SourceOrder: use.SourceOrder, Explanation: detail));
-        }
-        return new(ranges, anchors, diagnostics);
+        return ValidateIdentities(package, stories, locations);
     }
 
     private static string Bound(string? value) => value is null ? "" : value[..Math.Min(value.Length, 80)];
@@ -214,6 +144,7 @@ public sealed class DocxTemplatePlanner(TemplateLanguageParser parser)
             {
                 case TemplateExpressionKind.For:
                 case TemplateExpressionKind.If:
+                case TemplateExpressionKind.Raw:
                     stack.Push(new(marker, stack.TryPeek(out var parent) ? parent : null));
                     break;
                 case TemplateExpressionKind.Else:
@@ -225,9 +156,13 @@ public sealed class DocxTemplatePlanner(TemplateLanguageParser parser)
                     break;
                 case TemplateExpressionKind.EndFor:
                 case TemplateExpressionKind.EndIf:
-                    if (!stack.TryPop(out var opened) ||
-                        (marker.Expression.Kind == TemplateExpressionKind.EndFor) !=
-                        (opened.Start.Expression.Kind == TemplateExpressionKind.For))
+                case TemplateExpressionKind.EndRaw:
+                    if (!stack.TryPop(out var opened) || marker.Expression.Kind != (opened.Start.Expression.Kind switch
+                        {
+                            TemplateExpressionKind.For => TemplateExpressionKind.EndFor,
+                            TemplateExpressionKind.If => TemplateExpressionKind.EndIf,
+                            _ => TemplateExpressionKind.EndRaw
+                        }))
                     {
                         diagnostics.Add(Error("template.invalid_structure", "Closing marker does not match the open block.",
                             marker.Expression, marker.Paragraph.Location, marker.SourceOrder));
@@ -241,7 +176,7 @@ public sealed class DocxTemplatePlanner(TemplateLanguageParser parser)
             }
         }
         foreach (var unmatched in stack)
-            diagnostics.Add(Error("template.invalid_structure", "Block has no matching closing marker.",
+            diagnostics.Add(Error("template.invalid_structure", "Block has no matching closing marker. Add a dedicated closing paragraph or row under the same parent.",
                 unmatched.Start.Expression, unmatched.Start.Paragraph.Location,
                 unmatched.Start.SourceOrder));
         return top;
@@ -268,7 +203,7 @@ public sealed class DocxTemplatePlanner(TemplateLanguageParser parser)
             var startRow = startParagraph.Ancestors(WordXml.TableRowElementName).FirstOrDefault();
             var endRow = endParagraph.Ancestors(WordXml.TableRowElementName).FirstOrDefault();
             var elseRow = elseParagraph?.Ancestors(WordXml.TableRowElementName).FirstOrDefault();
-            if (startRow is null || endRow is null || startRow.Parent != endRow.Parent ||
+            if (startRow is null || endRow is null || startRow == endRow || startRow.Parent != endRow.Parent ||
                 (elseRow is not null && elseRow.Parent != startRow.Parent) ||
                 !MarkerOnlyRow(startRow, opened.Start.Expression.Source) ||
                 !MarkerOnlyRow(endRow, end.Expression.Source) ||
@@ -296,7 +231,8 @@ public sealed class DocxTemplatePlanner(TemplateLanguageParser parser)
                 opened.Start.SourceOrder));
             return null;
         }
-        if (startContainer.Name == WordXml.TableRowElementName &&
+        if (opened.Start.Expression.Kind != TemplateExpressionKind.Raw &&
+            startContainer.Name == WordXml.TableRowElementName &&
             siblings.Skip(startIndex).Take(endIndex - startIndex + 1).Any(row =>
                 RowHasVerticalMerge(row)))
         {

@@ -18,11 +18,11 @@ public sealed class UnifiedTemplateTests
             Docx.P(Docx.Run("{Number}")),
             Docx.P(Docx.Run("{If:Paid}")),
             Docx.P(Docx.Run("Оплачено")),
-            Docx.P(Docx.Run("{EndIf}")),
+            Docx.P(Docx.Run("{/If}")),
             Docx.P(Docx.Run("{For:Items}")),
             Docx.P(Docx.Run("{Product}")),
-            Docx.P(Docx.Run("{EndFor}")),
-            Docx.P(Docx.Run("{EndFor}")));
+            Docx.P(Docx.Run("{/For}")),
+            Docx.P(Docx.Run("{/For}")));
 
         using var input = new MemoryStream(template);
         var result = Analyzer().Analyze(input);
@@ -54,7 +54,7 @@ public sealed class UnifiedTemplateTests
     public void Analyzer_omits_fields_for_scalar_array_current_element()
     {
         var template = Docx.Create(Docx.P(Docx.Run("{For:Tags}")), Docx.P(Docx.Run("{.}")),
-            Docx.P(Docx.Run("{EndFor}")));
+            Docx.P(Docx.Run("{/For}")));
         using var input = new MemoryStream(template);
 
         var result = Analyzer().Analyze(input);
@@ -71,7 +71,7 @@ public sealed class UnifiedTemplateTests
             Docx.P(Docx.Run("Hello {Name}!")),
             Docx.P(Docx.Run("{For:Items}")),
             Docx.P(Docx.Run("[{. upper}]")),
-            Docx.P(Docx.Run("{EndFor}")));
+            Docx.P(Docx.Run("{/For}")));
 
         var result = Docx.Merge(template, """{"Name":"{For:X}","Items":["one","{{two}}"]}""");
 
@@ -103,7 +103,7 @@ public sealed class UnifiedTemplateTests
     public void For_handles_zero_one_many_and_mixed_scalar_elements(string array, string expected)
     {
         var template = Docx.Create(Docx.P(Docx.Run("{For:Items}")), Docx.P(Docx.Run("{.}")),
-            Docx.P(Docx.Run("{EndFor}")));
+            Docx.P(Docx.Run("{/For}")));
         var result = Docx.Merge(template, $"{{\"Items\":{array}}}");
         Assert.Equal(expected, Docx.Text(Docx.Read(result.Document)));
     }
@@ -112,7 +112,7 @@ public sealed class UnifiedTemplateTests
     public void For_rejects_a_string_instead_of_iterating_its_characters()
     {
         var template = Docx.Create(Docx.P(Docx.Run("{For:Items}")), Docx.P(Docx.Run("{.}")),
-            Docx.P(Docx.Run("{EndFor}")));
+            Docx.P(Docx.Run("{/For}")));
         var error = Assert.Throws<TemplateException>(() => Docx.Merge(template, """{"Items":"ABC"}"""));
         Assert.Equal("generation.invalid_data", error.Code);
         Assert.Equal("$.Items", Assert.Single(error.Errors).DataPath);
@@ -122,7 +122,7 @@ public sealed class UnifiedTemplateTests
     public void Mixed_array_property_access_uses_missing_value_policy()
     {
         var template = Docx.Create(Docx.P(Docx.Run("{For:Items}")), Docx.P(Docx.Run("{Name}")),
-            Docx.P(Docx.Run("{EndFor}")));
+            Docx.P(Docx.Run("{/For}")));
 
         var result = Docx.Merge(template, """{"Items":[{"Name":"A"},"x",1,true,null]}""",
             new MergeOptions { MissingValues = MissingValueBehavior.Warning });
@@ -139,7 +139,7 @@ public sealed class UnifiedTemplateTests
         MissingValueBehavior behavior)
     {
         var template = Docx.Create(Docx.P(Docx.Run("{For:Items}")),
-            Docx.P(Docx.Run("{Name}|{./Name}")), Docx.P(Docx.Run("{EndFor}")));
+            Docx.P(Docx.Run("{Name}|{./Name}")), Docx.P(Docx.Run("{/For}")));
         var json = """{"Items":["text",12,true,null]}""";
 
         if (behavior == MissingValueBehavior.Error)
@@ -181,9 +181,9 @@ public sealed class UnifiedTemplateTests
         var template = Docx.Create(
             Docx.P(Docx.Run("{For:Items}")),
             Docx.P(Docx.Run("{If:Flag}")), Docx.P(Docx.Run("T")),
-            Docx.P(Docx.Run("{Else}")), Docx.P(Docx.Run("F")), Docx.P(Docx.Run("{EndIf}")),
-            Docx.P(Docx.Run("{For:Children}")), Docx.P(Docx.Run("X")), Docx.P(Docx.Run("{EndFor}")),
-            Docx.P(Docx.Run("{EndFor}")));
+            Docx.P(Docx.Run("{Else}")), Docx.P(Docx.Run("F")), Docx.P(Docx.Run("{/If}")),
+            Docx.P(Docx.Run("{For:Children}")), Docx.P(Docx.Run("X")), Docx.P(Docx.Run("{/For}")),
+            Docx.P(Docx.Run("{/For}")));
 
         foreach (var behavior in Enum.GetValues<MissingValueBehavior>())
         {
@@ -209,7 +209,7 @@ public sealed class UnifiedTemplateTests
     {
         var template = Docx.Create(
             Docx.P(Docx.Run("{Value}")),
-            Docx.P(Docx.Run("{For:Value}")), Docx.P(Docx.Run("{.}")), Docx.P(Docx.Run("{EndFor}")),
+            Docx.P(Docx.Run("{For:Value}")), Docx.P(Docx.Run("{.}")), Docx.P(Docx.Run("{/For}")),
             Docx.P(Docx.Run("{Value}")));
         using var input = new MemoryStream(template);
 
@@ -228,7 +228,7 @@ public sealed class UnifiedTemplateTests
     {
         var template = Docx.Create(
             Docx.P(Docx.Run("{Second}")), Docx.P(Docx.Run("{First.Child}")),
-            Docx.P(Docx.Run("{If:Second}")), Docx.P(Docx.Run("{Second}")), Docx.P(Docx.Run("{EndIf}")),
+            Docx.P(Docx.Run("{If:Second}")), Docx.P(Docx.Run("{Second}")), Docx.P(Docx.Run("{/If}")),
             Docx.P(Docx.Run("{First.Other}")));
         using var input = new MemoryStream(template);
         var result = Analyzer().Analyze(input);

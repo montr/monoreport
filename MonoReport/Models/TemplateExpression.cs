@@ -7,7 +7,9 @@ internal enum TemplateExpressionKind
     EndFor,
     If,
     Else,
-    EndIf
+    EndIf,
+    Raw,
+    EndRaw
 }
 
 internal enum TemplatePathOrigin

@@ -20,6 +20,6 @@
     <Compile Include="../MonoReport.Tests/Services/Docx.cs" Link="Services/Docx.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="../.docs/features/010-unified-template-syntax/review-reproductions/*.template.docx;../.docs/features/010-unified-template-syntax/review-reproductions/*.json" Link="review-reproductions/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../MonoReport.Tests/Fixtures/review-reproductions/*.template.docx;../MonoReport.Tests/Fixtures/review-reproductions/*.json" Link="Fixtures/review-reproductions/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

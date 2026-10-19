@@ -11,7 +11,7 @@ public sealed class ValidationContractParityTests
     [InlineData(false)]
     public async Task Cli_and_http_return_identical_analysis(bool valid)
     {
-        var bytes = valid ? Docx.Create(Docx.P(Docx.Run("{Name}"))) : Docx.Create(Docx.P(Docx.Run("{EndIf}")));
+        var bytes = valid ? Docx.Create(Docx.P(Docx.Run("{Name}"))) : Docx.Create(Docx.P(Docx.Run("{/Raw}")));
         var path = Path.Combine(Path.GetTempPath(), $"monoreport-parity-{Guid.NewGuid():N}.docx");
         await File.WriteAllBytesAsync(path, bytes);
         try

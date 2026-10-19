@@ -28,8 +28,8 @@
     <None Include="../Samples/sample.json" Link="sample.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Samples/sample.docx" Link="sample.docx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Samples/orders-report.*;../Samples/project-costs.*;../Samples/syntax-showcase.*;../Samples/repeated-image.*" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="../.docs/features/010-unified-template-syntax/review-reproductions/*.template.docx;../.docs/features/010-unified-template-syntax/review-reproductions/*.json" Link="review-reproductions/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="../.docs/features/010-unified-template-syntax/review-verification/*.template.docx;../.docs/features/010-unified-template-syntax/review-verification/*.json" Link="review-verification/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../MonoReport.Tests/Fixtures/review-reproductions/*.template.docx;../MonoReport.Tests/Fixtures/review-reproductions/*.json" Link="Fixtures/review-reproductions/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../MonoReport.Tests/Fixtures/review-verification/*.template.docx;../MonoReport.Tests/Fixtures/review-verification/*.json" Link="Fixtures/review-verification/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../MonoReport.UI/public/examples.json" Link="examples.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

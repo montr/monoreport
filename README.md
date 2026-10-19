@@ -44,8 +44,9 @@ MonoReport generates DOCX reports, contracts, acts, protocols, invoices, and sim
 | Current array element | `{.}` |
 | Parent loop context | `{../Number}` |
 | Root context | `{$.Company.Name}` |
-| Loop | `{For:Items}` … `{EndFor}` |
-| Condition | `{If:IsActive}` … `{Else}` … `{EndIf}` |
+| Loop | `{For:Items}` … `{/For}` |
+| Condition | `{If:IsActive}` … `{Else}` … `{/If}` |
+| Literal DOCX region | `{Raw}` … `{/Raw}` |
 | Literal braces | `{{` and `}}` |
 | Text format | `{Name upper}`, `{Name lower}`, `{Name caps}`, `{Name firstcap}` |
 | Decimal format | `{Amount number:"#,##0.00"}` |
@@ -58,10 +59,11 @@ MonoReport generates DOCX reports, contracts, acts, protocols, invoices, and sim
 4. A scalar expression supports at most one built-in formatter. `number` and `spellout` accept JSON numbers or invariant numeric strings. `date` accepts `YYYY-MM-DD` or an ISO date-time with `Z` or an explicit offset.
 5. Explicit null and empty strings render empty. Missing scalar values follow `MergeOptions.MissingValues`.
 6. Inserted JSON text and emitted literal braces are never reinterpreted as template syntax.
+7. Raw markers occupy dedicated sibling paragraphs or dedicated sibling table rows under the same parent. Content between them is preserved literally without expression parsing, dependency extraction, brace unescaping, or data evaluation. Raw does not nest.
 
 ## DOCX compatibility
 
-For the intended support, preservation, and rejection policy for Microsoft Word features, see [DOCX Template Compatibility](docs/docx-template-compatibility.md). This is a **draft target policy for a future simplification Feature**, not a guarantee of current engine behavior. The syntax and behavior documented below describe the currently accepted implementation.
+For the support, preservation, and rejection policy for Microsoft Word features, see [DOCX Template Compatibility](docs/docx-template-compatibility.md). Feature 011 implements this approved contract in the current source; Product Owner acceptance remains pending.
 
 ## DOCX structure
 
@@ -74,9 +76,10 @@ For the intended support, preservation, and rejection policy for Microsoft Word 
 7. Shapes, floating text boxes, SmartArt, charts, and other specialized content are preserved without expression processing.
 8. Templates containing unaccepted tracked revisions in supported content are rejected, including cell changes, move/custom-XML revision ranges, deleted payloads, property changes, and Office 2010 conflicts. Accept or reject revisions in Word before generation.
 9. Content controls (`w:sdt`) are fully opaque, including inline, block, row, and cell controls. Their XML, properties, binding, and relationships are preserved. Expressions inside are literal; expressions cannot cross entry or exit boundaries.
-10. Bookmark, permission, and comment attachment ranges must remain wholly local to one loop body, conditional branch, or deleted marker, or wholly enclose the operation. Split or incomplete affected ranges are rejected before generation. Reference-only comments are supported as point attachments.
-11. Explicit internal hyperlink anchors support local targets and targets in active enclosing iterations or unaffected root content. A target must survive uniquely whenever its reference survives. Links from outside into repeated or conditional targets, between sibling loops, or from an enclosing loop into a child loop are rejected during analysis, even for data yielding one target. Bookmark identities and drawing IDs are allocated across the package, including cloned comment definitions.
-12. Word fields remain opaque: `REF`, `PAGEREF`, and field-code hyperlinks are not rewritten and their targets are not guaranteed to resolve after structural operations. Unrelated pre-existing unresolved anchors and external URL relationships are preserved.
+10. Unaffected comments and bookmarks, valid constructs within or spanning Raw, and complete ranges that enclose a `For` or `If` operation are preserved unchanged. Local comment or bookmark attachments inside `For` or `If`, split ranges, and crossing arrangements are rejected. Complete annotations wholly attached to a removed standalone Raw delimiter are removed safely with unneeded comment definitions.
+11. Permission ranges retain local copying support with matching IDs. Drawing IDs remain unique across physical copies and package reservations, including images in repeated Raw content.
+12. Explicit internal hyperlinks are preserved only outside `For` and `If` when their targets remain valid and unchanged, including stable Raw targets. Internal links inside structural operations or links to removed, repeated, ambiguous, or invalidated targets are rejected without remapping. External hyperlink relationships and fragments are preserved unchanged.
+13. Word fields remain opaque: `REF`, `PAGEREF`, and field-code hyperlinks are not rewritten and their targets are not guaranteed to resolve after structural operations. Unrelated pre-existing unresolved anchors are preserved.
 
 ## Core API
 
@@ -137,8 +140,9 @@ For the intended support, preservation, and rejection policy for Microsoft Word 
 ## Sample and migration
 
 1. `Samples/sample.template.docx` and `Samples/sample.json` are the authoritative template and data pair. `Samples/sample.docx` is their generated output.
-2. Feature 010 is a breaking change. Legacy Word `MERGEFIELD`, `TableStart:`, `TableEnd:`, Word switch formatting, and programmatic formatter bindings are no longer interpreted as MonoReport template syntax. Existing Word fields remain untouched as ordinary opaque document content.
-3. Convert legacy scalar fields to `{Path}`, collection markers to `{For:Path}` and `{EndFor}`, and Word formatting switches to the built-in formatter syntax shown above.
+2. Feature 010 removed legacy Word `MERGEFIELD`, `TableStart:`, `TableEnd:`, Word switch formatting, and programmatic formatter bindings from MonoReport interpretation. Existing Word fields remain untouched as ordinary opaque document content.
+3. Feature 011 changes control closes to `{/For}` and `{/If}`. The former spellings `EndFor` and `EndIf` are ordinary case-sensitive scalar property names, not aliases or migration controls.
+4. Convert legacy scalar fields to `{Path}`, collection markers to `{For:Path}` and `{/For}`, conditional closes to `{/If}`, and Word formatting switches to the built-in formatter syntax shown above. Remove comments, bookmarks, and internal links from repeated or conditional bodies, or move complete ranges outside the operation. Use Raw only for literal, structurally bounded Word content.
 
 ## Production hosting
 

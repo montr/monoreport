@@ -42,7 +42,7 @@ public sealed class Feature010AcceptanceTests
             .ToString("N2", CultureInfo.GetCultureInfo("en-GB"));
         var text = Docx.Text(xml);
         Assert.DoesNotContain("{For:", text);
-        Assert.DoesNotContain("{EndFor}", text);
+        Assert.DoesNotContain("{/For}", text);
         switch (id)
         {
             case "project-costs":
@@ -103,6 +103,7 @@ public sealed class Feature010AcceptanceTests
                 break;
             case "syntax-showcase":
                 var paragraphs = xml.Descendants(w + "p").Select(Docx.Text).ToArray();
+                Assert.DoesNotContain(analysis.Requirements, requirement => requirement.Name == "RawOnly");
                 Assert.Equal(new[] { "• PRIORITY", "• EXPORT", "• REVIEW", "• READY" }, paragraphs.Where(value => value.StartsWith("• ")));
                 Assert.Contains("APPROVED — the condition is true.", paragraphs);
                 Assert.Contains("This record is active.", paragraphs);
@@ -127,6 +128,7 @@ public sealed class Feature010AcceptanceTests
                 }
                 Assert.Contains("Literal braces: {Company.Name}", paragraphs);
                 Assert.Contains("Braces around a value: {Northwind Demo Company}", paragraphs);
+                Assert.Contains("Literal template text: {RawOnly.Value} {broken {{ {/If}", paragraphs);
                 Assert.Equal(3, xml.Descendants(w + "pStyle").Count(style => (string?)style.Attribute(w + "val") == "ListNumber"));
                 Assert.Equal(5, xml.Descendants(w + "pStyle").Count(style => (string?)style.Attribute(w + "val") == "ListBullet"));
                 break;
@@ -203,8 +205,13 @@ public sealed class Feature010AcceptanceTests
             item.Name == w + kind || item.Name == w + "bookmarkEnd" || item.Name == w + "permEnd"));
 
         var loop = Docx.Create(Docx.P(Docx.Run("{For:Tags}")), Docx.P(Docx.Run("• {. upper}")),
-            Split("{", "EndFor", "}"));
+            Split("{/", "For", "}"));
         Docx.AssertValid(loop);
+        if (kind == "bookmarkStart")
+        {
+            Feature010IdentityTests.Reject(loop, """{"Tags":["one","two"]}""", "template.invalid_structure");
+            return;
+        }
         using var loopInput = new MemoryStream(loop);
         Assert.True(Analyzer().Analyze(loopInput).Valid);
         Assert.Equal("• ONE• TWO", Docx.Text(Docx.Read(Docx.Merge(loop, """{"Tags":["one","two"]}""").Document)));
@@ -223,9 +230,9 @@ public sealed class Feature010AcceptanceTests
             MergedRow(Docx.Run("{For:Items}")),
             new XElement(w + "tr", new[] { "{Name}", "{../../Name}", "{../Name}", "{$.Currency}", "{Total number:\"N2\"}" }
                 .Select(text => new XElement(w + "tc", Docx.P(Docx.Run(text))))),
-            MergedRow(Docx.Run("{"), new XElement(w + "proofErr", new XAttribute(w + "type", "spellStart")),
-                Docx.Run("EndFor"), new XElement(w + "proofErr", new XAttribute(w + "type", "spellEnd")), Docx.Run("}")),
-            MergedRow(Docx.Run("{EndFor}")), MergedRow(Docx.Run("{EndFor}"))));
+            MergedRow(Docx.Run("{/"), new XElement(w + "proofErr", new XAttribute(w + "type", "spellStart")),
+                Docx.Run("For"), new XElement(w + "proofErr", new XAttribute(w + "type", "spellEnd")), Docx.Run("}")),
+            MergedRow(Docx.Run("{/For}")), MergedRow(Docx.Run("{/For}"))));
         Docx.AssertValid(template);
         using var input = new MemoryStream(template);
         var analysis = Analyzer().Analyze(input);

@@ -79,13 +79,15 @@ public sealed partial class TemplateLanguageParser
         if (content.Length == 0 || content != content.Trim())
             return Invalid(source, location, "Expression content cannot be empty or surrounded by whitespace.", out diagnostic);
 
-        if (content is "EndFor" or "Else" or "EndIf")
+        if (content is "/For" or "Else" or "/If" or "Raw" or "/Raw")
         {
             expression = new(content switch
             {
-                "EndFor" => TemplateExpressionKind.EndFor,
+                "/For" => TemplateExpressionKind.EndFor,
                 "Else" => TemplateExpressionKind.Else,
-                _ => TemplateExpressionKind.EndIf
+                "/If" => TemplateExpressionKind.EndIf,
+                "Raw" => TemplateExpressionKind.Raw,
+                _ => TemplateExpressionKind.EndRaw
             }, source);
             return true;
         }

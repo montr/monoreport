@@ -12,7 +12,7 @@ public sealed partial class Feature010IdentityTests
     [InlineData("00", false)] [InlineData("00", true)]
     [InlineData("007", false)] [InlineData("007", true)]
     [InlineData("-02", false)] [InlineData("-02", true)]
-    public void Noncanonical_comment_ids_resolve_in_nested_conditional_and_repeated_copies(string id, bool point)
+    public void Noncanonical_local_comment_ids_are_rejected_before_copying(string id, bool point)
     {
         var template = Prepare(VerificationFixture("zero-padded-comment-id"), document =>
         {
@@ -28,7 +28,7 @@ public sealed partial class Feature010IdentityTests
             }
             xml.Descendants(W + "body").Single().ReplaceNodes(Docx.P(Docx.Run("{For:Groups}")),
                 Docx.P(Docx.Run("{If:Show}")), Docx.P(Docx.Run("{For:Items}")), new XElement(attachment),
-                Docx.P(Docx.Run("{EndFor}")), Docx.P(Docx.Run("{EndIf}")), Docx.P(Docx.Run("{EndFor}")));
+                Docx.P(Docx.Run("{/For}")), Docx.P(Docx.Run("{/If}")), Docx.P(Docx.Run("{/For}")));
             Save(main, xml.Root!);
             var comments = Load(main.WordprocessingCommentsPart!);
             comments.Root!.Elements().Single().SetAttributeValue(W + "id", id);
@@ -39,23 +39,7 @@ public sealed partial class Feature010IdentityTests
         {
             var group = "{\"Show\":true" + (items is null ? "" : ",\"Items\":" + items) + "}";
             var json = "{\"Groups\":[" + group + ", {\"Show\":false,\"Items\":[\"NO\"]}," + group + "]}";
-            AnalyzeValid(template);
-            var output = Docx.Merge(template, json, validationVersion: FileFormatVersions.Office2010).Document;
-            var xml = Docx.Read(output);
-            var expectedText = items == "[\"A\"]" ? "AA" : items == "[\"A\",\"B\"]" ? "ABAB" : "";
-            Assert.Equal(expectedText, Docx.Text(xml));
-            var references = xml.Descendants(W + "commentReference").Select(e => (string)e.Attribute(W + "id")!).ToArray();
-            Assert.Equal(expectedText.Length, references.Length);
-            Assert.Equal(references.Length, references.Distinct().Count());
-            using var generated = WordprocessingDocument.Open(new MemoryStream(output), false);
-            var definitions = Load(generated.MainDocumentPart!.WordprocessingCommentsPart!).Root!.Elements().ToArray();
-            using var source = WordprocessingDocument.Open(new MemoryStream(template), false);
-            var original = Load(source.MainDocumentPart!.WordprocessingCommentsPart!).Root!.Elements().Single();
-            Assert.Contains(definitions, d => XNode.DeepEquals(original, d));
-            foreach (var reference in references)
-                Assert.Equal(Docx.Text(original), Docx.Text(Assert.Single(definitions, d => (string?)d.Attribute(W + "id") == reference)));
-            foreach (var name in new[] { "commentRangeStart", "commentRangeEnd" })
-                Assert.Equal(point ? [] : references.Order(), xml.Descendants(W + name).Select(e => (string)e.Attribute(W + "id")!).Order());
+            Reject(template, json, "template.invalid_structure");
         }
     }
 
@@ -72,59 +56,32 @@ public sealed partial class Feature010IdentityTests
     [Theory]
     [InlineData("external-relationship-with-anchor")]
     [InlineData("cloned-external-relationship-with-anchor")]
-    public void External_hyperlink_fragments_survive_repeated_or_removed_local_bookmarks(string name)
+    public void External_hyperlink_fragments_do_not_make_local_bookmarks_supported(string name)
     {
         var template = VerificationFixture(name);
         Docx.AssertValid(template, FileFormatVersions.Office2010);
-        var sourceLink = Docx.Read(template).Descendants(W + "hyperlink").Single();
         foreach (var json in new[] { "{}", "{\"Items\":[]}", "{\"Items\":[\"A\"]}", "{\"Items\":[\"A\",\"B\"]}" })
-        {
-            AnalyzeValid(template);
-            var output = Docx.Merge(template, json, validationVersion: FileFormatVersions.Office2010).Document;
-            using var document = WordprocessingDocument.Open(new MemoryStream(output), false);
-            var links = Docx.Read(output).Descendants(W + "hyperlink").ToArray();
-            var count = name.StartsWith("cloned", StringComparison.Ordinal) ? (json.Contains("B") ? 2 : json.Contains("A") ? 1 : 0) : 1;
-            Assert.Equal(count, links.Length);
-            foreach (var link in links)
-            {
-                Assert.True(XNode.DeepEquals(sourceLink, link));
-                var relationship = Assert.Single(document.MainDocumentPart!.HyperlinkRelationships,
-                    r => r.Id == (string?)link.Attribute(WordXml.RelationshipsNamespace + "id"));
-                Assert.True(relationship.IsExternal);
-                Assert.Equal("https://example.org/report.docx", relationship.Uri.ToString());
-                Assert.Equal("Target", (string?)link.Attribute(W + "anchor"));
-            }
-        }
+            Reject(template, json, "template.invalid_structure");
     }
 
     [Fact]
-    public void External_link_survives_when_matching_local_bookmark_is_conditionally_removed()
+    public void External_link_does_not_make_a_matching_local_bookmark_supported()
     {
         var template = Prepare(VerificationFixture("external-relationship-with-anchor"), document =>
         {
             var main = document.MainDocumentPart!;
             var xml = Load(main);
             foreach (var text in xml.Descendants(W + "t"))
-                text.Value = text.Value switch { "{For:Items}" => "{If:Show}", "{EndFor}" => "{EndIf}", "{.}" => "local", _ => text.Value };
+                text.Value = text.Value switch { "{For:Items}" => "{If:Show}", "{/For}" => "{/If}", "{.}" => "local", _ => text.Value };
             Save(main, xml.Root!);
         });
         Docx.AssertValid(template, FileFormatVersions.Office2010);
-        AnalyzeValid(template);
         foreach (var show in new[] { false, true })
-        {
-            var output = Docx.Merge(template, JsonSerializer.Serialize(new { Show = show }), validationVersion: FileFormatVersions.Office2010).Document;
-            var xml = Docx.Read(output);
-            Assert.Equal(show ? 1 : 0, xml.Descendants(W + "bookmarkStart").Count());
-            Assert.True(XNode.DeepEquals(Docx.Read(template).Descendants(W + "hyperlink").Single(), xml.Descendants(W + "hyperlink").Single()));
-            using var document = WordprocessingDocument.Open(new MemoryStream(output), false);
-            var relationship = Assert.Single(document.MainDocumentPart!.HyperlinkRelationships);
-            Assert.True(relationship.IsExternal);
-            Assert.Equal("https://example.org/report.docx", relationship.Uri.ToString());
-        }
+            Reject(template, JsonSerializer.Serialize(new { Show = show }), "template.invalid_structure");
     }
 
     [Fact]
-    public void External_fragments_in_comment_copies_do_not_follow_local_definition_bookmarks()
+    public void External_fragments_in_comment_definitions_do_not_make_local_comment_copies_supported()
     {
         var template = Prepare(VerificationFixture("zero-padded-comment-id"), document =>
         {
@@ -137,23 +94,7 @@ public sealed partial class Feature010IdentityTests
             Save(part, comments.Root);
         });
         Docx.AssertValid(template, FileFormatVersions.Office2010);
-        AnalyzeValid(template);
-        var output = Docx.Merge(template, "{\"Items\":[\"A\",\"B\"]}", validationVersion: FileFormatVersions.Office2010).Document;
-        using var document = WordprocessingDocument.Open(new MemoryStream(output), false);
-        var part = document.MainDocumentPart!.WordprocessingCommentsPart!;
-        var comments = Load(part).Root!.Elements().ToArray();
-        Assert.Equal(3, comments.Length);
-        foreach (var comment in comments)
-        {
-            var external = Assert.Single(comment.Descendants(W + "hyperlink"), l => l.Attribute(WordXml.RelationshipsNamespace + "id") is not null);
-            Assert.Equal("B4", (string?)external.Attribute(W + "anchor"));
-            var relationship = Assert.Single(part.HyperlinkRelationships, r => r.Id == (string?)external.Attribute(WordXml.RelationshipsNamespace + "id"));
-            Assert.Equal("https://example.org/report.docx", relationship.Uri.ToString());
-            Assert.True(relationship.IsExternal);
-            var internalLink = Assert.Single(comment.Descendants(W + "hyperlink"), l => l.Attribute(WordXml.RelationshipsNamespace + "id") is null);
-            Assert.Equal((string?)comment.Descendants(W + "bookmarkStart").Single().Attribute(W + "name"), (string?)internalLink.Attribute(W + "anchor"));
-            Assert.Contains("{Hidden}", Docx.Text(comment));
-        }
+        Reject(template, "{\"Items\":[\"A\",\"B\"]}", "template.invalid_structure");
     }
 
     [Theory]
@@ -210,7 +151,7 @@ public sealed partial class Feature010IdentityTests
         Assert.True(XNode.DeepEquals(Docx.Read(template).Descendants(W + "sdt").Single(), Docx.Read(output).Descendants(W + "sdt").Single()));
     }
 
-    private static byte[] VerificationFixture(string name) => File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "review-verification", name + ".template.docx"));
+    private static byte[] VerificationFixture(string name) => File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "review-verification", name + ".template.docx"));
     private static XDocument Load(OpenXmlPart part) { using var stream = part.GetStream(); return XDocument.Load(stream); }
     private static MonoReport.Models.TemplateAnalysisResult AnalyzeValid(byte[] template)
     {
