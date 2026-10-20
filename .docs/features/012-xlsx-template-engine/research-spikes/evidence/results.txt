@@ -1,0 +1,70 @@
+Feature 012 architecture research — execution record, 2026-10-20
+
+1. Workspace and environment
+Actual temporary workspace: /private/tmp/feature012-research
+.NET SDK: 10.0.102; target net10.0; Open XML SDK 3.5.1.
+ClosedXML.Parser: 2.0.0, netstandard2.1, MIT, no target dependencies.
+Parser package SHA-256: 85d40168dcb9fa5478c52c6ef26820beedc8e2cb764515906ed37185584ba37f
+LibreOffice: 26.8.0.3 bce0998afefdbc355585ca324285661a2170ba77.
+Python uses only the standard library. No production project references were changed.
+
+2. Final fixture/parser/reference assertions
+Commands, from the repository root:
+python3 /private/tmp/feature012-research/fixtures.py prepare
+dotnet run --project /private/tmp/feature012-research/Spike.csproj --no-restore -- probe /private/tmp/feature012-research/parser-results.json
+dotnet run --project /private/tmp/feature012-research/Spike.csproj --no-build -- transform /private/tmp/feature012-research/evidence/formula-requests.json /private/tmp/feature012-research/evidence/formulas.json
+python3 /private/tmp/feature012-research/fixtures.py finish
+python3 /private/tmp/feature012-research/advanced.py
+Final relevant outputs (all commands exit 0):
+Prepared fixtures: 5 logical groups, 4 leaves, 2-column tile, 2 worksheets, 2 independent tables.
+Noncontiguous mapped detail range rejected.
+Ambiguous single-cell expansion rejected.
+Parser probe: 18 forms recorded; copy, literal isolation, structural absolute relocation asserted.
+Transformed 61 fixture formulas through parsed reference nodes.
+Geometry/formula/fidelity assertions passed; 61 formulas; 19 unchanged-size merge copies.
+Static image/chart/comment relationships, parts and anchors preserved byte-for-byte.
+Created intentionally unsafe-shift.xlsx: rows moved, table/name/CF/DV/chart/comment references deliberately stale.
+
+3. Final schema validation
+Command:
+dotnet run --project /private/tmp/feature012-research/Spike.csproj --no-build -- validate /private/tmp/feature012-research/evidence/template.xlsx /private/tmp/feature012-research/evidence/output.xlsx /private/tmp/feature012-research/evidence/compatibility.xlsx /private/tmp/feature012-research/evidence/compatibility-output.xlsx /private/tmp/feature012-research/evidence/boundaries.xlsx /private/tmp/feature012-research/evidence/advanced-compatibility.xlsx /private/tmp/feature012-research/evidence/advanced-compatibility-output.xlsx /private/tmp/feature012-research/evidence/unsafe-shift.xlsx
+Exit 0; exact output:
+template.xlsx: 0 schema errors
+output.xlsx: 0 schema errors
+compatibility.xlsx: 0 schema errors
+compatibility-output.xlsx: 0 schema errors
+boundaries.xlsx: 0 schema errors
+advanced-compatibility.xlsx: 0 schema errors
+advanced-compatibility-output.xlsx: 0 schema errors
+unsafe-shift.xlsx: 0 schema errors
+The last file deliberately has stale references. Its zero schema errors demonstrate an integrity-check limitation.
+
+4. Compatible-application recalculation
+Used the temporary profile file:///private/tmp/feature012-research/lo-profile and output directory /private/tmp/feature012-research/recalculated.
+Initial successful calculation command:
+/Applications/LibreOffice.app/Contents/MacOS/soffice -env:UserInstallation=file:///private/tmp/feature012-research/lo-profile --headless --convert-to xlsx --outdir /private/tmp/feature012-research/recalculated /private/tmp/feature012-research/evidence/output.xlsx /private/tmp/feature012-research/evidence/boundaries.xlsx /private/tmp/feature012-research/evidence/compatibility-output.xlsx
+The output workbook was recalculated again after adding the two-dimensional rectangular formula; output and advanced compatibility were opened/saved with the same executable/profile/options. Final advanced import was repeated after correcting the PNG fixture CRC. All final application calls exited 0, with conversion messages; Fontconfig cache-configuration warnings remain environmental output.
+Final assertion command:
+python3 /private/tmp/feature012-research/fixtures.py recalc
+Exit 0; exact output:
+Recalculation assertions passed: group top/bottom SUM/COUNT/SUBTOTAL, grands, cross-sheet, two axes, helper counterexamples.
+Expected values include D2=63, E2=6, J2=72, L2=1362, D7=32, D13=31, D17=63, Other Sheet!B2=63, K15=35.
+Direct B7:F7: 30, 2, 30, 2, 0.
+Boundary B7:F7: 10, 30, 30, 4, 2.
+The final code-only reference guard change did not change generated formulas; the final finish/assertion replay rechecked the same externally calculated values.
+
+5. Failed early probes and corrections
+Initial build included downloaded source through recursive compile discovery: corrected by explicitly compiling Program.cs only.
+Initial Python finish used zip(strict=True), unavailable in the installed Python: corrected with an explicit equal-length assertion and ordinary zip.
+Initial advanced package serialization used prefixed OPC content types/relationships: packaging reader rejected it; corrected to default namespaces and proper content-type order.
+Initial advanced PNG had a CRC error reported by LibreOffice despite valid OOXML: replaced with a generated valid one-pixel PNG, then advanced package validation and application import repeated successfully.
+No product defect was inferred from these harness/fixture failures. No production test or code correction was made.
+
+6. Preservation and verification limits
+Actual input/output are small supplied-plan fixtures, not arbitrary-template engine results. Marker parsing, generic hierarchy inference, general cross-sheet binding, empty images, shared/array formula packages, affected drawings/CF/tables, realistic performance and concurrency remain unverified.
+Microsoft Excel visual layout, pagination, repair prompts and manual save/reopen were not checked. Headless LibreOffice import/export and cached-value assertions are the compatible-application evidence.
+Production solution tests/builds were not rerun because no production code/dependencies changed. No browser automation or Git mutation occurred.
+Existing Feature 012 document hashes, unchanged at the end:
+feature-spec.md: 23e88a6ebdb41b4eec15f24748083135b5bcfd4224f1e95cafec39e9cf7399b1
+implementation-roadmap.md: 6b3845c8dcfc1fc33acba8bfa697a62cc6526542fca2f0d3de0cbe7bed6f9977
+architecture-research.md: a8c773a296b48bf56d4b52d4258f89a5b3d7250e796a65ed87655cd2bf6ba28e

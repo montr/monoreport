@@ -1,0 +1,62 @@
+{
+  "Bids": [],
+  "Criteria": [
+    {
+      "Name": "Price"
+    },
+    {
+      "Name": "Term"
+    },
+    {
+      "Name": "Quality"
+    }
+  ],
+  "Items": [
+    {
+      "$level": 10,
+      "$path": "001",
+      "Name": "Lot 1",
+      "Price": 100,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/001",
+      "Name": "A",
+      "Price": 10,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/002",
+      "Name": "B",
+      "Price": 20,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "002",
+      "Name": "Lot 2",
+      "Price": 200,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "002/001",
+      "Name": "C",
+      "Price": 30,
+      "Delta": 1
+    }
+  ],
+  "Other": [
+    {
+      "Name": "X"
+    },
+    {
+      "Name": "Y"
+    },
+    {
+      "Name": "Z"
+    }
+  ]
+}

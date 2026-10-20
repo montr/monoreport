@@ -1,0 +1,536 @@
+{
+  "Bids": [
+    {
+      "Company": "Alpha"
+    },
+    {
+      "Company": "Beta"
+    }
+  ],
+  "Criteria": [
+    {
+      "Name": "Price"
+    },
+    {
+      "Name": "Term"
+    },
+    {
+      "Name": "Quality"
+    },
+    {
+      "Name": "Criterion 4"
+    },
+    {
+      "Name": "Criterion 5"
+    },
+    {
+      "Name": "Criterion 6"
+    },
+    {
+      "Name": "Criterion 7"
+    }
+  ],
+  "Items": [
+    {
+      "$level": 10,
+      "$path": "001",
+      "Name": "Lot 1",
+      "Price": 100,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "001",
+      "Name": "not ordinary name",
+      "Price": 101,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "001",
+      "Name": "not ordinary name",
+      "Price": 102,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "001",
+      "Name": "not ordinary name",
+      "Price": 103,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "001",
+      "Name": "not ordinary name",
+      "Price": 104,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "001",
+      "Name": "not ordinary name",
+      "Price": 105,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "001",
+      "Name": "not ordinary name",
+      "Price": 106,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "001",
+      "Name": "not ordinary name",
+      "Price": 107,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "001",
+      "Name": "not ordinary name",
+      "Price": 108,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "001",
+      "Name": "not ordinary name",
+      "Price": 109,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "001",
+      "Name": "not ordinary name",
+      "Price": 110,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "001",
+      "Name": "not ordinary name",
+      "Price": 111,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "001",
+      "Name": "not ordinary name",
+      "Price": 112,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "001",
+      "Name": "not ordinary name",
+      "Price": 113,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/001",
+      "Name": "A",
+      "Price": 10,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/001",
+      "Name": "not ordinary name",
+      "Price": 11,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/001",
+      "Name": "not ordinary name",
+      "Price": 12,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/001",
+      "Name": "not ordinary name",
+      "Price": 13,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/001",
+      "Name": "not ordinary name",
+      "Price": 14,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/001",
+      "Name": "not ordinary name",
+      "Price": 15,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/001",
+      "Name": "not ordinary name",
+      "Price": 16,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/001",
+      "Name": "not ordinary name",
+      "Price": 17,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/001",
+      "Name": "not ordinary name",
+      "Price": 18,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/001",
+      "Name": "not ordinary name",
+      "Price": 19,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/001",
+      "Name": "not ordinary name",
+      "Price": 20,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/001",
+      "Name": "not ordinary name",
+      "Price": 21,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/001",
+      "Name": "not ordinary name",
+      "Price": 22,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/001",
+      "Name": "not ordinary name",
+      "Price": 23,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/002",
+      "Name": "B",
+      "Price": 20,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/002",
+      "Name": "not ordinary name",
+      "Price": 21,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/002",
+      "Name": "not ordinary name",
+      "Price": 22,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/002",
+      "Name": "not ordinary name",
+      "Price": 23,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/002",
+      "Name": "not ordinary name",
+      "Price": 24,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/002",
+      "Name": "not ordinary name",
+      "Price": 25,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/002",
+      "Name": "not ordinary name",
+      "Price": 26,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/002",
+      "Name": "not ordinary name",
+      "Price": 27,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/002",
+      "Name": "not ordinary name",
+      "Price": 28,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/002",
+      "Name": "not ordinary name",
+      "Price": 29,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/002",
+      "Name": "not ordinary name",
+      "Price": 30,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/002",
+      "Name": "not ordinary name",
+      "Price": 31,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/002",
+      "Name": "not ordinary name",
+      "Price": 32,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/002",
+      "Name": "not ordinary name",
+      "Price": 33,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "002",
+      "Name": "Lot 2",
+      "Price": 200,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "002",
+      "Name": "not ordinary name",
+      "Price": 201,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "002",
+      "Name": "not ordinary name",
+      "Price": 202,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "002",
+      "Name": "not ordinary name",
+      "Price": 203,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "002",
+      "Name": "not ordinary name",
+      "Price": 204,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "002",
+      "Name": "not ordinary name",
+      "Price": 205,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "002",
+      "Name": "not ordinary name",
+      "Price": 206,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "002",
+      "Name": "not ordinary name",
+      "Price": 207,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "002",
+      "Name": "not ordinary name",
+      "Price": 208,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "002",
+      "Name": "not ordinary name",
+      "Price": 209,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "002",
+      "Name": "not ordinary name",
+      "Price": 210,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "002",
+      "Name": "not ordinary name",
+      "Price": 211,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "002",
+      "Name": "not ordinary name",
+      "Price": 212,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "002",
+      "Name": "not ordinary name",
+      "Price": 213,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "002/001",
+      "Name": "C",
+      "Price": 30,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "002/001",
+      "Name": "not ordinary name",
+      "Price": 31,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "002/001",
+      "Name": "not ordinary name",
+      "Price": 32,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "002/001",
+      "Name": "not ordinary name",
+      "Price": 33,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "002/001",
+      "Name": "not ordinary name",
+      "Price": 34,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "002/001",
+      "Name": "not ordinary name",
+      "Price": 35,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "002/001",
+      "Name": "not ordinary name",
+      "Price": 36,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "002/001",
+      "Name": "not ordinary name",
+      "Price": 37,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "002/001",
+      "Name": "not ordinary name",
+      "Price": 38,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "002/001",
+      "Name": "not ordinary name",
+      "Price": 39,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "002/001",
+      "Name": "not ordinary name",
+      "Price": 40,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "002/001",
+      "Name": "not ordinary name",
+      "Price": 41,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "002/001",
+      "Name": "not ordinary name",
+      "Price": 42,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "002/001",
+      "Name": "not ordinary name",
+      "Price": 43,
+      "Delta": 1
+    }
+  ],
+  "Other": [
+    {
+      "Name": "X"
+    },
+    {
+      "Name": "Y"
+    },
+    {
+      "Name": "Z"
+    }
+  ]
+}

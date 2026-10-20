@@ -1,0 +1,72 @@
+Feature 012 follow-up architecture research — 2026-10-20
+
+1. Scope and environment
+Research workspace: /private/tmp/feature012-followup/.
+Clean SDK-only build output: /private/tmp/feature012-sdk-only/bin/.
+SDK 10.0.102; Open XML SDK 3.5.1; Python standard library; LibreOffice 26.8.0.3.
+ClosedXML.Parser 2.0.0 is used only by the optional research comparator, not by InternalSpike.csproj or production.
+No production source/dependency, Git index, commit or publishing operation changed.
+
+2. Actual build/probe commands
+dotnet run --project /private/tmp/feature012-followup/InternalSpike.csproj -- probe .docs/features/012-xlsx-template-engine/research-spikes/parser-results.json /private/tmp/feature012-followup/internal-results.json
+dotnet run --project /private/tmp/feature012-followup/Spike.csproj -p:ParserDirectory=/private/tmp/feature012-research/downloads/parser/lib/netstandard2.1 -- transform /private/tmp/feature012-followup/nested-evidence/full-requests.json /private/tmp/feature012-followup/nested-evidence/full-closed-formulas.json
+dotnet build /private/tmp/feature012-followup/InternalSpike.csproj --no-restore --output /private/tmp/feature012-sdk-only/bin --verbosity quiet
+dotnet /private/tmp/feature012-sdk-only/bin/InternalSpike.dll probe .docs/features/012-xlsx-template-engine/research-spikes/parser-results.json /private/tmp/feature012-followup/internal-results.json
+dotnet /private/tmp/feature012-sdk-only/bin/InternalSpike.dll transform /private/tmp/feature012-research/evidence/formula-requests.json /private/tmp/feature012-followup/old-internal-formulas.json
+Final builds/probes exit 0. Clean build: 0 errors, one NU1900 warning from unavailable online vulnerability data. Restore/build succeeded from cached packages. A current online vulnerability audit is not claimed.
+The clean output contains no ClosedXML DLL. InternalSpike.deps.json contains no ClosedXML library entry.
+Internal lexical record: 27 cases, 13 accepted and 14 deliberately rejected; mixed-dollar copy and quoted-text/scientific-notation/function-name isolation assertions pass.
+
+3. Geometry/formula/structural commands
+python3 /private/tmp/feature012-followup/run_followup.py
+python3 /private/tmp/feature012-followup/run_followup.py --internal-only
+The runner uses the already built executables, performs no downloads/builds/GUI work, and exits 0.
+Mandatory source: D:E parent, E child, D7:E7 Company merge, E8 criterion; separate top control rows carry parent/child levels.
+Five logical vertical groups, two vertical levels, three two-row detail blocks, independent Other table, two worksheets.
+Criteria 3: 30 records, 6 leaves, 18 output rows, 11 physical columns, parent merges C1:F1 and G1:J1 after crop; zero-width parent columns C and G.
+Criteria 1: 10 records, 2 leaves, 18 rows, 7 columns, parent merges C1:D1 and E1:F1.
+Criteria 7: 70 records, 14 leaves, 18 rows, 19 columns, parent merges C1:J1 and K1:R1.
+Criteria 0: 5 descriptors, 0 leaves, 18 rows, 5 columns; parent C/D survive without degenerate merges.
+Companies 0: 5 descriptors, 0 leaves, 18 rows, 3 columns; no parent/child columns or orphan criterion headings.
+Alpha and Beta occur once each when companies exist. Ordinary names A/B/C and independent X/Y/Z survive both empty-axis modes.
+Source PrintArea B7:F16 projects/crops to A1:K18 in the full fixture. Disposable content/control cells above/below/left/right are absent.
+The zero-height/hidden separator remains once at row 14. Source-authored zero widths and hidden flags are copied per parent.
+Recursive three-level width assertion: 2 x (1 + 3 x (1 + 4 x 1)) = 32. This is a model assertion, not a rendered deeper XLSX fixture.
+The adjacent-identical-marker counterexample and approved blank-control-row rule are recorded in geometry-results.json; no named report region is used by the new fixtures.
+
+4. Differential results
+Existing 61 supplied formula transformations through the internal executable equal the original ClosedXML.Parser result array exactly.
+New per-backend transformations: full=30, one-criterion=10, seven-criteria=70, both empty modes=0.
+Total: 171 exact transformations per backend, across historical and nested fixtures.
+No functions are substituted and no formula is evaluated by the research transformer.
+The internal scanner's narrower grammar/rejection boundary is intentional and recorded in internal-results.json. Parser acceptance alone does not imply safe transformation.
+
+5. Package validation
+The dual-backend runner validates nested-template.xlsx, ten output XLSX packages (five cases x two backends), date-1900.xlsx and date-1904.xlsx.
+All 13 report zero SDK Office 2010 schema errors; value/formula/merge/dimension/crop/ownership assertions also pass.
+The independent SDK-only replay validates eight selected packages with zero errors and requires no comparator result to perform its assertions.
+Prior unsafe-shift.xlsx is historical intentionally incorrect semantic evidence and is not a valid report example.
+
+6. Compatible-application recalculation
+Executable: /Applications/LibreOffice.app/Contents/MacOS/soffice
+Arguments: -env:UserInstallation=file:///private/tmp/feature012-followup/lo-profile --headless --convert-to xlsx --outdir /private/tmp/feature012-followup/recalculated
+Input paths: full-internal.xlsx, full-closed.xlsx, one-criterion-internal.xlsx, one-criterion-closed.xlsx, seven-criteria-internal.xlsx, seven-criteria-closed.xlsx, no-criteria-internal.xlsx, no-companies-internal.xlsx, date-1900.xlsx, date-1904.xlsx, under /private/tmp/feature012-followup/nested-evidence/.
+All final calls exit 0 with conversion messages and environmental Fontconfig cache warnings.
+Assertions:
+python3 /private/tmp/feature012-followup/nested.py recalc
+python3 /private/tmp/feature012-followup/nested.py recalc --internal-only
+Exit 0. Both backends have checked group/grand/cross-sheet totals. Full D3=32, J3=42, D9=31, D13=63, J13=78. One-criterion F13=66; seven-criteria R13=102. Summary!A1=63.
+2026-10-20 serials: 1900=46315, 1904=44853, difference 1462. YEAR/MONTH/DAY and native Boolean recalculate to 2026/10/20/1 in both systems.
+Compatible-application copies preserve authored hidden states for zero-size columns and separators; exact stored dimensions may normalize and are checked separately in the authoritative generated package.
+
+7. Corrected early failures and discoveries
+The initial internal scanner missed D$8 because its identifier-boundary logic stopped before the dollar; corrected and all comparisons/copy/lexical probes rerun.
+Removed an MSBuild intermediate-path ordering warning from the research project; no production build settings were changed.
+An expected full group subtotal was mistakenly written as 52; source values and independent calculation establish 42. Corrected before recording final success.
+LibreOffice restored visible default dimensions for zero-size-only XML without hidden flags. Final fixtures explicitly author zero size plus hidden=1; the renderer preserves those authored properties and final application checks pass. The engine does not invent hidden flags. Other authoring combinations require manual Excel verification.
+
+8. Limits and handoff
+This is supplied-plan research, not a template parser, generic hierarchy engine or production implementation. Marker inference, shared formula package normalization, arbitrary names/sheet bindings, deeper rendered hierarchy, rich-text/advanced-feature handlers, public CLI/API/DOCX compatibility and capacity remain upcoming implementation/verification work.
+Manual Microsoft Excel display, native-date formatting, merged headings with zero-size columns, pagination, repair prompts and final save/reopen acceptance were not executed. Automated Excel execution is not required by the approved workflow.
+No production solution test suite was rerun because production code did not change. No automatic browser work occurred.
+Product decisions on owned merge adjustment, blank-control-row boundaries, Core+CLI+HTTP delivery and existing-interface/DOCX compatibility were received and are recorded in the revised documents. Ready for Developer Implementation Plan preparation; that plan and implementation are not approved by this research.

@@ -1,0 +1,141 @@
+{
+  "copy": "F12\u002B$D$8\u002BF$8\u002B$D12",
+  "lexical": "LOG10(F12)\u002B1E10\u002B\u0022D8\u0022",
+  "cases": [
+    {
+      "formula": "SUM(D8:D9)",
+      "supported": true,
+      "rewritten": "SUM(F12:F13)"
+    },
+    {
+      "formula": "COUNT(D8:D9)",
+      "supported": true,
+      "rewritten": "COUNT(F12:F13)"
+    },
+    {
+      "formula": "SUBTOTAL(9,D8:D9)",
+      "supported": true,
+      "rewritten": "SUBTOTAL(9,F12:F13)"
+    },
+    {
+      "formula": "\u0027Other Sheet\u0027!$B$2\u002BD8",
+      "supported": true,
+      "rewritten": "\u0027Other Sheet\u0027!$B$2\u002BF12"
+    },
+    {
+      "formula": "SUM(DetailValues)",
+      "supported": true,
+      "rewritten": "SUM(DetailValues)"
+    },
+    {
+      "formula": "SUM(Table1[Amount])",
+      "supported": false,
+      "reason": "Structured reference is outside the bounded capability."
+    },
+    {
+      "formula": "SUM(D:D)",
+      "supported": false,
+      "reason": "Whole-axis/3-D reference is outside the bounded capability."
+    },
+    {
+      "formula": "SUM(8:9)",
+      "supported": false,
+      "reason": "Unsupported formula token: :"
+    },
+    {
+      "formula": "SUM(Report:Other!D8)",
+      "supported": false,
+      "reason": "Whole-axis/3-D reference is outside the bounded capability."
+    },
+    {
+      "formula": "\u0027[1]Other\u0027!D8",
+      "supported": false,
+      "reason": "External/3-D references require a separate capability."
+    },
+    {
+      "formula": "INDIRECT(\u0022D8\u0022)",
+      "supported": false,
+      "reason": "Constructed references are unsafe under geometry changes."
+    },
+    {
+      "formula": "OFFSET(D8,1,0)",
+      "supported": false,
+      "reason": "Constructed references are unsafe under geometry changes."
+    },
+    {
+      "formula": "IF(D8\u003E0,\u0022D8 literal\u0022,D9)",
+      "supported": true,
+      "rewritten": "IF(F12\u003E0,\u0022D8 literal\u0022,F13)"
+    },
+    {
+      "formula": "_xlfn.XLOOKUP(D8,D8:D9,E8:E9)",
+      "supported": true,
+      "rewritten": "_xlfn.XLOOKUP(F12,F12:F13,G12:G13)"
+    },
+    {
+      "formula": "D8#",
+      "supported": false,
+      "reason": "Unsupported formula token: #"
+    },
+    {
+      "formula": "@D8",
+      "supported": false,
+      "reason": "Unsupported formula token: @"
+    },
+    {
+      "formula": "MYFUNCTION(D8)",
+      "supported": true,
+      "rewritten": "MYFUNCTION(F12)"
+    },
+    {
+      "formula": "SUM((D8:D9,D11:D12))",
+      "supported": true,
+      "rewritten": "SUM((F12:F13,F15:F16))"
+    },
+    {
+      "formula": "LOG10(D8)\u002B1E10\u002BD9",
+      "supported": true,
+      "rewritten": "LOG10(F12)\u002B1E10\u002BF13"
+    },
+    {
+      "formula": "IF(D8\u003E0,\u0022A1 \u0022\u0022D9\u0022\u0022\u0022,D9)",
+      "supported": true,
+      "rewritten": "IF(F12\u003E0,\u0022A1 \u0022\u0022D9\u0022\u0022\u0022,F13)"
+    },
+    {
+      "formula": "\u0027O\u0027\u0027Brien\u0027!$D8\u002BSUM(D8:E9)",
+      "supported": true,
+      "rewritten": "\u0027O\u0027\u0027Brien\u0027!$D12\u002BSUM(F12:G13)"
+    },
+    {
+      "formula": "SUM($D$8:$E9)\u002BPI()",
+      "supported": true,
+      "rewritten": "SUM($D$8:$E13)\u002BPI()"
+    },
+    {
+      "formula": "D8\u002BUnresolvedName",
+      "supported": false,
+      "reason": "Unresolved name: UnresolvedName"
+    },
+    {
+      "formula": "SUM(D8",
+      "supported": false,
+      "reason": "Unbalanced parentheses."
+    },
+    {
+      "formula": "\u0022unclosed",
+      "supported": false,
+      "reason": "Unterminated quoted text."
+    },
+    {
+      "formula": "XFE1\u002BD8",
+      "supported": false,
+      "reason": "Unresolved name: XFE1"
+    },
+    {
+      "formula": "[1]Other!D8",
+      "supported": false,
+      "reason": "Unsupported formula token: ["
+    }
+  ]
+}

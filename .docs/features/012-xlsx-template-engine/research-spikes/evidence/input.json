@@ -1,0 +1,194 @@
+{
+  "Title": "Research",
+  "Bids": [
+    {
+      "Company": "Alpha",
+      "Address": "City A"
+    },
+    {
+      "Company": "Beta",
+      "Address": "City B"
+    }
+  ],
+  "Criteria": [
+    {
+      "Name": "Price"
+    },
+    {
+      "Name": "Term"
+    }
+  ],
+  "Items": [
+    {
+      "$level": 10,
+      "$path": "001",
+      "Name": "Lot 1",
+      "Price": 100,
+      "Amount": 200,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "001",
+      "Name": "not the row name",
+      "Price": 101,
+      "Amount": 202,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "001",
+      "Name": "not the row name",
+      "Price": 102,
+      "Amount": 204,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "001",
+      "Name": "not the row name",
+      "Price": 103,
+      "Amount": 206,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/001",
+      "Name": "A",
+      "Price": 10,
+      "Amount": 20,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/001",
+      "Name": "not the row name",
+      "Price": 11,
+      "Amount": 22,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/001",
+      "Name": "not the row name",
+      "Price": 12,
+      "Amount": 24,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/001",
+      "Name": "not the row name",
+      "Price": 13,
+      "Amount": 26,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/002",
+      "Name": "B",
+      "Price": 20,
+      "Amount": 40,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/002",
+      "Name": "not the row name",
+      "Price": 21,
+      "Amount": 42,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/002",
+      "Name": "not the row name",
+      "Price": 22,
+      "Amount": 44,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "001/002",
+      "Name": "not the row name",
+      "Price": 23,
+      "Amount": 46,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "002",
+      "Name": "Lot 2",
+      "Price": 200,
+      "Amount": 400,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "002",
+      "Name": "not the row name",
+      "Price": 201,
+      "Amount": 402,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "002",
+      "Name": "not the row name",
+      "Price": 202,
+      "Amount": 404,
+      "Delta": 1
+    },
+    {
+      "$level": 10,
+      "$path": "002",
+      "Name": "not the row name",
+      "Price": 203,
+      "Amount": 406,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "002/001",
+      "Name": "C",
+      "Price": 30,
+      "Amount": 60,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "002/001",
+      "Name": "not the row name",
+      "Price": 31,
+      "Amount": 62,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "002/001",
+      "Name": "not the row name",
+      "Price": 32,
+      "Amount": 64,
+      "Delta": 1
+    },
+    {
+      "$level": 20,
+      "$path": "002/001",
+      "Name": "not the row name",
+      "Price": 33,
+      "Amount": 66,
+      "Delta": 1
+    }
+  ],
+  "Other": [
+    {
+      "Name": "X"
+    },
+    {
+      "Name": "Y"
+    },
+    {
+      "Name": "Z"
+    }
+  ]
+}

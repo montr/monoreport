@@ -1,0 +1,166 @@
+{
+  "copied": "F12\u002B$D$8\u002BF$8\u002B$D12",
+  "changed": "IF(F12\u003E0,\u0022D8 literal\u0022,F13)",
+  "moved": "\u0027Other Sheet\u0027!$B$2\u002B$F$12",
+  "checks": [
+    {
+      "formula": "SUM(D8:D9)",
+      "parsed": true,
+      "result": "SUM(D8:D9)",
+      "nodes": [
+        "local:D8:D9",
+        "function:SUM"
+      ]
+    },
+    {
+      "formula": "COUNT(D8:D9)",
+      "parsed": true,
+      "result": "COUNT(D8:D9)",
+      "nodes": [
+        "local:D8:D9",
+        "function:COUNT"
+      ]
+    },
+    {
+      "formula": "SUBTOTAL(9,D8:D9)",
+      "parsed": true,
+      "result": "SUBTOTAL(9,D8:D9)",
+      "nodes": [
+        "local:D8:D9",
+        "function:SUBTOTAL"
+      ]
+    },
+    {
+      "formula": "\u0027Other Sheet\u0027!$B$2\u002BD8",
+      "parsed": true,
+      "result": "\u0027Other Sheet\u0027!$B$2\u002BD8",
+      "nodes": [
+        "sheet:Other Sheet",
+        "local:D8"
+      ]
+    },
+    {
+      "formula": "SUM(DetailValues)",
+      "parsed": true,
+      "result": "SUM(DetailValues)",
+      "nodes": [
+        "name:DetailValues",
+        "function:SUM"
+      ]
+    },
+    {
+      "formula": "SUM(Table1[Amount])",
+      "parsed": true,
+      "result": "SUM(Table1[Amount])",
+      "nodes": [
+        "table:Table1",
+        "function:SUM"
+      ]
+    },
+    {
+      "formula": "SUM(D:D)",
+      "parsed": true,
+      "result": "SUM(D:D)",
+      "nodes": [
+        "local:D:D",
+        "function:SUM"
+      ]
+    },
+    {
+      "formula": "SUM(8:9)",
+      "parsed": true,
+      "result": "SUM(8:9)",
+      "nodes": [
+        "local:8:9",
+        "function:SUM"
+      ]
+    },
+    {
+      "formula": "SUM(Report:Other!D8)",
+      "parsed": true,
+      "result": "SUM(Report:Other!D8)",
+      "nodes": [
+        "function:SUM"
+      ]
+    },
+    {
+      "formula": "\u0027[1]Other\u0027!D8",
+      "parsed": true,
+      "result": "[1]Other!D8",
+      "nodes": []
+    },
+    {
+      "formula": "INDIRECT(\u0022D8\u0022)",
+      "parsed": true,
+      "result": "INDIRECT(\u0022D8\u0022)",
+      "nodes": [
+        "function:INDIRECT"
+      ]
+    },
+    {
+      "formula": "OFFSET(D8,1,0)",
+      "parsed": true,
+      "result": "OFFSET(D8,1,0)",
+      "nodes": [
+        "local:D8",
+        "function:OFFSET"
+      ]
+    },
+    {
+      "formula": "IF(D8\u003E0,\u0022D8 literal\u0022,D9)",
+      "parsed": true,
+      "result": "IF(D8\u003E0,\u0022D8 literal\u0022,D9)",
+      "nodes": [
+        "local:D8",
+        "local:D9",
+        "function:IF"
+      ]
+    },
+    {
+      "formula": "_xlfn.XLOOKUP(D8,D8:D9,E8:E9)",
+      "parsed": true,
+      "result": "_xlfn.XLOOKUP(D8,D8:D9,E8:E9)",
+      "nodes": [
+        "local:D8",
+        "local:D8:D9",
+        "local:E8:E9",
+        "function:_xlfn.XLOOKUP"
+      ]
+    },
+    {
+      "formula": "D8#",
+      "parsed": true,
+      "result": "D8#",
+      "nodes": [
+        "local:D8"
+      ]
+    },
+    {
+      "formula": "@D8",
+      "parsed": true,
+      "result": "@D8",
+      "nodes": [
+        "local:D8"
+      ]
+    },
+    {
+      "formula": "MYFUNCTION(D8)",
+      "parsed": true,
+      "result": "MYFUNCTION(D8)",
+      "nodes": [
+        "local:D8",
+        "function:MYFUNCTION"
+      ]
+    },
+    {
+      "formula": "SUM((D8:D9,D11:D12))",
+      "parsed": true,
+      "result": "SUM((D8:D9,D11:D12))",
+      "nodes": [
+        "local:D8:D9",
+        "local:D11:D12",
+        "function:SUM"
+      ]
+    }
+  ]
+}

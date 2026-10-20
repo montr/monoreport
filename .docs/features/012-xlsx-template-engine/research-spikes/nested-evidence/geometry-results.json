@@ -1,0 +1,109 @@
+{
+  "full": {
+    "logicalRows": 5,
+    "records": 30,
+    "leaves": 6,
+    "rows": 18,
+    "columns": 11,
+    "parentMerges": [
+      "C1:F1",
+      "G1:J1"
+    ],
+    "literalCopyMerges": [
+      "C1:D1",
+      "G1:H1"
+    ],
+    "zeroWidthColumns": [
+      "C",
+      "G"
+    ],
+    "formulas": 30
+  },
+  "one-criterion": {
+    "logicalRows": 5,
+    "records": 10,
+    "leaves": 2,
+    "rows": 18,
+    "columns": 7,
+    "parentMerges": [
+      "C1:D1",
+      "E1:F1"
+    ],
+    "literalCopyMerges": [
+      "C1:D1",
+      "E1:F1"
+    ],
+    "zeroWidthColumns": [
+      "C",
+      "E"
+    ],
+    "formulas": 10
+  },
+  "seven-criteria": {
+    "logicalRows": 5,
+    "records": 70,
+    "leaves": 14,
+    "rows": 18,
+    "columns": 19,
+    "parentMerges": [
+      "C1:J1",
+      "K1:R1"
+    ],
+    "literalCopyMerges": [
+      "C1:D1",
+      "K1:L1"
+    ],
+    "zeroWidthColumns": [
+      "C",
+      "K"
+    ],
+    "formulas": 70
+  },
+  "no-criteria": {
+    "logicalRows": 5,
+    "records": 5,
+    "leaves": 0,
+    "rows": 18,
+    "columns": 5,
+    "parentMerges": [],
+    "literalCopyMerges": [],
+    "zeroWidthColumns": [
+      "C",
+      "D"
+    ],
+    "formulas": 0
+  },
+  "no-companies": {
+    "logicalRows": 5,
+    "records": 5,
+    "leaves": 0,
+    "rows": 18,
+    "columns": 3,
+    "parentMerges": [],
+    "literalCopyMerges": [],
+    "zeroWidthColumns": [],
+    "formulas": 0
+  },
+  "boundaryCounterexample": {
+    "markers": [
+      "$l(10).Items",
+      "$l(10).Items",
+      "$l(10).Items",
+      "$l(10).Items"
+    ],
+    "interpretations": [
+      "one four-row item",
+      "two two-row tables"
+    ],
+    "proposedSeparatorProducesTables": 2
+  },
+  "threeLevelGeometry": {
+    "counts": [
+      2,
+      3,
+      4
+    ],
+    "parentOnlyColumnsPerLevel": 1,
+    "physicalColumns": 32
+  }
+}

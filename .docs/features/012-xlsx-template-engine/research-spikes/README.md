@@ -1,0 +1,40 @@
+# Feature 012 architecture research spikes
+
+1. These are isolated, supplied-plan experiments, not Feature 012 production code or a general template engine. The current authoring model is nested `$h(level)` blocks, parent-only columns, bounded adjustment of existing merges, blank-control-row boundaries and physical PrintArea crop. See [assessment](../architecture-assessment.md) and [specification](../feature-spec.md).
+2. Current follow-up sources are `InternalReferences.cs`, `InternalProgram.cs`, `InternalSpike.csproj`, `nested.py` and `run_followup.py`. The internal project uses only the existing Open XML SDK. `Program.cs`/`Spike.csproj` retain the optional ClosedXML.Parser comparator; that dependency is not proposed for runtime.
+3. `fixtures.py` supplies shared package-authoring helpers and the original baseline. Its only change for reuse is an import guard. The [baseline instructions](baseline-readme.md) and `evidence/` are historical: bare h, fixed leaf tiles, repeated parent labels and MR-named regions there are superseded, not current accepted examples. The intentionally unsafe workbook remains negative evidence.
+4. Execution used `/private/tmp/feature012-followup/` and a clean SDK-only output `/private/tmp/feature012-sdk-only/bin/`. Build caches, downloaded comparator, application profiles and temporary pending packages remain outside the repository. Only source, fixtures and evidence are retained here.
+
+## 1. SDK-only reproduction
+
+1. Copy this research directory to a temporary workspace, for example `/private/tmp/feature012-replay/`, and run commands there. Do not build inside the production solution or add package references to production projects.
+2. Build `dotnet build InternalSpike.csproj`. It references DocumentFormat.OpenXml 3.5.1 only, selecting the tested MIT SDK/Framework/Packaging dependency closure. Cached packages suffice in the research environment; an online vulnerability audit was unavailable and is not claimed.
+3. Run lexical/copy cases using the retained comparator input record as plain JSON: `dotnet run --project InternalSpike.csproj --no-build -- probe parser-results.json internal-results.json`. No comparator assembly is needed to read that record. Expected: 27 cases, 13 supported and 14 deliberately rejected; mixed-dollar copy and string/exponent/function-name isolation assertions pass.
+4. Run `python3 run_followup.py --internal-only`. It generates the mandatory nested template/data, 0/1/3/7 criteria and zero-company cases, native date/Boolean fixtures, transforms 110 formulas, asserts geometry/content/merges/crop/zero dimensions and validates selected packages. It checks that the internal runtime dependency manifest has no ClosedXML entry. It does not build, download dependencies or launch an application implicitly.
+5. `nested.py` uses explicit row ownership, horizontal instances and reference scopes for its small fixture. It does not infer generic template boundaries or data-dependent arbitrary merges. Its recursion check establishes a three-level width of 32, not a rendered three-level workbook.
+6. With application execution authorized, use an isolated LibreOffice profile and separate output directory to recalculate the generated internal outputs and both date fixtures. The executable used was `/Applications/LibreOffice.app/Contents/MacOS/soffice`, with `--headless --convert-to xlsx`, a temporary `-env:UserInstallation=file:///private/tmp/feature012-replay/lo-profile`, and `--outdir /private/tmp/feature012-replay/recalculated`. Pass `nested-evidence/full-internal.xlsx`, `one-criterion-internal.xlsx`, `seven-criteria-internal.xlsx`, `no-criteria-internal.xlsx`, `no-companies-internal.xlsx`, `date-1900.xlsx` and `date-1904.xlsx` using their full paths.
+7. Run `python3 nested.py recalc --internal-only`. Expected group/grand/cross-sheet totals and both date systems/Boolean values pass. Author-defined hidden states for zero-size columns and the separator also survive compatible-application normalization.
+
+## 2. Optional differential comparison
+
+1. The comparator was licensed/checked before the original investigation: ClosedXML.Parser 2.0.0, MIT, netstandard2.1 with no target dependencies, package SHA-256 `85d40168dcb9fa5478c52c6ef26820beedc8e2cb764515906ed37185584ba37f`. See the baseline provenance instructions. It is not part of the SDK-only build.
+2. Extract the pinned package to `downloads/parser/`, then build `dotnet build Spike.csproj`. Alternatively supply `-p:ParserDirectory=` pointing at the extracted `lib/netstandard2.1` directory. Compile only the explicit source files; do not add upstream source files to the project.
+3. Run `python3 run_followup.py` to execute both compiled backends and compare the 110 nested formula outputs exactly. Recalculate both `full`, `one-criterion` and `seven-criteria` backend outputs, plus internal empty/date cases, then run `python3 nested.py recalc`.
+4. To replay the original 61 formula requests, run `python3 fixtures.py prepare` in the temporary directory. Send `evidence/formula-requests.json` through each executable's `transform` command and compare the two JSON arrays. The retained follow-up record confirms all 61 match; combined with the nested requests this is 171 exact transformations per backend.
+5. `run_followup.py` validates 13 packages when both backends are enabled. The SDK-only path validates only its selected backend outputs plus the template/dates; it does not require comparator-generated packages.
+
+## 3. Current evidence
+
+| Artifact | Purpose |
+| --- | --- |
+| `nested-evidence/nested-template.xlsx` | Source parent D:E / child E, merged D7:E7, criterion E8, authored zero-width/hidden D, two vertical levels, a zero-height/hidden separator and disposable external content. |
+| `nested-evidence/full-*`, `one-criterion-*`, `seven-criteria-*` | Input JSON, supplied formula requests/targets, per-backend formula arrays and output XLSX for 3/1/7 criteria. Parent headings occur once and span only their owned children. |
+| `nested-evidence/no-criteria-*`, `no-companies-*` | Five descriptors each; ordinary vertical rows, multirow nesting and second table survive. Zero child count collapses parent merges to ordinary cells; zero parent count removes descendant columns. |
+| `nested-evidence/geometry-results.json` | Exact projected versus literal-copy merges, physical extents, zero-width columns, ambiguous adjacent-marker counterexample and three-level width assertion. |
+| `nested-evidence/date-1900.xlsx`, `date-1904.xlsx`, `date-results.json` | Native numeric date serials, Boolean cells, text date strings, workbook flags and the observed 1,462-day serial difference. |
+| `nested-evidence/recalculated-*` | Actual LibreOffice import/export evidence; caches checked independently. These copies are not authoritative formatting outputs, because the application may normalize XML/dimensions. |
+| `internal-results.json`, `nested-evidence/results.txt` | Lexical support/rejection/copy record, exact commands, comparison/calculation/validation results, corrected failures and remaining limits. |
+
+1. For three criteria, literal copy/shift gives D7:E7 and H7:I7 before crop; it cannot span the full child headers. Approved owned projection gives D7:G7 and H7:K7, becoming C1:F1 and G1:J1 after crop. For zero criteria only the authored parent-only cells remain, with no degenerate merge element.
+2. Final fixtures explicitly author zero size and hidden flags together. LibreOffice restored visible default dimensions for the earlier zero-size-only fixture. The renderer preserves the authored flags; it does not invent hiding. Compatible-application normalization is recorded as a limitation and checked separately from source/output property equality.
+3. Generic marker parsing, general formula grammar validation, arbitrary sheet/name bindings, shared formula packages, rich-text/advanced metadata handlers, public CLI/API behavior and realistic capacity remain implementation verification. Manual Excel appearance/recalculation/repair/pagination acceptance is unexecuted; no automated Excel requirement is introduced.
