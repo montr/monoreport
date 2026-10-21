@@ -32,7 +32,7 @@ public sealed class ApiOperationTransformer : IOpenApiOperationTransformer
             DiagnosticCodes.TemplateTrackedRevision, DiagnosticCodes.GenerationInvalidData,
             DiagnosticCodes.GenerationInvalidFormat, DiagnosticCodes.XlsxInvalidPrintArea,
             DiagnosticCodes.XlsxUnsupportedFeature, DiagnosticCodes.XlsxDimensionLimit,
-            DiagnosticCodes.XlsxUnsafeNumber, DiagnosticCodes.XlsxInvalidPackage
+            DiagnosticCodes.XlsxUnsafeNumber, DiagnosticCodes.XlsxInvalidPackage, DiagnosticCodes.XlsxUnsafeFormula
         };
         var properties = new Dictionary<string, IOpenApiSchema>
         {
@@ -56,10 +56,10 @@ public sealed class ApiOperationTransformer : IOpenApiOperationTransformer
                 } }
             }
         };
-        operation.Summary = generation ? "Generate a Word or static XLSX document" : "Analyze a Word or static XLSX template";
+        operation.Summary = generation ? "Generate a Word or XLSX document" : "Analyze a Word or XLSX template";
         operation.Description = generation
-            ? "Returns raw DOCX or XLSX bytes after one operation. XLSX currently supports static fields and rectangular PrintArea crop, requires JSON object data and rejects formulas/repetition. Template structure and values are validated before output is produced."
-            : "Returns diagnostics, an ordered recursive dependency tree, and source occurrences without JSON input or generation. Invalid nonempty package content returns 200 with valid=false. XLSX currently supports static worksheets only.";
+            ? "Returns raw DOCX or XLSX bytes after one operation. XLSX supports static fields, single-level vertical runs, nested horizontal blocks and local scalar formulas over explicit A1 operands with physical PrintArea crop; it requires JSON object data. Nested vertical groups and sheet/name/shared formulas remain later milestones. Template structure and values are validated before output is produced."
+            : "Returns diagnostics, an ordered recursive dependency tree, and source occurrences without JSON input or generation. Invalid nonempty package content returns 200 with valid=false. XLSX preflight supports the M2 repeated-region and local scalar-formula slice; data-dependent matrix cardinalities and reference images require generation.";
         if (generation)
         {
             var success = (OpenApiResponse)operation.Responses!["200"];

@@ -46,7 +46,7 @@ public sealed class Feature012AnalyzerTests
         var analysis = services.GetRequiredService<TemplateAnalyzer>().Analyze(input);
         Assert.False(analysis.Valid); // Prepared dependencies do not claim full repeated-template acceptance.
         Assert.All(analysis.Errors, issue => Assert.Equal(DiagnosticCodes.XlsxUnsupportedFeature, issue.Code));
-        Assert.Contains(analysis.Errors, issue => issue.Message.Contains("static", StringComparison.Ordinal));
+        Assert.Contains(analysis.Errors, issue => issue.Message.Contains("M3", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -72,9 +72,8 @@ public sealed class Feature012AnalyzerTests
     }
 
     [Theory]
-    [InlineData("$l(10).Items", "A3", DiagnosticCodes.XlsxUnsupportedFeature)]
-    [InlineData("$HEADER(1).Bids", "A3", DiagnosticCodes.XlsxUnsupportedFeature)]
-    [InlineData("$h(1)", "B1", DiagnosticCodes.XlsxUnsupportedFeature)]
+    [InlineData("$HEADER(1).Bids", "A3", DiagnosticCodes.TemplateInvalidStructure)]
+    [InlineData("$h(1)", "B1", DiagnosticCodes.TemplateInvalidStructure)]
     [InlineData("$l(x).Items", "A3", DiagnosticCodes.TemplateInvalidStructure)]
     [InlineData("$l(10).Items", "C3", DiagnosticCodes.TemplateInvalidStructure)]
     public void Analyzer_Unsupported_or_malformed_controls_never_disappear_silently(string marker, string address, string code)

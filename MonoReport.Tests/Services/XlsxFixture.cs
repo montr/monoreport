@@ -10,6 +10,15 @@ namespace MonoReport.Tests.Services;
 
 internal sealed class XlsxFixture
 {
+    internal byte[] CreateRepeated() => Create((_, worksheet) =>
+    {
+        var data = worksheet.Worksheet!.GetFirstChild<SheetData>()!;
+        data.RemoveAllChildren();
+        data.Append(new Row(Text("A3", "$l(10).Items"), Text("B3", "{Name}"), Text("C3", "{Price}"),
+                new Cell { CellReference = "D3", CellFormula = new CellFormula("C3*2"), CellValue = new CellValue("9999") }) { RowIndex = 3 },
+            new Row(new Cell { CellReference = "D5", CellFormula = new CellFormula("SUM(C3:C3)") }) { RowIndex = 5 });
+    });
+
     internal byte[] Create(Action<WorkbookPart, WorksheetPart>? customize = null,
         SpreadsheetDocumentType kind = SpreadsheetDocumentType.Workbook)
     {

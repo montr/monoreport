@@ -173,7 +173,7 @@ public sealed class Feature012FoundationTests
         var source = _fixture.Create((_, worksheet) => worksheet.Worksheet!.Descendants<Text>().Single().Text = text);
         using var document = SpreadsheetDocument.Open(new MemoryStream(source), false);
         var context = new XlsxOperationContext(new MergeOptions());
-        var planner = new XlsxTemplatePlanner(new TemplateLanguageParser(), new DataResolver(), new ValueFormatter(new RubSpellOutFormatter()));
+        var planner = new XlsxTemplatePlanner(new TemplateLanguageParser(), new DataResolver(), new ValueFormatter(new RubSpellOutFormatter()), new XlsxFormulaReferences());
         var plan = planner.Plan(new XlsxPackageReader().Read(document, context), context);
         return (plan.Sheets.Single().Cells.Single(), planner);
     }

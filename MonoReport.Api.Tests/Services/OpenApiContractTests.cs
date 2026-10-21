@@ -67,7 +67,7 @@ public sealed class OpenApiContractTests
             DiagnosticCodes.TemplateTrackedRevision, DiagnosticCodes.GenerationInvalidData,
             DiagnosticCodes.GenerationInvalidFormat, DiagnosticCodes.XlsxInvalidPrintArea,
             DiagnosticCodes.XlsxUnsupportedFeature, DiagnosticCodes.XlsxDimensionLimit,
-            DiagnosticCodes.XlsxUnsafeNumber, DiagnosticCodes.XlsxInvalidPackage
+            DiagnosticCodes.XlsxUnsafeNumber, DiagnosticCodes.XlsxInvalidPackage, DiagnosticCodes.XlsxUnsafeFormula
         };
         Assert.Equal(generationCodes, Codes(generate, "422"));
         var problemFactory = new ApiProblemFactory();
@@ -112,5 +112,7 @@ public sealed class OpenApiContractTests
         Assert.Equal(new[] { "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
             content.EnumerateObject().Select(item => item.Name).Order());
         Assert.Contains("static", operation.GetProperty("description").GetString());
+        Assert.Contains("scalar formulas", operation.GetProperty("description").GetString());
+        Assert.Contains(DiagnosticCodes.XlsxUnsafeFormula, operation.GetProperty("responses").GetProperty("422").GetProperty("description").GetString());
     }
 }

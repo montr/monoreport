@@ -25,7 +25,10 @@ internal readonly record struct XlsxRectangle(XlsxAddress First, XlsxAddress Las
 
 internal readonly record struct SourceCellId(uint SheetId, XlsxAddress Address);
 internal sealed record VerticalInstancePath(int RegionId, ImmutableArray<int> LogicalRows);
-internal sealed record HorizontalInstancePath(int NodeId, int ItemIndex, HorizontalInstancePath? Parent);
+internal sealed record HorizontalInstancePath(int NodeId, int ItemIndex, HorizontalInstancePath? Parent)
+{
+    internal int Level { get; init; }
+}
 internal sealed record CellInstanceId(SourceCellId Source, VerticalInstancePath? Vertical, HorizontalInstancePath? Horizontal);
 
 internal sealed record XlsxCellSource(SourceCellId Id, XElement Xml, string? Text, string? NativeType,
@@ -37,6 +40,7 @@ internal sealed record XlsxSourceInventory(ImmutableArray<XlsxSheetSource> Sheet
 
 internal sealed record XlsxCellPlan(XlsxCellSource Source, ImmutableArray<TemplateToken> Tokens, string Location)
 {
+    internal XlsxParsedFormula? Formula { get; init; }
     internal bool NativeField => Tokens is [{ Kind: TemplateTokenKind.Expression, Start: 0, Expression.Formatter: null } token] &&
         token.Length == Source.Text?.Length;
 }
@@ -44,7 +48,14 @@ internal enum XlsxControlKind { Vertical, Header, Geometry }
 internal sealed record XlsxControlMarker(XlsxCellSource Cell, XlsxControlKind Kind, int Level,
     TemplateExpression? Collection, string? CollectionPath, string Location);
 internal sealed record XlsxSheetTemplate(XlsxSheetSource Source, ImmutableArray<XlsxCellPlan> Cells,
-    ImmutableArray<XlsxControlMarker> Controls);
+    ImmutableArray<XlsxControlMarker> Controls)
+{
+    internal XlsxHorizontalNode? Horizontal { get; init; }
+    internal ImmutableArray<XlsxVerticalRegion> Regions { get; init; } = [];
+}
+internal sealed record XlsxHorizontalNode(int Id, int Level, int FirstColumn, int LastColumn,
+    ImmutableArray<XlsxHorizontalNode> Children);
+internal sealed record XlsxVerticalRegion(int Id, int FirstRow, int LastRow, int Level, string Collection);
 internal sealed record XlsxTemplatePlan(XlsxSourceInventory Source, ImmutableArray<XlsxSheetTemplate> Sheets,
     ImmutableArray<PlannedDependency> Dependencies, IReadOnlyList<TemplateRequirement> Requirements,
     IReadOnlyList<TemplateOccurrence> Occurrences);

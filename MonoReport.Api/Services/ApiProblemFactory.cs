@@ -56,6 +56,7 @@ public sealed class ApiProblemFactory
         DiagnosticCodes.XlsxDimensionLimit => "The generated report exceeds Excel worksheet dimensions; reduce the report size.",
         DiagnosticCodes.XlsxUnsafeNumber => "The value cannot be stored faithfully as an Excel number. Supply it as a JSON string or render it with an explicit text formatter.",
         DiagnosticCodes.XlsxInvalidPackage => "The XLSX package is inconsistent. Repair or re-save the workbook with valid parts and relationships.",
+        DiagnosticCodes.XlsxUnsafeFormula => "The XLSX formula reference cannot be transformed safely; re-author it using explicit retained A1 operands.",
         _ => "The server could not complete the operation."
     };
 }

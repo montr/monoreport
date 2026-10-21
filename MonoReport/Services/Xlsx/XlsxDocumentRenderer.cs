@@ -28,7 +28,16 @@ internal sealed partial class XlsxDocumentRenderer
                 {
                     var cell = new XElement(placement.Source.Xml);
                     cell.SetAttributeValue("r", placement.Output);
-                    if (placement.Value is { } value) WriteValue(cell, value);
+                    if (placement.Suppressed)
+                    {
+                        cell.Elements(S + "f").Remove(); WriteValue(cell, new(null, null));
+                    }
+                    else if (placement.Formula is { } formula)
+                    {
+                        cell.Elements(S + "f").Remove(); cell.Elements(S + "v").Remove(); cell.Elements(S + "is").Remove();
+                        cell.Attribute("t")?.Remove(); cell.Add(new XElement(S + "f", formula));
+                    }
+                    else if (placement.Value is { } value) WriteValue(cell, value);
                     else if (placement.Source.SharedString is { } text)
                     {
                         cell.Elements(S + "v").Remove();

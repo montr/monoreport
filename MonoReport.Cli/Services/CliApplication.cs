@@ -26,7 +26,7 @@ namespace MonoReport.Cli.Services
 
             Exit codes: 0 success, 1 input/render/output error, 2 invalid arguments.
             Errors are written to stderr; document output on stdout is binary.
-            XLSX currently supports static fields and rectangular PrintArea crop; formulas and repetition reject.
+            XLSX supports static fields, single-level vertical runs, nested horizontal blocks and local scalar A1 formulas with physical PrintArea crop. Nested vertical groups and sheet/name/shared formulas require later milestones.
             Analysis writes JSON to stdout: 0 valid, 1 invalid/execution failure, 2 invalid arguments.
             """;
 

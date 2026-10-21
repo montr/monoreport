@@ -23,6 +23,8 @@ public static class MonoReportServiceCollectionExtensions
         services.TryAddTransient<XlsxGeometryPlanner>();
         services.TryAddTransient<XlsxTemplatePlanner>();
         services.TryAddTransient<XlsxDocumentRenderer>();
+        services.TryAddTransient<XlsxFormulaReferences>();
+        services.TryAddTransient<XlsxFormulaPlanner>();
         services.TryAddTransient<DocxStoryReader>();
         services.TryAddTransient<TemplateLanguageParser>();
         services.TryAddTransient<DocxTemplatePlanner>();

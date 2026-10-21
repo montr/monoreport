@@ -6,24 +6,18 @@ using MonoReport.Models.Xlsx;
 
 namespace MonoReport.Services.Xlsx;
 
-internal sealed partial class XlsxTemplatePlanner(TemplateLanguageParser language, DataResolver resolver, ValueFormatter formatter)
+internal sealed partial class XlsxTemplatePlanner(TemplateLanguageParser language, DataResolver resolver, ValueFormatter formatter,
+    XlsxFormulaReferences references)
 {
     private readonly TemplateLanguageParser _language = language ?? throw new ArgumentNullException(nameof(language));
     private readonly DataResolver _resolver = resolver ?? throw new ArgumentNullException(nameof(resolver));
     private readonly ValueFormatter _formatter = formatter ?? throw new ArgumentNullException(nameof(formatter));
+    private readonly XlsxFormulaReferences _references = references ?? throw new ArgumentNullException(nameof(references));
 
     internal XlsxTemplatePlan Plan(XlsxSourceInventory source, XlsxOperationContext context)
     {
         var plan = Prepare(source, context);
-        foreach (var marker in plan.Sheets.SelectMany(sheet => sheet.Controls))
-        {
-            if (context.LimitReached) break;
-            context.Report(new StructuralDiagnostic(DiagnosticCodes.XlsxUnsupportedFeature,
-                "Repeated XLSX reports are not implemented in M1.", marker.Cell.Text, Location: marker.Location,
-                Explanation: "This milestone supports static worksheets only. Use a static template until repeated-region support is implemented.").ToException());
-        }
-        context.ThrowIfErrors();
-        return plan;
+        return plan with { Sheets = plan.Sheets.Select(Structure).ToImmutableArray() };
     }
 
     // Prepares lexical scopes/dependencies only. Recursive grammar/geometry validation remains M2/M3.
@@ -51,6 +45,25 @@ internal sealed partial class XlsxTemplatePlanner(TemplateLanguageParser languag
             foreach (var cell in sheet.Cells.Where(cell => sheet.PrintArea.Contains(cell.Id.Address)))
             {
                 var location = Location(sheet, cell.Id.Address);
+                XlsxParsedFormula? formula = null;
+                if (cell.HasFormula)
+                {
+                    try
+                    {
+                        var elements = cell.Xml.Elements().Where(element => element.Name.LocalName == "f").ToArray();
+                        if (elements.Length != 1 || elements[0].Attributes().Any(attribute => attribute.Name.LocalName != "t" || attribute.Value != "normal"))
+                            throw new StructuralDiagnostic(DiagnosticCodes.XlsxUnsafeFormula, "Use ordinary scalar formulas; shared groups require M3 and array/data-table/spill structures are unsupported.", Location: location,
+                                Explanation: "Re-save the affected formula as an ordinary scalar formula using explicit retained A1 operands.").ToException();
+                        formula = _references.Read(elements[0].Value, location);
+                        if (formula.References.Any(reference => reference.Prefix.Length > 0))
+                            throw new StructuralDiagnostic(DiagnosticCodes.XlsxUnsafeFormula, "Sheet-qualified formula binding requires M3.",
+                                Location: location, Explanation: "Use explicit local retained A1 operands in M2; sheet-qualified formula binding requires M3.").ToException();
+                    }
+                    catch (TemplateException error)
+                    {
+                        Report(new(error.Code, error.Message, Location: location, Explanation: error.Message, SourceOrder: Order(cell.Id.Address)));
+                    }
+                }
                 var scope = scopes.TryGetValue(cell.Id.Address.Row, out var found) ? found : ImmutableArray<string>.Empty;
                 var parsed = cell.Text is null ? new TemplateParseResult([], []) : _language.Parse(cell.Text, location);
                 foreach (var error in parsed.Diagnostics)
@@ -83,7 +96,7 @@ internal sealed partial class XlsxTemplatePlanner(TemplateLanguageParser languag
                             location, Order(cell.Id.Address) + token.Start));
                     }
                 }
-                cells.Add(new(cell, parsed.Tokens.ToImmutableArray(), location));
+                cells.Add(new(cell, parsed.Tokens.ToImmutableArray(), location) { Formula = formula });
             }
             sheets.Add(new(sheet, cells.ToImmutable(), controls));
             dependencies.AddRange(sheetDependencies.OrderBy(item => item.SourceOrder));

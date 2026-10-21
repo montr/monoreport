@@ -3,6 +3,8 @@ namespace MonoReport.Models;
 /// <summary>Canonical values of Core diagnostic-code identifiers published by MonoReport.</summary>
 public static class DiagnosticCodes
 {
+    public const string XlsxMissingLevel = "generation.xlsx_missing_level";
+    public const string XlsxUnsafeFormula = "template.xlsx_unsafe_formula";
     public const string TemplateInvalidPackage = "template.invalid_package";
     public const string TemplateInvalidXml = "template.invalid_xml";
     public const string TemplateUnsupportedStructure = "template.unsupported_structure";

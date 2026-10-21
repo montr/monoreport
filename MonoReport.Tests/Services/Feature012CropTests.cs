@@ -126,7 +126,6 @@ public sealed class Feature012CropTests
     }
 
     [Theory]
-    [InlineData("formula", "Formula")]
     [InlineData("hyperlink", "hyperlinks")]
     [InlineData("name", "defined names")]
     [InlineData("pane", "pane")]
@@ -139,10 +138,6 @@ public sealed class Feature012CropTests
         var source = _fixture.Create((workbook, worksheet) =>
         {
             var sheet = worksheet.Worksheet!;
-            if (scenario == "formula")
-            {
-                var cell = sheet.Descendants<Cell>().Single(); cell.RemoveAllChildren(); cell.CellFormula = new CellFormula("SUM(B4:B5)");
-            }
             if (scenario == "hyperlink") sheet.Append(new Hyperlinks(new Hyperlink { Reference = "B3", Location = "Report!B4" }));
             if (scenario == "name") workbook.Workbook!.DefinedNames!.Append(new DefinedName("Report!$B$3") { Name = "Amount" });
             if (scenario == "pane") sheet.PrependChild(new SheetViews(new SheetView(new Pane { State = PaneStateValues.Frozen, VerticalSplit = 2, TopLeftCell = "B3" }) { WorkbookViewId = 0 }));

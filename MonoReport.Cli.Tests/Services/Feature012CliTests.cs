@@ -14,6 +14,27 @@ public sealed class Feature012CliTests
     private readonly XlsxFixture _fixture = new();
 
     [Fact]
+    public void Repeated_Existing_cli_switches_render_scoped_native_rows_and_transformed_formulas()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "feature012-m2-" + Guid.NewGuid().ToString("N") + ".xlsx");
+        File.WriteAllBytes(path, _fixture.CreateRepeated());
+        try
+        {
+            using var services = _fixture.Services();
+            var app = new CliApplication(new CliOptionsParser(), services.GetRequiredService<MergeEngine>(), services.GetRequiredService<TemplateAnalyzer>());
+            using var output = new MemoryStream(); using var errors = new StringWriter();
+            Assert.Equal(0, app.Run(["--template", path, "--json", "{\"Items\":[{\"$level\":10,\"Name\":\"one\",\"Price\":12},{\"$level\":10,\"Name\":\"two\",\"Price\":20}]}"], Stream.Null, output, errors));
+            Assert.Empty(errors.ToString());
+            using var document = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            Assert.Empty(new OpenXmlValidator().Validate(document));
+            var cells = document.WorkbookPart!.WorksheetParts.Single().Worksheet!.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("one", cells["A1"].InlineString!.InnerText); Assert.Equal("20", cells["B2"].CellValue!.Text);
+            Assert.Equal("B1*2", cells["C1"].CellFormula!.Text); Assert.Equal("SUM(B1:B2)", cells["C4"].CellFormula!.Text);
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
     public void Static_Generate_and_analyze_use_existing_switches_even_with_a_misleading_filename()
     {
         var path = Path.Combine(Path.GetTempPath(), "feature012-" + Guid.NewGuid().ToString("N") + ".docx");

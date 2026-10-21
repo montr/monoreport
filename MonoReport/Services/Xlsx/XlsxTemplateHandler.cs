@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Text.Json;
 using MonoReport.Models;
 using MonoReport.Models.Xlsx;
@@ -6,11 +7,12 @@ using DocumentFormat.OpenXml.Packaging;
 namespace MonoReport.Services.Xlsx;
 
 internal sealed class XlsxTemplateHandler(XlsxPackageReader reader, XlsxTemplatePlanner planner,
-    XlsxGeometryPlanner geometry, XlsxDocumentRenderer renderer)
+    XlsxGeometryPlanner geometry, XlsxFormulaPlanner formulas, XlsxDocumentRenderer renderer)
 {
     private readonly XlsxPackageReader _reader = reader ?? throw new ArgumentNullException(nameof(reader));
     private readonly XlsxTemplatePlanner _planner = planner ?? throw new ArgumentNullException(nameof(planner));
     private readonly XlsxGeometryPlanner _geometry = geometry ?? throw new ArgumentNullException(nameof(geometry));
+    private readonly XlsxFormulaPlanner _formulas = formulas ?? throw new ArgumentNullException(nameof(formulas));
     private readonly XlsxDocumentRenderer _renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
 
     internal TemplateAnalysisResult Analyze(Stream package)
@@ -20,7 +22,9 @@ internal sealed class XlsxTemplateHandler(XlsxPackageReader reader, XlsxTemplate
             using var document = SpreadsheetDocument.Open(package, false);
             var context = new XlsxOperationContext(new MergeOptions()) { SourceBytes = package.Length };
             var plan = _planner.Plan(_reader.Read(document, context), context);
-            _geometry.Plan(plan, System.Collections.Immutable.ImmutableDictionary<SourceCellId, XlsxPreparedValue>.Empty, context);
+            var staticGeometry = _geometry.Preflight(plan, context);
+            _formulas.ValidateStaticReferences(plan, context);
+            if (staticGeometry is not null) _formulas.Finalize(plan, staticGeometry, context);
             return new([], requirements: plan.Requirements, occurrences: plan.Occurrences);
         }
         catch (TemplateException error)
@@ -43,10 +47,27 @@ internal sealed class XlsxTemplateHandler(XlsxPackageReader reader, XlsxTemplate
             {
                 var source = _planner.Plan(_reader.Read(document, context), context);
                 // Complete data-independent preflight before binding or mutating any worksheet.
-                var geometry = _geometry.Plan(source, System.Collections.Immutable.ImmutableDictionary<SourceCellId, XlsxPreparedValue>.Empty, context);
-                var values = _planner.Bind(source, data.RootElement, context);
-                var plan = _planner.AttachValues(geometry, values);
+                var staticGeometry = _geometry.Preflight(source, context);
+                _formulas.ValidateStaticReferences(source, context);
+                XlsxWorkbookPlan plan;
+                if (staticGeometry is not null)
+                {
+                    plan = _planner.AttachValues(staticGeometry, _planner.Bind(source, data.RootElement, context));
+                }
+                else
+                {
+                    var bound = source.Sheets.Select(sheet => _planner.BindSheet(sheet, data.RootElement, context)).ToImmutableArray();
+                    plan = _geometry.PlanReports(source, bound, context);
+                    plan = plan with { Sheets = plan.Sheets.Select((sheet, index) => _planner.BindInstances(source.Sheets[index], sheet, bound[index], context)).ToImmutableArray() };
+                }
+                plan = _formulas.Finalize(source, plan, context);
                 _renderer.Render(document, plan, context);
+                var sourceOrder = source.Sheets.SelectMany((sheet, index) => sheet.Cells.Select(cell => (cell.Location, Sheet: index, Address: cell.Source.Id.Address))
+                    .Concat(sheet.Controls.Select(marker => (marker.Location, Sheet: index, Address: marker.Cell.Id.Address))))
+                    .ToDictionary(item => item.Location, item => (item.Sheet, item.Address.Row, item.Address.Column), StringComparer.Ordinal);
+                var warnings = context.Warnings.OrderBy(warning => sourceOrder.GetValueOrDefault(warning.Location ?? string.Empty,
+                    (int.MaxValue, int.MaxValue, int.MaxValue))).ToArray();
+                context.Warnings.Clear(); context.Warnings.AddRange(warnings);
             }
             return new(package.ToArray(), context.Warnings.AsReadOnly()) { Format = Models.DocumentFormat.Xlsx };
         }

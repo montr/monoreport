@@ -13,6 +13,32 @@ public sealed class Feature012HttpTests
 {
     private readonly XlsxFixture _fixture = new();
 
+    [Fact]
+    public async Task Repeated_Existing_routes_generate_native_rows_and_formulas_and_reject_bad_cardinality_before_output()
+    {
+        var source = _fixture.CreateRepeated();
+        using var factory = new WebApplicationFactory<Program>(); using var client = factory.CreateClient();
+        using var form = Form(source, "{\"Items\":[{\"$level\":10,\"Name\":\"one\",\"Price\":12},{\"$level\":10,\"Name\":\"two\",\"Price\":20}]}", true);
+        using var response = await client.PostAsync("/api/documents/generate", form); response.EnsureSuccessStatusCode();
+        Assert.Equal("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", response.Content.Headers.ContentType!.MediaType);
+        using var document = SpreadsheetDocument.Open(new MemoryStream(await response.Content.ReadAsByteArrayAsync()), false);
+        Assert.Empty(new OpenXmlValidator().Validate(document));
+        var cells = document.WorkbookPart!.WorksheetParts.Single().Worksheet!.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+        Assert.Equal("one", cells["A1"].InlineString!.InnerText); Assert.Equal("two", cells["A2"].InlineString!.InnerText);
+        Assert.Equal("12", cells["B1"].CellValue!.Text); Assert.Equal("B2*2", cells["C2"].CellFormula!.Text);
+        Assert.Equal("SUM(B1:B2)", cells["C4"].CellFormula!.Text);
+        using var analysisForm = Form(source, null, true); using var analysis = await client.PostAsync("/api/documents/analyze", analysisForm);
+        using var json = JsonDocument.Parse(await analysis.Content.ReadAsStringAsync());
+        Assert.True(json.RootElement.GetProperty("valid").GetBoolean()); Assert.Equal("Items", json.RootElement.GetProperty("requirements")[0].GetProperty("name").GetString());
+        using var invalidForm = Form(source, "{\"Items\":[{\"$level\":\"bad\"}]}", true);
+        using var invalid = await client.PostAsync("/api/documents/generate", invalidForm);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, invalid.StatusCode); Assert.Null(invalid.Content.Headers.ContentDisposition);
+        using var error = JsonDocument.Parse(await invalid.Content.ReadAsStringAsync());
+        Assert.Equal(DiagnosticCodes.GenerationInvalidData, error.RootElement.GetProperty("code").GetString());
+        Assert.Equal("$.Items[0]", error.RootElement.GetProperty("errors")[0].GetProperty("dataPath").GetString());
+        Assert.Contains("A3", error.RootElement.GetProperty("errors")[0].GetProperty("location").GetString());
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -50,13 +76,13 @@ public sealed class Feature012HttpTests
     [InlineData("text", DiagnosticCodes.GenerationInvalidData)]
     [InlineData("high-surrogate", DiagnosticCodes.GenerationInvalidData)]
     [InlineData("low-surrogate", DiagnosticCodes.GenerationInvalidData)]
-    [InlineData("formula", DiagnosticCodes.XlsxUnsupportedFeature)]
+    [InlineData("formula", DiagnosticCodes.XlsxUnsafeFormula)]
     public async Task Static_Failures_return_coded_problem_details_before_any_report_headers_or_bytes(string scenario, string code)
     {
         var source = _fixture.Create((_, sheet) =>
         {
             if (scenario != "formula") return;
-            var cell = sheet.Worksheet!.Descendants<Cell>().Single(); cell.RemoveAllChildren(); cell.CellFormula = new CellFormula("1+1");
+            var cell = sheet.Worksheet!.Descendants<Cell>().Single(); cell.RemoveAllChildren(); cell.DataType = null; cell.CellFormula = new CellFormula("INDIRECT(\"B3\")");
         });
         if (scenario == "xml") source = _fixture.RewritePart(source, "xl/worksheets/sheet1.xml", xml => xml[..^10]);
         if (scenario == "part") source = _fixture.RewritePart(source, "xl/_rels/workbook.xml.rels", xml => xml.Replace("worksheets/sheet1.xml", "worksheets/missing.xml", StringComparison.Ordinal));

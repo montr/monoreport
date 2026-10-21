@@ -68,6 +68,7 @@ internal sealed partial class XlsxGeometryPlanner
 
     internal XlsxRangeImage ProjectRange(XlsxRectangle range, XlsxSheetGeometry geometry)
     {
+        if (geometry.Expanded || !geometry.RowSpans.IsEmpty) return ProjectInstances(range, geometry, null, null);
         var area = geometry.Source.PrintArea;
         var first = new XlsxAddress(Math.Max(range.First.Row, area.First.Row), Math.Max(range.First.Column, area.First.Column));
         var last = new XlsxAddress(Math.Min(range.Last.Row, area.Last.Row), Math.Min(range.Last.Column, area.Last.Column));
@@ -103,8 +104,7 @@ internal sealed partial class XlsxGeometryPlanner
                 throw Unsupported(sheet, "Remove unsupported row extension metadata.");
         foreach (var cell in sheet.Cells.Where(cell => sheet.PrintArea.Contains(cell.Id.Address)))
         {
-            if (cell.HasFormula) throw Unsupported(sheet, "Formula transformation is not implemented in M1. Use a static value until M2/M3.", cell.Id.Address.ToString());
-            if (cell.Xml.Elements().Any(element => element.Name != S + "v" && element.Name != S + "is"))
+            if (cell.Xml.Elements().Any(element => element.Name != S + "v" && element.Name != S + "is" && element.Name != S + "f"))
                 throw Unsupported(sheet, "Remove unsupported cell metadata.", cell.Id.Address.ToString());
             if (cell.NativeType is not (null or "n" or "b" or "s" or "inlineStr" or "str" or "e" or "d"))
                 throw Unsupported(sheet, "Repair the invalid cell storage type.", cell.Id.Address.ToString());
@@ -165,7 +165,8 @@ internal sealed partial class XlsxGeometryPlanner
             {
                 if (geometry.RowOffset != 0 || geometry.ColumnOffset != 0)
                     throw Unsupported(geometry.Source, "Synchronization would move through crop.");
-                MappedCell(synchronization.Value, geometry);
+                if (MappedCell(synchronization.Value, geometry) != ParseRange(synchronization.Value, geometry).First.ToString())
+                    throw Unsupported(geometry.Source, "Synchronization would move through expansion.");
             }
             catch (TemplateException)
             {
@@ -187,7 +188,8 @@ internal sealed partial class XlsxGeometryPlanner
                     ranges.Value = string.Join(' ', ranges.Value.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(value =>
                     {
                         var range = ParseRange(value, geometry); var image = ProjectRange(range, geometry);
-                        if (!image.Complete) throw Unsupported(geometry.Source, "Select cells wholly inside PrintArea or remove the selection setting.");
+                        if (!image.Complete || image.Kind is not (XlsxRangeImageKind.Cell or XlsxRangeImageKind.Rectangle))
+                            throw Unsupported(geometry.Source, "Select one contiguous retained range inside PrintArea or remove the selection setting.");
                         return image.Kind == XlsxRangeImageKind.Cell ? image.Rectangle!.Value.First.ToString() : image.Rectangle.ToString()!;
                     }));
             }
@@ -198,7 +200,7 @@ internal sealed partial class XlsxGeometryPlanner
     {
         var range = ParseRange(text, geometry);
         var image = ProjectRange(range, geometry);
-        if (range.First != range.Last || !image.Complete)
+        if (range.First != range.Last || !image.Complete || image.Kind != XlsxRangeImageKind.Cell)
             throw Unsupported(geometry.Source, "Move the view/selection cell inside PrintArea or remove that setting.");
         return image.Rectangle!.Value.First.ToString();
     }
