@@ -7,8 +7,19 @@ namespace MonoReport.Services.Xlsx;
 
 internal sealed partial class XlsxTemplatePlanner
 {
-    internal DataScope RowScope(JsonElement root, XlsxLogicalRow row, string collection, int? tupleIndex) =>
-        new(root, [row.Records[tupleIndex ?? 0], root], [collection + "[" + (row.FirstIndex + (tupleIndex ?? 0)) + "]", "$"]);
+    internal DataScope RowScope(JsonElement root, XlsxLogicalRow row, string collection, int? tupleIndex)
+    {
+        var tuple = tupleIndex ?? 0;
+        var values = new List<JsonElement> { row.Records[tuple] };
+        var paths = new List<string> { collection + "[" + (row.FirstIndex + tuple) + "]" };
+        for (var parent = row.Parent; parent is not null; parent = parent.Parent)
+        {
+            values.Add(parent.Records[0]);
+            paths.Add(collection + "[" + parent.FirstIndex + "]");
+        }
+        values.Add(root); paths.Add("$");
+        return new(root, values, paths);
+    }
 
     internal DataScope HeaderScope(JsonElement root, ImmutableArray<XlsxBoundCollection> headers, IReadOnlyList<int> indices)
     {
@@ -41,7 +52,9 @@ internal sealed partial class XlsxTemplatePlanner
             {
                 var grouped = GroupRecords(items, region.Collection, intersects);
                 ValidateArity(grouped, intersects ? RecordArity(headers.Select(header => header.Items.Length)) : 1, region.Collection);
-                rows.Add(region.Id, grouped);
+                // Single-level rendering retains its accepted M2 scope/omission policy.
+                // Nested source trees bind ancestors here; their emission remains gated.
+                rows.Add(region.Id, region.Root.Children.IsEmpty ? grouped : BindHierarchy(grouped));
             }
             catch (TemplateException error)
             {

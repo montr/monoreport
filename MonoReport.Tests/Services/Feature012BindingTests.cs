@@ -6,7 +6,7 @@ using MonoReport.Services.Xlsx;
 
 namespace MonoReport.Tests.Services;
 
-public sealed class Feature012BindingTests
+public sealed partial class Feature012BindingTests
 {
     private readonly XlsxFixture _fixture = new();
 
