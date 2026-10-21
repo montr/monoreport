@@ -5,14 +5,16 @@ namespace MonoReport.Tests.Services;
 
 public sealed class CliProcessTests
 {
-    [Fact]
-    public async Task Real_entry_point_analyzes_and_generates_unified_templates()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Real_entry_point_analyzes_and_generates_unified_templates(bool spreadsheet)
     {
         var directory = Path.Combine(Path.GetTempPath(), $"monoreport-cli-process-{Guid.NewGuid():N}");
         Directory.CreateDirectory(directory);
-        var template = Path.Combine(directory, "template.docx");
-        var result = Path.Combine(directory, "result.docx");
-        await File.WriteAllBytesAsync(template, Docx.Create(Docx.P(Docx.Run("Hello {Name}!"))));
+        var template = Path.Combine(directory, spreadsheet ? "template.xlsx" : "template.docx");
+        var result = Path.Combine(directory, spreadsheet ? "result.xlsx" : "result.docx");
+        await File.WriteAllBytesAsync(template, spreadsheet ? new XlsxFixture().Create() : Docx.Create(Docx.P(Docx.Run("Hello {Name}!"))));
         try
         {
             var analysis = await Run(["--analyze", "--template", template]);
@@ -24,7 +26,12 @@ public sealed class CliProcessTests
             var generation = await Run(["--template", template, "--json", "{\"Name\":\"Ada\"}", "--output", result]);
             Assert.Equal(0, generation.ExitCode);
             Assert.Empty(generation.Error);
-            Assert.Equal("Hello Ada!", Docx.Text(Docx.Read(await File.ReadAllBytesAsync(result))));
+            if (!spreadsheet) Assert.Equal("Hello Ada!", Docx.Text(Docx.Read(await File.ReadAllBytesAsync(result))));
+            else
+            {
+                using var package = DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Open(result, false);
+                Assert.Equal("Ada", package.WorkbookPart!.WorksheetParts.Single().Worksheet!.InnerText);
+            }
         }
         finally { Directory.Delete(directory, true); }
     }

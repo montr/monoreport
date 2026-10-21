@@ -78,7 +78,7 @@ namespace MonoReport.Models
 
         private static string SafeMessage(string code) => code switch
         {
-            DiagnosticCodes.TemplateInvalidPackage => "The content is not a readable DOCX package.",
+            DiagnosticCodes.TemplateInvalidPackage => "The content is not a readable supported Word or ordinary XLSX package. Re-save the document; for Excel, use an ordinary .xlsx workbook.",
             DiagnosticCodes.TemplateInvalidXml => "A document part contains invalid XML.",
             DiagnosticCodes.TemplateUnsupportedStructure => "The DOCX document structure is unsupported.",
             DiagnosticCodes.TemplateInvalidExpression => "A template expression has invalid syntax.",
@@ -88,6 +88,11 @@ namespace MonoReport.Models
             DiagnosticCodes.TemplateRequirementConflict => "The same dependency path is used with incompatible requirement types.",
             DiagnosticCodes.TemplateTrackedRevision => "Tracked revisions must be accepted or rejected before processing.",
             DiagnosticCodes.GenerationInvalidFormat => "A value cannot be formatted as requested.",
+            DiagnosticCodes.XlsxInvalidPrintArea => "Set one finite rectangular PrintArea on every worksheet.",
+            DiagnosticCodes.XlsxUnsupportedFeature => "The XLSX feature cannot be preserved safely; remove or re-author the indicated structure.",
+            DiagnosticCodes.XlsxDimensionLimit => "The generated report exceeds Excel worksheet dimensions; reduce the report size.",
+            DiagnosticCodes.XlsxUnsafeNumber => "The value cannot be stored faithfully as an Excel number. Supply it as a JSON string or render it with an explicit text formatter.",
+            DiagnosticCodes.XlsxInvalidPackage => "The XLSX package is inconsistent. Repair or re-save the workbook with valid parts and relationships.",
             _ => "The data is incompatible with the template."
         };
     }

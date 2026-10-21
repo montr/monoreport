@@ -6,5 +6,9 @@ namespace MonoReport.Models
         string? FieldCode,
         string? Location,
         string? Part = null,
-        string? DataPath = null);
+        string? DataPath = null)
+    {
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        public string? Code { get; init; }
+    }
 }

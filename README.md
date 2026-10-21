@@ -2,6 +2,8 @@
 
 MonoReport generates DOCX reports, contracts, acts, protocols, invoices, and similar documents from Microsoft Word templates and JSON data. It requires .NET SDK 10. Microsoft Word is useful for authoring and visual verification but is not required by the engine.
 
+1. Feature 012 M1 also supports static XLSX templates through Core, CLI and the existing HTTP document endpoints. See [XLSX compatibility and current milestone limits](docs/xlsx-template-compatibility.md). Repeated XLSX reports, formulas and Playground support are not delivered by M1.
+
 ## Projects
 
 1. `MonoReport` is the reusable library.
@@ -97,7 +99,7 @@ For the support, preservation, and rejection policy for Microsoft Word features,
    });
    ```
 
-2. `Merge` reads from the template stream's current position and leaves caller-owned inputs open. A successful result contains independent DOCX bytes and warnings. A failed merge throws `TemplateException`, aggregates up to 100 ordered diagnostics, and returns no partial document.
+2. `Merge` reads from the template stream's current position and leaves caller-owned inputs open. A successful result contains independent document bytes, warnings and format metadata. `AddMonoReport()` composes both Word and XLSX handlers; existing manually composed Word constructors remain supported. A failed merge throws `TemplateException`, aggregates up to 100 ordered diagnostics, and returns no partial document.
 3. `MergeOptions.Culture` controls output casing, decimal formatting, and date formatting. It does not change invariant numeric input parsing, ISO date interpretation, or Russian RUB `spellout` behavior.
 4. Custom formatter registration is not available in the unified language. Consumers can transform values before supplying JSON; formatter extensibility may be considered in a future Feature.
 
@@ -107,7 +109,7 @@ For the support, preservation, and rejection policy for Microsoft Word features,
    Diagnostics retain the offending token or fragment in `field` and the precise part and paragraph/table coordinates in `location`. Their `message` includes bounded nearby template text where available so it can be found in Word; an incomplete fragment is never presented as a complete expression. Analyzer and generation use the same diagnostic messages in Core, API, CLI, and Playground.
 2. The result contains `valid`, `errors`, `warnings`, recursive `requirements`, and source-ordered `occurrences`.
 3. Each requirement contains only `name`, `type`, and optional nonempty `fields`. Allowed types are `object`, `array`, `value`, and `boolean`. Array fields describe expressions evaluated against elements; they are dependencies, not a homogeneous JSON schema.
-4. Each occurrence contains `kind`, the original `expression`, canonical `path`, DOCX `part`, and source `location`. Duplicate occurrences are preserved.
+4. Each occurrence contains `kind`, the original `expression`, canonical `path`, document `part`, and source `location`. Duplicate occurrences are preserved. XLSX locations identify source worksheet names and A1 coordinates.
 5. A loop using `{.}` can produce the requirement `{ "name": "Tags", "type": "array" }` and an occurrence at `$.Tags[]`; no artificial element property is inferred.
 
 ## CLI
@@ -132,7 +134,7 @@ For the support, preservation, and rejection policy for Microsoft Word features,
 
 ## HTTP API and playground
 
-1. `POST /api/documents/generate` accepts multipart fields `template`, `data`, and optional `culture`; success returns raw DOCX bytes.
+1. `POST /api/documents/generate` accepts multipart fields `template`, `data`, and optional `culture`; success returns raw DOCX or static XLSX bytes with format-specific MIME and deterministic filename. Actual package content selects the format, independently of the upload name/MIME. XLSX requires JSON object data.
 2. `POST /api/documents/analyze` accepts only multipart file field `template`; success returns the Analyzer contract even when `valid` is false.
 3. Swagger UI is available at `/docs` and OpenAPI at `/openapi/v1.json` when documentation is enabled.
 4. The browser playground loads the authoritative assets from `Samples`, can analyze a template to propose dependency-based JSON, and does not persist user data.

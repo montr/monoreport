@@ -10,13 +10,13 @@ namespace MonoReport.Cli.Services
     public sealed class CliApplication(CliOptionsParser parser, MergeEngine engine, TemplateAnalyzer analyzer)
     {
         private const string HelpText = """
-            MonoReport.Cli --template <template.docx> [--output <result.docx>]
+            MonoReport.Cli --template <template.docx|template.xlsx> [--output <result.docx|result.xlsx>]
                    [--json <JSON> | --json-file <data.json> | --stdin]
                    [--culture <culture>]
-            MonoReport.Cli --analyze --template <template.docx>
+            MonoReport.Cli --analyze --template <template.docx|template.xlsx>
 
-            -t, --template   Required DOCX template path.
-            -o, --output     Output DOCX path. Omit or use '-' for binary stdout.
+            -t, --template   Required Word or ordinary XLSX template path; format is detected from content.
+            -o, --output     Output document path. Omit or use '-' for binary stdout.
             --json           Inline JSON (quote it according to your shell).
             --json-file      UTF-8 JSON file path.
             --stdin          Read UTF-8 JSON from stdin (default when no source is specified).
@@ -25,7 +25,8 @@ namespace MonoReport.Cli.Services
             -h, --help       Show this help.
 
             Exit codes: 0 success, 1 input/render/output error, 2 invalid arguments.
-            Errors are written to stderr; DOCX output on stdout is binary.
+            Errors are written to stderr; document output on stdout is binary.
+            XLSX currently supports static fields and rectangular PrintArea crop; formulas and repetition reject.
             Analysis writes JSON to stdout: 0 valid, 1 invalid/execution failure, 2 invalid arguments.
             """;
 

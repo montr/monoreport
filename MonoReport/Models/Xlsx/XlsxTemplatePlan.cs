@@ -1,0 +1,51 @@
+using System.Collections.Immutable;
+using System.Xml.Linq;
+
+namespace MonoReport.Models.Xlsx;
+
+internal readonly record struct XlsxAddress(int Row, int Column)
+{
+    public override string ToString()
+    {
+        var column = Column;
+        var letters = string.Empty;
+        while (column > 0) { column--; letters = (char)('A' + column % 26) + letters; column /= 26; }
+        return letters + Row.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    }
+}
+
+internal readonly record struct XlsxRectangle(XlsxAddress First, XlsxAddress Last)
+{
+    internal int Height => checked(Last.Row - First.Row + 1);
+    internal int Width => checked(Last.Column - First.Column + 1);
+    internal bool Contains(XlsxAddress cell) => cell.Row >= First.Row && cell.Row <= Last.Row &&
+        cell.Column >= First.Column && cell.Column <= Last.Column;
+    public override string ToString() => First + ":" + Last;
+}
+
+internal readonly record struct SourceCellId(uint SheetId, XlsxAddress Address);
+internal sealed record VerticalInstancePath(int RegionId, ImmutableArray<int> LogicalRows);
+internal sealed record HorizontalInstancePath(int NodeId, int ItemIndex, HorizontalInstancePath? Parent);
+internal sealed record CellInstanceId(SourceCellId Source, VerticalInstancePath? Vertical, HorizontalInstancePath? Horizontal);
+
+internal sealed record XlsxCellSource(SourceCellId Id, XElement Xml, string? Text, string? NativeType,
+    bool HasFormula, bool RichText, XElement? SharedString = null);
+internal sealed record XlsxSheetSource(uint Id, string Name, string Part, XDocument Xml,
+    XlsxRectangle PrintArea, ImmutableArray<XlsxCellSource> Cells, ImmutableArray<string> Features, int PrintAreaNameIndex);
+internal sealed record XlsxSourceInventory(ImmutableArray<XlsxSheetSource> Sheets, bool Date1904,
+    ImmutableArray<XElement> Names, ImmutableArray<string> WorkbookFeatures, XDocument? Styles);
+
+internal sealed record XlsxCellPlan(XlsxCellSource Source, ImmutableArray<TemplateToken> Tokens, string Location)
+{
+    internal bool NativeField => Tokens is [{ Kind: TemplateTokenKind.Expression, Start: 0, Expression.Formatter: null } token] &&
+        token.Length == Source.Text?.Length;
+}
+internal enum XlsxControlKind { Vertical, Header, Geometry }
+internal sealed record XlsxControlMarker(XlsxCellSource Cell, XlsxControlKind Kind, int Level,
+    TemplateExpression? Collection, string? CollectionPath, string Location);
+internal sealed record XlsxSheetTemplate(XlsxSheetSource Source, ImmutableArray<XlsxCellPlan> Cells,
+    ImmutableArray<XlsxControlMarker> Controls);
+internal sealed record XlsxTemplatePlan(XlsxSourceInventory Source, ImmutableArray<XlsxSheetTemplate> Sheets,
+    ImmutableArray<PlannedDependency> Dependencies, IReadOnlyList<TemplateRequirement> Requirements,
+    IReadOnlyList<TemplateOccurrence> Occurrences);
+internal sealed record XlsxPreparedValue(string? Type, string? Value);

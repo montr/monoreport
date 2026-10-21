@@ -30,7 +30,9 @@ public sealed class DocumentEndpoints(MultipartRequestReader reader, MergeEngine
             using var template = form.Files.GetFile("template")!.OpenReadStream();
             var result = _engine.Merge(template, data, _options.Create(culture));
             if (result.Warnings.Count != 0) context.Response.Headers["X-MonoReport-Warning-Count"] = result.Warnings.Count.ToString(CultureInfo.InvariantCulture);
-            return Results.File(result.Document, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "document.docx");
+            return result.Format == Models.DocumentFormat.Xlsx
+                ? Results.File(result.Document, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "document.xlsx")
+                : Results.File(result.Document, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "document.docx");
         }
     }
 

@@ -6,7 +6,7 @@ namespace MonoReport.Models
 {
     public sealed class MergeContext(JsonElement root, MergeOptions options)
     {
-        internal const int ErrorLimit = 100;
+        internal const int ErrorLimit = GenerationDiagnosticPolicy.ErrorLimit;
 
         public Stack<JsonElement> Values { get; } = new([root]);
 

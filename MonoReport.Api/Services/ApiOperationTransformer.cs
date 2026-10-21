@@ -30,11 +30,13 @@ public sealed class ApiOperationTransformer : IOpenApiOperationTransformer
             DiagnosticCodes.TemplateUnmatchedBrace, DiagnosticCodes.TemplateInvalidContext,
             DiagnosticCodes.TemplateInvalidStructure, DiagnosticCodes.TemplateRequirementConflict,
             DiagnosticCodes.TemplateTrackedRevision, DiagnosticCodes.GenerationInvalidData,
-            DiagnosticCodes.GenerationInvalidFormat
+            DiagnosticCodes.GenerationInvalidFormat, DiagnosticCodes.XlsxInvalidPrintArea,
+            DiagnosticCodes.XlsxUnsupportedFeature, DiagnosticCodes.XlsxDimensionLimit,
+            DiagnosticCodes.XlsxUnsafeNumber, DiagnosticCodes.XlsxInvalidPackage
         };
         var properties = new Dictionary<string, IOpenApiSchema>
         {
-            ["template"] = new OpenApiSchema { Type = JsonSchemaType.String, Format = "binary", Description = "Required nonempty DOCX template." }
+            ["template"] = new OpenApiSchema { Type = JsonSchemaType.String, Format = "binary", Description = "Required nonempty Word or ordinary XLSX template. Actual OOXML content selects the handler; filename and upload MIME are not authoritative." }
         };
         if (generation)
         {
@@ -54,20 +56,21 @@ public sealed class ApiOperationTransformer : IOpenApiOperationTransformer
                 } }
             }
         };
-        operation.Summary = generation ? "Generate a DOCX document" : "Analyze a DOCX template";
+        operation.Summary = generation ? "Generate a Word or static XLSX document" : "Analyze a Word or static XLSX template";
         operation.Description = generation
-            ? "Returns raw DOCX bytes after one parse-and-render operation. Template structure and actual JSON values are validated before output is produced."
-            : "Returns diagnostics, an ordered recursive dependency tree, and every source occurrence without JSON input or generation. Invalid nonempty DOCX content returns 200 with valid=false.";
+            ? "Returns raw DOCX or XLSX bytes after one operation. XLSX currently supports static fields and rectangular PrintArea crop, requires JSON object data and rejects formulas/repetition. Template structure and values are validated before output is produced."
+            : "Returns diagnostics, an ordered recursive dependency tree, and source occurrences without JSON input or generation. Invalid nonempty package content returns 200 with valid=false. XLSX currently supports static worksheets only.";
         if (generation)
         {
             var success = (OpenApiResponse)operation.Responses!["200"];
             success.Content = new Dictionary<string, OpenApiMediaType>
             {
-                ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"] = new() { Schema = new OpenApiSchema { Type = JsonSchemaType.String, Format = "binary" } }
+                ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"] = new() { Schema = new OpenApiSchema { Type = JsonSchemaType.String, Format = "binary" } },
+                ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"] = new() { Schema = new OpenApiSchema { Type = JsonSchemaType.String, Format = "binary" } }
             };
             success.Headers = new Dictionary<string, IOpenApiHeader>
             {
-                ["Content-Disposition"] = new OpenApiHeader { Description = "Attachment with safe deterministic document.docx filename.", Schema = new OpenApiSchema { Type = JsonSchemaType.String } },
+                ["Content-Disposition"] = new OpenApiHeader { Description = "Attachment with deterministic document.docx or document.xlsx filename selected from actual package content.", Schema = new OpenApiSchema { Type = JsonSchemaType.String } },
                 ["X-MonoReport-Warning-Count"] = new OpenApiHeader { Description = "Present only when generation warnings exist.", Schema = new OpenApiSchema { Type = JsonSchemaType.Integer } }
             };
         }

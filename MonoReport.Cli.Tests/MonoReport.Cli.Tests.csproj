@@ -16,6 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="../MonoReport.Cli/MonoReport.Cli.csproj" />
     <Compile Include="../MonoReport.Tests/Services/Docx.cs" Link="Services/Docx.cs" />
+    <Compile Include="../MonoReport.Tests/Services/XlsxFixture.cs" Link="Services/XlsxFixture.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="../Samples/sample.template.docx" Link="sample.template.docx" CopyToOutputDirectory="PreserveNewest" />

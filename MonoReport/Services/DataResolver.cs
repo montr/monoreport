@@ -10,13 +10,15 @@ internal sealed record DataResolution(ResolutionState State, JsonElement Value);
 public sealed class DataResolver
 {
     internal string DataPath(TemplatePath path, MergeContext context)
+        => DataPath(path, new DataScope(context.Root, context.Values.ToArray(), context.DataPaths.ToArray()));
+
+    internal string DataPath(TemplatePath path, DataScope scope)
     {
         string basis;
         if (path.Origin == TemplatePathOrigin.Root) basis = "$";
         else
         {
-            var paths = context.DataPaths.ToArray();
-            basis = path.ParentDepth < paths.Length ? paths[path.ParentDepth] : "$";
+            basis = path.ParentDepth < scope.Paths.Count ? scope.Paths[path.ParentDepth] : "$";
         }
         return path.CurrentElement || path.Segments.Count == 0
             ? basis
@@ -24,13 +26,15 @@ public sealed class DataResolver
     }
 
     internal DataResolution Resolve(TemplatePath path, MergeContext context)
+        => Resolve(path, new DataScope(context.Root, context.Values.ToArray(), context.DataPaths.ToArray()));
+
+    internal DataResolution Resolve(TemplatePath path, DataScope scope)
     {
         JsonElement value;
-        if (path.Origin == TemplatePathOrigin.Root) value = context.Root;
+        if (path.Origin == TemplatePathOrigin.Root) value = scope.Root;
         else
         {
-            var values = context.Values.ToArray();
-            value = path.ParentDepth < values.Length ? values[path.ParentDepth] : context.Root;
+            value = path.ParentDepth < scope.Values.Count ? scope.Values[path.ParentDepth] : scope.Root;
         }
         if (path.CurrentElement) return State(value);
         foreach (var segment in path.Segments)

@@ -65,7 +65,9 @@ public sealed class OpenApiContractTests
             DiagnosticCodes.TemplateUnmatchedBrace, DiagnosticCodes.TemplateInvalidContext,
             DiagnosticCodes.TemplateInvalidStructure, DiagnosticCodes.TemplateRequirementConflict,
             DiagnosticCodes.TemplateTrackedRevision, DiagnosticCodes.GenerationInvalidData,
-            DiagnosticCodes.GenerationInvalidFormat
+            DiagnosticCodes.GenerationInvalidFormat, DiagnosticCodes.XlsxInvalidPrintArea,
+            DiagnosticCodes.XlsxUnsupportedFeature, DiagnosticCodes.XlsxDimensionLimit,
+            DiagnosticCodes.XlsxUnsafeNumber, DiagnosticCodes.XlsxInvalidPackage
         };
         Assert.Equal(generationCodes, Codes(generate, "422"));
         var problemFactory = new ApiProblemFactory();
@@ -93,5 +95,22 @@ public sealed class OpenApiContractTests
         using var problem = JsonDocument.Parse(await failure.Content.ReadAsStringAsync());
         var actual = problem.RootElement.GetProperty("code").GetString()!;
         Assert.Contains(actual, generationCodes);
+    }
+
+    [Fact]
+    public async Task OpenApi_documents_both_binary_formats_on_existing_routes_only()
+    {
+        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder => builder.UseEnvironment("Development"));
+        using var client = factory.CreateClient();
+        using var response = await client.GetAsync("/openapi/v1.json");
+        response.EnsureSuccessStatusCode();
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var paths = json.RootElement.GetProperty("paths");
+        Assert.Equal(new[] { "/api/documents/analyze", "/api/documents/generate" }, paths.EnumerateObject().Select(item => item.Name).Order());
+        var operation = paths.GetProperty("/api/documents/generate").GetProperty("post");
+        var content = operation.GetProperty("responses").GetProperty("200").GetProperty("content");
+        Assert.Equal(new[] { "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
+            content.EnumerateObject().Select(item => item.Name).Order());
+        Assert.Contains("static", operation.GetProperty("description").GetString());
     }
 }

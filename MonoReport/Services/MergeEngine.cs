@@ -1,15 +1,31 @@
 using System.Text.Json;
 using System.Xml.Linq;
 using MonoReport.Models;
+using MonoReport.Services.Xlsx;
 
 namespace MonoReport.Services
 {
-    public sealed class MergeEngine(DocumentRenderer renderer, DocxStoryReader storyReader,
-        TemplateAnalyzer analyzer)
+    public sealed class MergeEngine
     {
-        private readonly DocumentRenderer _renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
-        private readonly DocxStoryReader _storyReader = storyReader ?? throw new ArgumentNullException(nameof(storyReader));
-        private readonly TemplateAnalyzer _analyzer = analyzer ?? throw new ArgumentNullException(nameof(analyzer));
+        private readonly DocumentRenderer _renderer;
+        private readonly DocxStoryReader _storyReader;
+        private readonly TemplateAnalyzer _analyzer;
+        private readonly PackageFormatDetector? _formats;
+        private readonly XlsxTemplateHandler? _xlsx;
+
+        public MergeEngine(DocumentRenderer renderer, DocxStoryReader storyReader, TemplateAnalyzer analyzer)
+        {
+            _renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
+            _storyReader = storyReader ?? throw new ArgumentNullException(nameof(storyReader));
+            _analyzer = analyzer ?? throw new ArgumentNullException(nameof(analyzer));
+        }
+
+        internal MergeEngine(DocumentRenderer renderer, DocxStoryReader storyReader, TemplateAnalyzer analyzer,
+            PackageFormatDetector formats, XlsxTemplateHandler xlsx) : this(renderer, storyReader, analyzer)
+        {
+            _formats = formats ?? throw new ArgumentNullException(nameof(formats));
+            _xlsx = xlsx ?? throw new ArgumentNullException(nameof(xlsx));
+        }
 
         /// <summary>Reads the template from its current position. The caller retains ownership of both inputs.</summary>
         public MergeResult Merge(Stream template, JsonDocument data, MergeOptions? options = null)
@@ -27,6 +43,8 @@ namespace MonoReport.Services
             {
                 template.CopyTo(output);
                 output.Position = 0;
+                if (_formats?.Detect(output) == Models.DocumentFormat.Xlsx)
+                    return _xlsx!.Merge(output, data, options);
                 using (var document = _storyReader.Open(output, true))
                 {
                     var analysis = _analyzer.Inspect(document);

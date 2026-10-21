@@ -24,6 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Fixtures/feature012/*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Samples/sample.template.docx" Link="sample.template.docx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Samples/sample.json" Link="sample.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Samples/sample.docx" Link="sample.docx" CopyToOutputDirectory="PreserveNewest" />

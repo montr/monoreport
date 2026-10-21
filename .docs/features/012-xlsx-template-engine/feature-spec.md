@@ -1,6 +1,6 @@
 # Feature 012 — XLSX Template Engine
 
-**Status:** Revised on 2026-10-20 to incorporate Product Owner decisions; ready for Implementation Plan preparation and review, not implementation authorization.
+**Status:** Approved planning baseline; on 2026-10-20 the Product Owner approved the revised Implementation Plan after independent review and authorized M1 implementation. Milestone and final acceptance remain pending.
 **Scope:** XLSX template processing through existing MonoReport Core, CLI and HTTP interfaces, JSON binding, nested two-axis expansion, and Excel-compatible output. Preserve existing DOCX contracts.
 
 ## 1. Goal

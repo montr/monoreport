@@ -18,6 +18,7 @@
   <ItemGroup>
     <ProjectReference Include="../MonoReport.Api/MonoReport.Api.csproj" />
     <Compile Include="../MonoReport.Tests/Services/Docx.cs" Link="Services/Docx.cs" />
+    <Compile Include="../MonoReport.Tests/Services/XlsxFixture.cs" Link="Services/XlsxFixture.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="../MonoReport.Tests/Fixtures/review-reproductions/*.template.docx;../MonoReport.Tests/Fixtures/review-reproductions/*.json" Link="Fixtures/review-reproductions/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

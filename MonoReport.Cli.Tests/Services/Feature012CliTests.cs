@@ -1,0 +1,86 @@
+using System.Text.Json;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Validation;
+using Microsoft.Extensions.DependencyInjection;
+using MonoReport.Cli.Services;
+using MonoReport.Models;
+using MonoReport.Services;
+
+namespace MonoReport.Tests.Services;
+
+public sealed class Feature012CliTests
+{
+    private readonly XlsxFixture _fixture = new();
+
+    [Fact]
+    public void Static_Generate_and_analyze_use_existing_switches_even_with_a_misleading_filename()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "feature012-" + Guid.NewGuid().ToString("N") + ".docx");
+        File.WriteAllBytes(path, _fixture.Create());
+        try
+        {
+            using var services = _fixture.Services();
+            var app = new CliApplication(new CliOptionsParser(), services.GetRequiredService<MergeEngine>(), services.GetRequiredService<TemplateAnalyzer>());
+            using var output = new MemoryStream(); using var errors = new StringWriter();
+            Assert.Equal(0, app.Run(["--template", path, "--json", "{\"Name\":\"Ada\"}"], Stream.Null, output, errors));
+            Assert.Empty(errors.ToString());
+            using var package = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            Assert.Empty(new OpenXmlValidator().Validate(package));
+            Assert.Equal("Ada", package.WorkbookPart!.WorksheetParts.Single().Worksheet!.Descendants<Cell>().Single().InlineString!.InnerText);
+            using var analysis = new MemoryStream();
+            Assert.Equal(0, app.Run(["--analyze", "--template", path], Stream.Null, analysis, errors));
+            using var json = JsonDocument.Parse(analysis.ToArray());
+            Assert.True(json.RootElement.GetProperty("valid").GetBoolean());
+            Assert.Equal("$.Name", json.RootElement.GetProperty("occurrences")[0].GetProperty("path").GetString());
+            Assert.Equal(new[] { "errors", "occurrences", "requirements", "valid", "warnings" }, json.RootElement.EnumerateObject().Select(item => item.Name).Order());
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Static_Failures_leave_stdout_empty_and_existing_output_untouched(bool malformed)
+    {
+        var path = Path.Combine(Path.GetTempPath(), "feature012-" + Guid.NewGuid().ToString("N") + ".xlsx");
+        var destination = path + ".result";
+        var source = _fixture.Create();
+        if (malformed) source = _fixture.RewritePart(source, "xl/worksheets/sheet1.xml", xml => xml[..^10]);
+        File.WriteAllBytes(path, source); File.WriteAllText(destination, "existing output sentinel");
+        try
+        {
+            using var services = _fixture.Services();
+            var app = new CliApplication(new CliOptionsParser(), services.GetRequiredService<MergeEngine>(), services.GetRequiredService<TemplateAnalyzer>());
+            using var output = new MemoryStream(); using var errors = new StringWriter();
+            Assert.Equal(1, app.Run(["--template", path, "--json", "{\"Name\":10000000000000001}", "--output", destination], Stream.Null, output, errors));
+            Assert.Empty(output.ToArray()); Assert.Equal("existing output sentinel", File.ReadAllText(destination));
+            Assert.Contains(malformed ? DiagnosticCodes.TemplateInvalidXml : DiagnosticCodes.XlsxUnsafeNumber, errors.ToString());
+            Assert.DoesNotContain("10000000000000001", errors.ToString());
+            if (!malformed) Assert.Contains("JSON string", errors.ToString());
+        }
+        finally { File.Delete(path); File.Delete(destination); }
+    }
+
+    [Fact]
+    public void Static_Revision_preserves_string_semantics_and_reports_surrogates_without_output()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "feature012-revision-" + Guid.NewGuid().ToString("N") + ".xlsx");
+        var destination = path + ".result";
+        File.WriteAllBytes(path, _fixture.Create()); File.WriteAllText(destination, "existing output sentinel");
+        try
+        {
+            using var services = _fixture.Services();
+            var app = new CliApplication(new CliOptionsParser(), services.GetRequiredService<MergeEngine>(), services.GetRequiredService<TemplateAnalyzer>());
+            using var output = new MemoryStream(); using var errors = new StringWriter();
+            Assert.Equal(0, app.Run(["--template", path, "--json", JsonSerializer.Serialize(new { Name = "a\r_x000D_" })], Stream.Null, output, errors));
+            Assert.Equal("a\r_x000D_", _fixture.ReadCellText(output.ToArray(), "A1")); Assert.Empty(errors.ToString());
+            using var failureOutput = new MemoryStream();
+            Assert.Equal(1, app.Run(["--template", path, "--json", "{\"Name\":\"private\\uD800\"}", "--output", destination], Stream.Null, failureOutput, errors));
+            Assert.Empty(failureOutput.ToArray()); Assert.Equal("existing output sentinel", File.ReadAllText(destination));
+            Assert.Contains(DiagnosticCodes.GenerationInvalidData, errors.ToString()); Assert.Contains("$.Name", errors.ToString());
+            Assert.Contains("paired surrogate", errors.ToString()); Assert.DoesNotContain("private", errors.ToString());
+        }
+        finally { File.Delete(path); File.Delete(destination); }
+    }
+}

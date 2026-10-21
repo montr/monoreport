@@ -40,7 +40,7 @@ public sealed class ApiProblemFactory
         ApiDiagnosticCodes.RequestUnsupportedMediaType => "Use multipart/form-data.",
         ApiDiagnosticCodes.DataInvalidJson => "The data field must contain one valid JSON value.",
         ApiDiagnosticCodes.CultureInvalid => "The culture name is invalid.",
-        DiagnosticCodes.TemplateInvalidPackage => "The content is not a readable DOCX package.",
+        DiagnosticCodes.TemplateInvalidPackage => "The content is not a readable supported Word or ordinary XLSX package. Re-save the document; for Excel, use an ordinary .xlsx workbook.",
         DiagnosticCodes.TemplateInvalidXml => "A document part contains invalid XML.",
         DiagnosticCodes.TemplateUnsupportedStructure => "The DOCX structure is unsupported.",
         DiagnosticCodes.TemplateInvalidExpression => "A template expression has invalid syntax.",
@@ -51,6 +51,11 @@ public sealed class ApiProblemFactory
         DiagnosticCodes.TemplateTrackedRevision => "Tracked revisions must be accepted or rejected before processing.",
         DiagnosticCodes.GenerationInvalidData => "The data is incompatible with the template.",
         DiagnosticCodes.GenerationInvalidFormat => "A value cannot be formatted as requested.",
+        DiagnosticCodes.XlsxInvalidPrintArea => "Set one finite rectangular PrintArea on every worksheet.",
+        DiagnosticCodes.XlsxUnsupportedFeature => "The XLSX feature cannot be preserved safely; remove or re-author the indicated structure.",
+        DiagnosticCodes.XlsxDimensionLimit => "The generated report exceeds Excel worksheet dimensions; reduce the report size.",
+        DiagnosticCodes.XlsxUnsafeNumber => "The value cannot be stored faithfully as an Excel number. Supply it as a JSON string or render it with an explicit text formatter.",
+        DiagnosticCodes.XlsxInvalidPackage => "The XLSX package is inconsistent. Repair or re-save the workbook with valid parts and relationships.",
         _ => "The server could not complete the operation."
     };
 }

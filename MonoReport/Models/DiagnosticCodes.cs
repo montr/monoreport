@@ -14,4 +14,10 @@ public static class DiagnosticCodes
     public const string TemplateTrackedRevision = "template.tracked_revision";
     public const string GenerationInvalidData = "generation.invalid_data";
     public const string GenerationInvalidFormat = "generation.invalid_format";
+    public const string XlsxInvalidPrintArea = "template.xlsx_invalid_print_area";
+    public const string XlsxUnsupportedFeature = "template.xlsx_unsupported_feature";
+    public const string XlsxDimensionLimit = "generation.xlsx_dimension_limit";
+    public const string XlsxUnsafeNumber = "generation.xlsx_unsafe_number";
+    public const string XlsxMissingValue = "generation.xlsx_missing_value";
+    public const string XlsxInvalidPackage = "template.xlsx_invalid_package";
 }
