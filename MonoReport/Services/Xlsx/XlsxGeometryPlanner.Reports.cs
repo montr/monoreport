@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Xml.Linq;
+using MonoReport.Models;
 using MonoReport.Models.Xlsx;
 
 namespace MonoReport.Services.Xlsx;
@@ -19,6 +20,12 @@ internal sealed partial class XlsxGeometryPlanner
             if (context.LimitReached) break;
             try
             {
+                var nested = sheet.Regions.FirstOrDefault(region => !region.Root.Children.IsEmpty);
+                if (nested is not null)
+                    throw new StructuralDiagnostic(DiagnosticCodes.XlsxUnsupportedFeature,
+                        "Nested vertical groups require M3 hierarchy binding and placement; only their source grammar is implemented.",
+                        Location: sheet.Controls.First(marker => marker.Kind == XlsxControlKind.Vertical && marker.Cell.Id.Address.Row == nested.FirstRow).Location,
+                        Explanation: "Use one level per marked run until nested hierarchy binding and placement are implemented in M3; separate independent runs with an unmarked control row.").ToException();
                 ValidateFeatures(template.Source, sheet.Source);
                 var area = sheet.Source.PrintArea;
                 var identity = new XlsxSheetGeometry(sheet.Source, new(new(1, 1), new(area.Height, area.Width)), 1 - area.First.Row, 1 - area.First.Column)

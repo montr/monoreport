@@ -55,20 +55,6 @@ internal sealed partial class XlsxTemplatePlanner
                 if (cell.Tokens.Any(token => token.Expression?.Path is { Origin: not TemplatePathOrigin.Root }) &&
                     !allNodes.Any(node => node.Level == header.Level && node.FirstColumn <= cell.Source.Id.Address.Column && node.LastColumn >= cell.Source.Id.Address.Column))
                     throw ControlError(cell.Location, "Place header fields inside their matching horizontal block or use explicit root fields outside it.");
-        var regions = new List<XlsxVerticalRegion>();
-        foreach (var marker in sheet.Controls.Where(marker => marker.Kind == XlsxControlKind.Vertical).OrderBy(marker => marker.Cell.Id.Address.Row))
-        {
-            var row = marker.Cell.Id.Address.Row;
-            if (regions.Count > 0 && row == regions[^1].LastRow + 1)
-            {
-                var region = regions[^1];
-                if (region.Level != marker.Level || region.Collection != marker.CollectionPath)
-                    throw new StructuralDiagnostic(DiagnosticCodes.XlsxUnsupportedFeature, "Nested vertical groups require M3.",
-                        Location: marker.Location, Explanation: "Nested vertical groups require M3. Use one level/collection per marked run in M2; separate independent runs with an unmarked control row.").ToException();
-                regions[^1] = region with { LastRow = row };
-            }
-            else regions.Add(new(regions.Count, row, row, marker.Level, marker.CollectionPath!));
-        }
-        return sheet with { Horizontal = roots.SingleOrDefault(), Regions = regions.ToImmutableArray() };
+        return sheet with { Horizontal = roots.SingleOrDefault(), Regions = VerticalRegions(sheet) };
     }
 }
