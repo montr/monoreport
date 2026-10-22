@@ -7,19 +7,21 @@ namespace MonoReport.Services.Xlsx;
 internal sealed partial class XlsxGeometryPlanner
 {
     internal XlsxRangeImage ProjectInstances(XlsxRectangle range, XlsxSheetGeometry geometry,
-        VerticalInstancePath? vertical, HorizontalInstancePath? horizontal)
+        VerticalInstancePath? vertical, HorizontalInstancePath? horizontal, bool descendants = false)
     {
         var area = geometry.Source.PrintArea;
         var complete = area.Contains(range.First) && area.Contains(range.Last);
-        var rows = AxisImage(range.First.Row, range.Last.Row, geometry.RowSpans.Where(span =>
-            vertical is null || span.Vertical is null || span.Vertical.RegionId != vertical.RegionId ||
-            span.Vertical.LogicalRows.SequenceEqual(vertical.LogicalRows)));
+        var rows = AxisImage(range.First.Row, range.Last.Row, geometry.RowSpans.Where(span => CompatibleVertical(span.Vertical, vertical, descendants)));
         var columns = AxisImage(range.First.Column, range.Last.Column, geometry.ColumnSpans.Where(span => Compatible(span.Horizontal, horizontal)));
         if (rows.Count == 0 || columns.Count == 0) return new(XlsxRangeImageKind.Empty, null, complete);
         if (rows.Count != 1 || columns.Count != 1) return new(XlsxRangeImageKind.Disjoint, null, complete);
         var result = new XlsxRectangle(new(rows[0].First, columns[0].First), new(rows[0].Last, columns[0].Last));
         return new(result.First == result.Last ? XlsxRangeImageKind.Cell : XlsxRangeImageKind.Rectangle, result, complete);
     }
+
+    private static bool CompatibleVertical(VerticalInstancePath? candidate, VerticalInstancePath? scope, bool descendants) =>
+        scope is null || candidate is null || candidate.RegionId != scope.RegionId || candidate == scope ||
+        descendants && candidate.LogicalRows.AsSpan().StartsWith(scope.LogicalRows.AsSpan());
 
     private static bool Compatible(HorizontalInstancePath? candidate, HorizontalInstancePath? scope)
     {

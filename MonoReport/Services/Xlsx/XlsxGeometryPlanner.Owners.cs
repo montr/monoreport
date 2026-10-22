@@ -77,17 +77,17 @@ internal sealed partial class XlsxGeometryPlanner
 
     // Reference images follow retained content owners, rather than suppressed physical header copies.
     internal XlsxRangeImage ProjectReference(XlsxRectangle range, XlsxSheetGeometry geometry,
-        VerticalInstancePath? vertical, HorizontalInstancePath? horizontal)
+        VerticalInstancePath? vertical, HorizontalInstancePath? horizontal, bool descendants = false)
     {
         // Retained content and the overwritten blank source are distinct identities, even when their physical
         // intervals end at the same output cell. Reject ranges too: merging their images would hide the alias.
         if (geometry.DisplacedSources.Any(source => range.Contains(source.Source.Address) && Compatible(source.Horizontal, horizontal) &&
-            (vertical is null || source.Vertical is null || source.Vertical.RegionId != vertical.RegionId || source.Vertical.LogicalRows.SequenceEqual(vertical.LogicalRows))))
+            CompatibleVertical(source.Vertical, vertical, descendants)))
             return new(XlsxRangeImageKind.Ambiguous, null,
                 geometry.Source.PrintArea.Contains(range.First) && geometry.Source.PrintArea.Contains(range.Last));
         var affected = geometry.ContentOwners.Where(owner => range.Contains(owner.Source.Address)).ToArray();
         if (affected.Length == 0) return geometry.Expanded || !geometry.RowSpans.IsEmpty
-            ? ProjectInstances(range, geometry, vertical, horizontal) : ProjectRange(range, geometry);
+            ? ProjectInstances(range, geometry, vertical, horizontal, descendants) : ProjectRange(range, geometry);
         var remaining = new List<XlsxRectangle> { range };
         foreach (var address in affected.Select(owner => owner.Source.Address).Distinct())
         {
@@ -106,13 +106,13 @@ internal sealed partial class XlsxGeometryPlanner
         foreach (var piece in remaining)
         {
             var rows = AxisImage(piece.First.Row, piece.Last.Row, geometry.RowSpans.Where(span =>
-                vertical is null || span.Vertical is null || span.Vertical.RegionId != vertical.RegionId || span.Vertical.LogicalRows.SequenceEqual(vertical.LogicalRows)));
+                CompatibleVertical(span.Vertical, vertical, descendants)));
             var columns = AxisImage(piece.First.Column, piece.Last.Column, geometry.ColumnSpans.Where(span => Compatible(span.Horizontal, horizontal)));
             foreach (var row in rows)
                 foreach (var column in columns) images.Add(new(new(row.First, column.First), new(row.Last, column.Last)));
         }
         foreach (var owner in affected.Where(owner => Compatible(owner.Horizontal, horizontal) &&
-            (vertical is null || owner.Vertical is null || owner.Vertical.RegionId != vertical.RegionId || owner.Vertical.LogicalRows.SequenceEqual(vertical.LogicalRows))))
+            CompatibleVertical(owner.Vertical, vertical, descendants)))
             images.Add(new(owner.Output, owner.Output));
         var complete = geometry.Source.PrintArea.Contains(range.First) && geometry.Source.PrintArea.Contains(range.Last);
         if (images.Count == 0) return new(XlsxRangeImageKind.Empty, null, complete);

@@ -9,7 +9,7 @@ using DocumentFormat.OpenXml.Validation;
 
 namespace MonoReport.Tests.Services;
 
-public sealed class Feature012FormulaTests
+public sealed partial class Feature012FormulaTests
 {
     private readonly XlsxFixture _fixture = new();
 
