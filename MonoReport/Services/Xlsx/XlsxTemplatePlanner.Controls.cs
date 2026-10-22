@@ -52,7 +52,8 @@ internal sealed partial class XlsxTemplatePlanner
         }
         var rowControls = controls.Where(marker => marker.Kind != XlsxControlKind.Geometry).ToArray();
         if (rowControls.Select(marker => marker.Cell.Id.Address.Column).Distinct().Skip(1).Any())
-            context.Report(ControlError(rowControls[0].Location, "Use one unambiguous control column left of PrintArea."));
+            context.Report(ControlError(rowControls[0].Location,
+                "Use one unambiguous control column left of PrintArea. Independent side-by-side reports cannot own the same worksheet rows and heights; separate them into nonoverlapping marked row runs or different worksheets."));
         foreach (var level in controls.Where(marker => marker.Kind == XlsxControlKind.Header).GroupBy(marker => marker.Level))
             if (level.Select(marker => marker.CollectionPath).Distinct(StringComparer.Ordinal).Skip(1).Any())
                 context.Report(ControlError(level.First().Location, "Associate each horizontal header level with one case-sensitive root collection."));
