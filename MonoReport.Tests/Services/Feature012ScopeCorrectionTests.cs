@@ -14,7 +14,7 @@ public sealed class Feature012ScopeCorrectionTests
 
     [Theory]
     [InlineData("{../Name}", "$.Items[].Name")]
-    [InlineData("{../../Name}", "$.Name")]
+    [InlineData("{../../Name}", "$.Items[].Name")]
     public void F1_Footer_first_single_ancestor_field_has_exact_canonical_path(string field, string expected)
     {
         var occurrence = Assert.Single(Prepare(Create([40, 10], 3, field)).Occurrences,
@@ -32,7 +32,7 @@ public sealed class Feature012ScopeCorrectionTests
         var row = footerFirst ? 3 : 4;
         var fields = plan.Occurrences.Where(item => item.Kind == "field" && item.Location!.EndsWith("B" + row)).ToArray();
         Assert.Equal(new[] { "{Name}", "{../Name}", "{../../Name}", "{$.Name}" }, fields.Select(item => item.Expression));
-        Assert.Equal(new[] { "$.Items[].Name", "$.Items[].Name", "$.Name", "$.Name" }, fields.Select(item => item.Path));
+        Assert.Equal(new[] { "$.Items[].Name", "$.Items[].Name", "$.Items[].Name", "$.Name" }, fields.Select(item => item.Path));
         Assert.All(fields, field => Assert.Equal("/xl/worksheets/sheet1.xml", field.Part));
         AssertGuarded(source);
     }
@@ -47,7 +47,7 @@ public sealed class Feature012ScopeCorrectionTests
         var source = Create(sequence.Split(',').Select(value => (int?)int.Parse(value)).ToArray(), fieldRow,
             "{../Name}/{../../Name}/{../../../Name}/{$.Name}");
         var plan = Prepare(source);
-        Assert.Equal(new[] { "$.Items[].Name", "$.Items[].Name", "$.Name", "$.Name" },
+        Assert.Equal(new[] { "$.Items[].Name", "$.Items[].Name", "$.Items[].Name", "$.Name" },
             plan.Occurrences.Where(item => item.Kind == "field" && item.Location!.EndsWith("B" + fieldRow)).Select(item => item.Path));
         AssertGuarded(source);
     }
@@ -55,27 +55,24 @@ public sealed class Feature012ScopeCorrectionTests
     [Theory]
     [InlineData("10,40,90,40,10", 7)]
     [InlineData("90,40,10", 5)]
-    public void F1_Parent_footer_has_root_scope_and_cannot_capture_a_child(string sequence, int footerRow)
+    public void M35_Parent_footer_has_data_relative_scope_independent_of_source_depth(string sequence, int footerRow)
     {
         var source = Create(sequence.Split(',').Select(value => (int?)int.Parse(value)).ToArray(), footerRow, "{../Name}");
         var occurrence = Assert.Single(Prepare(source).Occurrences, item => item.Kind == "field" && item.Expression == "{../Name}");
-        Assert.Equal("$.Name", occurrence.Path);
+        Assert.Equal("$.Items[].Name", occurrence.Path);
         AssertGuarded(source);
     }
 
     [Theory]
     [InlineData("90,40,10", 3, "{../../../../Name}")]
     [InlineData("10,40,90,40,10", 7, "{../../Name}")]
-    public void F1_Excess_parent_depth_retains_field_diagnostic_location(string sequence, int row, string field)
+    public void M35_Excess_source_parent_depth_is_deferred_to_data_binding(string sequence, int row, string field)
     {
         var source = Create(sequence.Split(',').Select(value => (int?)int.Parse(value)).ToArray(), row, field);
-        using var services = _fixture.Services(); using var input = new MemoryStream(source);
-        var issue = Assert.Single(services.GetRequiredService<TemplateAnalyzer>().Analyze(input).Errors);
-        Assert.Equal(DiagnosticCodes.TemplateInvalidContext, issue.Code);
-        Assert.Equal("/xl/worksheets/sheet1.xml, sheet 'Report', B" + row, issue.Location);
-        var error = Assert.Throws<TemplateException>(() => _fixture.Merge(source, "{\"Items\":[]}"));
-        Assert.Equal(issue.Code, error.Code); Assert.Equal(issue.Message, error.Errors[0].Message);
-        Assert.Equal(issue.Location, error.Errors[0].Location);
+        var occurrence = Assert.Single(Prepare(source).Occurrences, item => item.Kind == "field" && item.Expression == field);
+        Assert.Equal("$.Items[].Name", occurrence.Path);
+        Assert.Equal("/xl/worksheets/sheet1.xml, sheet 'Report', B" + row, occurrence.Location);
+        AssertGuarded(source);
     }
 
     [Fact]
@@ -83,7 +80,7 @@ public sealed class Feature012ScopeCorrectionTests
     {
         var source = Create([90, 40, 10, null, 40], 7, "{../Name}");
         var occurrence = Assert.Single(Prepare(source).Occurrences, item => item.Kind == "field" && item.Expression == "{../Name}");
-        Assert.Equal("$.Name", occurrence.Path);
+        Assert.Equal("$.Items[].Name", occurrence.Path);
         AssertGuarded(source);
     }
 
@@ -103,7 +100,7 @@ public sealed class Feature012ScopeCorrectionTests
     }
 
     [Fact]
-    public void F1_Static_scope_projection_and_structural_planning_share_the_same_source_tree()
+    public void M35_Static_data_dependencies_preserve_original_source_tree()
     {
         var prepared = Prepare(Create([90, 40, 10], 3, "{../../Name}"));
         var sheet = Assert.Single(prepared.Sheets);

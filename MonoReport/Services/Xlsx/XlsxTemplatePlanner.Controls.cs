@@ -60,8 +60,7 @@ internal sealed partial class XlsxTemplatePlanner
         return controls.ToImmutable();
     }
 
-    private static Dictionary<int, ImmutableArray<string>> CellScopes(ImmutableArray<XlsxControlMarker> controls,
-        ImmutableArray<XlsxVerticalRegion> regions)
+    private static Dictionary<int, ImmutableArray<string>> CellScopes(ImmutableArray<XlsxControlMarker> controls)
     {
         var result = new Dictionary<int, ImmutableArray<string>>();
         var headers = new SortedDictionary<int, XlsxControlMarker>();
@@ -71,19 +70,6 @@ internal sealed partial class XlsxTemplatePlanner
             foreach (var key in headers.Keys.Where(key => key >= marker.Level).ToArray()) headers.Remove(key);
             headers.Add(marker.Level, marker);
             result[row] = headers.Values.Reverse().Select(item => item.CollectionPath!).ToImmutableArray();
-        }
-        foreach (var region in regions)
-        {
-            var pending = new Stack<(XlsxVerticalNode Node, ImmutableArray<string> Ancestors)>();
-            pending.Push((region.Root, []));
-            while (pending.TryPop(out var item))
-            {
-                var scope = ImmutableArray.Create(region.Collection).AddRange(item.Ancestors);
-                foreach (var block in new[] { item.Node.Header, item.Node.Body, item.Node.Footer })
-                    if (block is not null)
-                        for (var row = block.FirstRow; row <= block.LastRow; row++) result.Add(row, scope);
-                foreach (var child in item.Node.Children) pending.Push((child, scope));
-            }
         }
         return result;
     }

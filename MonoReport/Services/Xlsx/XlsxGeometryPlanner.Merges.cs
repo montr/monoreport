@@ -80,10 +80,24 @@ internal sealed partial class XlsxGeometryPlanner
             var region = sheet.Regions.FirstOrDefault(item => item.FirstRow <= range.First.Row && item.LastRow >= range.Last.Row);
             if (region is null && sheet.Regions.Any(item => item.FirstRow <= range.Last.Row && range.First.Row <= item.LastRow))
                 throw Unsupported(sheet.Source, "Keep the merge inside one vertical owner; a merge cannot cross repeated/static rows.", range.ToString());
+            if (region is not null)
+            {
+                var pending = new Stack<XlsxVerticalNode>(); pending.Push(region.Root);
+                var contained = false;
+                while (pending.TryPop(out var node))
+                {
+                    if (new[] { node.Header, node.Body, node.Footer }.Any(block => block is not null &&
+                        block.FirstRow <= range.First.Row && range.Last.Row <= block.LastRow)) contained = true;
+                    foreach (var child in node.Children) pending.Push(child);
+                }
+                if (!contained)
+                    throw Unsupported(sheet.Source, "Keep the merge wholly inside one vertical source block; cross-block merges cannot share an owner safely.", range.ToString());
+            }
             var horizontal = owner is null ? new HorizontalInstancePath?[] { null } : output.Geometry.ColumnSpans
                 .Select(span => FindOwner(span.Horizontal, owner.Id)).Where(path => path is not null).Distinct().ToArray();
             var vertical = region is null ? new VerticalInstancePath?[] { null } : output.Geometry.RowSpans
-                .Select(span => span.Vertical).Where(path => path?.RegionId == region.Id).ToArray();
+                .Where(span => span.First <= range.Last.Row && range.First.Row <= span.Last)
+                .Select(span => span.Vertical).Where(path => path?.RegionId == region.Id).Distinct().ToArray();
             foreach (var v in vertical)
                 foreach (var h in horizontal)
                 {

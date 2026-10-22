@@ -9,7 +9,7 @@ internal sealed partial class XlsxGeometryPlanner
         ImmutableArray<XlsxAxisSpan> columns)
     {
         if (schedule.SheetId != sheet.Source.Id || !sheet.Regions.Select(region => region.Id).SequenceEqual(schedule.Regions.Select(region => region.RegionId)))
-            throw new ArgumentException("The vertical schedule must match the sheet and its source regions in order.", nameof(schedule));
+            throw new InvalidOperationException("The vertical schedule must match the sheet and its source regions in order.");
         var rows = ImmutableArray.CreateBuilder<XlsxAxisSpan>();
         var source = sheet.Source.PrintArea.First.Row;
         var at = 1;

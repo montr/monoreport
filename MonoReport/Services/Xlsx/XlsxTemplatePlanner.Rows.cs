@@ -17,7 +17,6 @@ internal sealed partial class XlsxTemplatePlanner
             values.Add(parent.Records[0]);
             paths.Add(collection + "[" + parent.FirstIndex + "]");
         }
-        values.Add(root); paths.Add("$");
         return new(root, values, paths);
     }
 
@@ -52,9 +51,7 @@ internal sealed partial class XlsxTemplatePlanner
             {
                 var grouped = GroupRecords(items, region.Collection, intersects);
                 ValidateArity(grouped, intersects ? RecordArity(headers.Select(header => header.Items.Length)) : 1, region.Collection);
-                // Single-level rendering retains its accepted M2 scope/omission policy.
-                // Nested source trees bind ancestors here; their emission remains gated.
-                rows.Add(region.Id, region.Root.Children.IsEmpty ? grouped : BindHierarchy(grouped));
+                rows.Add(region.Id, BindHierarchy(grouped));
             }
             catch (TemplateException error)
             {

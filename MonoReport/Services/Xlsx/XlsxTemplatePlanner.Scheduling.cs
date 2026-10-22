@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using MonoReport.Models;
 using MonoReport.Models.Xlsx;
 
 namespace MonoReport.Services.Xlsx;
@@ -11,20 +10,32 @@ internal sealed partial class XlsxTemplatePlanner
         var regions = ImmutableArray.CreateBuilder<XlsxVerticalRegionSchedule>();
         foreach (var region in sheet.Regions)
         {
-            // Public preflight rejects nested reports; traversal belongs to M3.4.
-            if (!region.Root.Children.IsEmpty)
-                throw new NotSupportedException("Nested block scheduling requires M3.4 traversal.");
-            var blocks = ImmutableArray.CreateBuilder<XlsxLogicalBlockInstance>();
-            foreach (var row in data.Rows[region.Id])
+            var levels = new Dictionary<int, XlsxVerticalNode>();
+            var source = new Stack<XlsxVerticalNode>(); source.Push(region.Root);
+            while (source.TryPop(out var node))
             {
-                if (row.Level != region.Level)
+                levels.Add(node.Level, node);
+                foreach (var child in node.Children) source.Push(child);
+            }
+            var blocks = ImmutableArray.CreateBuilder<XlsxLogicalBlockInstance>();
+            var rows = data.Rows[region.Id];
+            var byIndex = rows.ToDictionary(row => row.FirstIndex);
+            var pending = new Stack<(XlsxLogicalRow Row, VerticalInstancePath Owner, bool Exit)>();
+            foreach (var root in rows.Where(row => row.Parent is null).Reverse())
+                pending.Push((root, new(region.Id, [root.FirstIndex]), false));
+            while (pending.TryPop(out var visit))
+            {
+                levels.TryGetValue(visit.Row.Level, out var node);
+                if (visit.Exit)
                 {
-                    context.Warnings.Add(new("No template block matches this data level; its own rows were omitted.", "$level", "$level",
-                        sheet.Controls.First(marker => marker.Kind == XlsxControlKind.Vertical && marker.Cell.Id.Address.Row == region.FirstRow).Location, sheet.Source.Part,
-                        region.Collection + "[" + row.FirstIndex + "]") { Code = DiagnosticCodes.XlsxMissingLevel });
+                    if (node?.Footer is { } footer) blocks.Add(new(footer, XlsxLogicalBlockRole.Footer, visit.Owner));
                     continue;
                 }
-                blocks.Add(new(region.Root.Body!, XlsxLogicalBlockRole.Body, new(region.Id, [row.FirstIndex])));
+                if (node?.Header is { } header) blocks.Add(new(header, XlsxLogicalBlockRole.Header, visit.Owner));
+                if (node?.Body is { } body) blocks.Add(new(body, XlsxLogicalBlockRole.Body, visit.Owner));
+                pending.Push((visit.Row, visit.Owner, true));
+                foreach (var child in visit.Row.ChildFirstIndices.Reverse())
+                    pending.Push((byIndex[child], new(region.Id, visit.Owner.LogicalRows.Add(child)), false));
             }
             regions.Add(new(region.Id, blocks.ToImmutable()));
         }

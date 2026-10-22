@@ -40,7 +40,7 @@ public sealed partial class Feature012NestedTests
     }
 
     [Fact]
-    public void Schedule_Omissions_keep_exact_warning_content_source_and_input_order()
+    public void Schedule_Unrendered_levels_are_quiet_and_full_data_paths_keep_input_order()
     {
         var sheet = Plan(Create("$l(40).Items", "$level(40).Items")).Sheets.Single();
         using var services = _fixture.Services();
@@ -48,16 +48,10 @@ public sealed partial class Feature012NestedTests
         var planner = services.GetRequiredService<XlsxTemplatePlanner>(); var context = new XlsxOperationContext(new MergeOptions());
         var bound = planner.BindSheet(sheet, json.RootElement, context);
         var schedule = planner.ScheduleSheet(sheet, bound, context);
-        Assert.Equal(new[] { 1, 3 }, Assert.Single(schedule.Regions).Blocks.Select(block => Assert.Single(block.Owner.LogicalRows)));
-        Assert.Equal(new[] { "$.Items[0]", "$.Items[2]" }, context.Warnings.Select(warning => warning.DataPath));
-        var location = sheet.Controls.Single(marker => marker.Cell.Id.Address == new XlsxAddress(3, 1)).Location;
-        Assert.All(context.Warnings, warning =>
-        {
-            Assert.Equal(DiagnosticCodes.XlsxMissingLevel, warning.Code);
-            Assert.Equal("No template block matches this data level; its own rows were omitted.", warning.Message);
-            Assert.Equal("$level", warning.Field); Assert.Equal("$level", warning.FieldCode);
-            Assert.Equal(location, warning.Location); Assert.Equal(sheet.Source.Part, warning.Part);
-        });
+        var blocks = Assert.Single(schedule.Regions).Blocks;
+        Assert.Equal(new[] { 1, 3 }, blocks.Select(block => block.Owner.LogicalRows[^1]));
+        Assert.All(blocks, block => Assert.Equal(new[] { 0, block.Owner.LogicalRows[^1] }, block.Owner.LogicalRows));
+        Assert.Empty(context.Warnings); Assert.Empty(context.Errors);
     }
 
     [Fact]
@@ -135,7 +129,7 @@ public sealed partial class Feature012NestedTests
     }
 
     [Fact]
-    public void Multirow_Parsed_nested_child_reuses_bound_owner_and_tuple_records_without_traversal()
+    public void Multirow_Parsed_nested_child_reuses_bound_owner_and_tuple_records_in_real_schedule()
     {
         var fixture = new XlsxTwoAxisFixture();
         var sheet = fixture.Plan(fixture.Create((_, part) =>
@@ -175,6 +169,10 @@ public sealed partial class Feature012NestedTests
             }
         }
         Assert.Empty(context.Errors); Assert.Empty(context.Warnings);
-        Assert.Contains("M3.4", Assert.Throws<NotSupportedException>(() => planner.ScheduleSheet(sheet, data, context)).Message);
+        var blocks = Assert.Single(planner.ScheduleSheet(sheet, data, context).Regions).Blocks;
+        Assert.Equal(new[] { XlsxLogicalBlockRole.Header, XlsxLogicalBlockRole.Body, XlsxLogicalBlockRole.Body, XlsxLogicalBlockRole.Footer }, blocks.Select(block => block.Role));
+        Assert.Equal(new[] { "0", "0,6", "0,12", "0" }, blocks.Select(block => string.Join(',', block.Owner.LogicalRows)));
+        Assert.Same(blocks[0].Owner, blocks[3].Owner);
+        Assert.Same(child.Body, blocks[1].Source); Assert.Same(child.Body, blocks[2].Source);
     }
 }

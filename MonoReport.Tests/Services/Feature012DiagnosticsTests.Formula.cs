@@ -30,8 +30,9 @@ public sealed partial class Feature012DiagnosticsTests
                 new Row(fixture.Text("A5", "$l(10).Other"), fixture.Text("B5", "{Name}")) { RowIndex = 5 });
         });
         var result = fixture.Merge(bytes, "{\"Items\":[{\"$level\":10}],\"Other\":[{\"$level\":20}]}", new MergeOptions { MissingValues = MissingValueBehavior.Warning });
-        Assert.Equal(new[] { DiagnosticCodes.XlsxMissingValue, DiagnosticCodes.XlsxMissingLevel }, result.Warnings.Select(warning => warning.Code));
-        Assert.Contains("B3", result.Warnings[0].Location); Assert.Contains("A5", result.Warnings[1].Location);
+        var warning = Assert.Single(result.Warnings);
+        Assert.Equal(DiagnosticCodes.XlsxMissingValue, warning.Code);
+        Assert.Contains("B3", warning.Location);
     }
     [Fact]
     public void Formula_Repeated_field_diagnostics_keep_source_cell_before_input_instance_order()

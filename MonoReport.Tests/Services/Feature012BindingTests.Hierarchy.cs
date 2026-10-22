@@ -34,9 +34,9 @@ public sealed partial class Feature012BindingTests
         Assert.Same(rows[1], rows[2].Parent); Assert.Same(rows[4], rows[5].Parent);
 
         var scope = planner.RowScope(data.RootElement, rows[2], "$.Items", 1);
-        Assert.Equal(new[] { "G-second", "CA-first", "P-first", "ROOT" },
+        Assert.Equal(new[] { "G-second", "CA-first", "P-first" },
             scope.Values.Select(value => value.GetProperty("Name").GetString()));
-        Assert.Equal(new[] { "$.Items[5]", "$.Items[2]", "$.Items[0]", "$" }, scope.Paths);
+        Assert.Equal(new[] { "$.Items[5]", "$.Items[2]", "$.Items[0]" }, scope.Paths);
         var label = template.Cells.Single(cell => cell.Source.Id.Address == new XlsxAddress(7, 2));
         Assert.Equal("G-second/CA-first/P-first/ROOT", planner.PrepareValue(label, scope, context).Value);
         var rate = template.Cells.Single(cell => cell.Source.Id.Address == new XlsxAddress(7, 3));
@@ -50,7 +50,7 @@ public sealed partial class Feature012BindingTests
 
         var other = planner.RowScope(data.RootElement, rows[6], "$.Items", 1);
         Assert.Equal("GC-second/CC-first/Q-first/ROOT", planner.PrepareValue(label, other, context).Value);
-        Assert.Equal(new[] { "$.Items[13]", "$.Items[10]", "$.Items[8]", "$" }, other.Paths);
+        Assert.Equal(new[] { "$.Items[13]", "$.Items[10]", "$.Items[8]" }, other.Paths);
         Assert.Equal("P-first", planner.RowScope(data.RootElement, rows[0], "$.Items", null).Values[0].GetProperty("Name").GetString());
         Assert.Empty(context.Errors); Assert.Empty(context.Warnings);
     }
@@ -70,7 +70,7 @@ public sealed partial class Feature012BindingTests
         Assert.Equal(new int?[] { null, 0, 1, 0, null, 4, 5, null }, rows.Select(row => row.Parent?.FirstIndex));
         Assert.Equal(new[] { 1, 3 }, rows[0].ChildFirstIndices);
         var scope = planner.RowScope(data.RootElement, rows[2], "$.Items", null);
-        Assert.Equal(new[] { "$.Items[2]", "$.Items[1]", "$.Items[0]", "$" }, scope.Paths);
+        Assert.Equal(new[] { "$.Items[2]", "$.Items[1]", "$.Items[0]" }, scope.Paths);
         var label = template.Cells.Single(cell => cell.Source.Id.Address == new XlsxAddress(7, 2));
         Assert.Equal("G-first/CA-first/P-first/ROOT", planner.PrepareValue(label, scope, context).Value);
         Assert.Empty(context.Errors); Assert.Empty(context.Warnings);
@@ -89,9 +89,9 @@ public sealed partial class Feature012BindingTests
             """);
         var rows = planner.BindSheet(HierarchyTemplate(), data.RootElement, new(new MergeOptions())).Rows[0];
         Assert.All(rows, row => Assert.Null(row.Key));
-        Assert.Equal(new[] { "CB", "P", "ROOT" }, planner.RowScope(data.RootElement, rows[3], "$.Items", null)
+        Assert.Equal(new[] { "CB", "P" }, planner.RowScope(data.RootElement, rows[3], "$.Items", null)
             .Values.Select(value => value.GetProperty("Name").GetString()));
-        Assert.Equal(new[] { "CC", "Q", "ROOT" }, planner.RowScope(data.RootElement, rows[5], "$.Items", null)
+        Assert.Equal(new[] { "CC", "Q" }, planner.RowScope(data.RootElement, rows[5], "$.Items", null)
             .Values.Select(value => value.GetProperty("Name").GetString()));
     }
 
@@ -108,7 +108,7 @@ public sealed partial class Feature012BindingTests
         Assert.Equal(count, rows.Length);
         Assert.All(rows, row => { Assert.Null(row.Parent); Assert.Empty(row.ChildFirstIndices); });
         foreach (var row in rows)
-            Assert.Equal(new[] { "$.Items[" + row.FirstIndex + "]", "$" },
+            Assert.Equal(new[] { "$.Items[" + row.FirstIndex + "]" },
                 planner.RowScope(data.RootElement, row, "$.Items", null).Paths);
     }
 
@@ -165,7 +165,7 @@ public sealed partial class Feature012BindingTests
     }
 
     [Fact]
-    public void Hierarchy_Preserves_current_single_level_scope_when_other_data_levels_are_omitted()
+    public void Hierarchy_Single_level_source_preserves_unrendered_data_ancestor_without_warnings()
     {
         var source = _fixture.Create((_, worksheet) =>
         {
@@ -176,8 +176,8 @@ public sealed partial class Feature012BindingTests
         var result = _fixture.Merge(source, """
             {"Name":"ROOT","Items":[{"$level":10,"Name":"omitted"},{"$level":40,"Name":"child"}]}
             """);
-        Assert.Equal("ROOT", _fixture.ReadCellText(result.Document, "A1"));
-        Assert.Equal(DiagnosticCodes.XlsxMissingLevel, Assert.Single(result.Warnings).Code);
+        Assert.Equal("omitted", _fixture.ReadCellText(result.Document, "A1"));
+        Assert.Empty(result.Warnings);
     }
 
     [Fact]
@@ -194,7 +194,7 @@ public sealed partial class Feature012BindingTests
         Assert.Equal(new int?[] { null, 0, null, 2, 2 }, rows.Select(row => row.Parent?.FirstIndex));
         Assert.Equal(new[] { 1 }, rows[0].ChildFirstIndices);
         Assert.Equal(new[] { 3, 4 }, rows[2].ChildFirstIndices);
-        Assert.Equal(new[] { "$.Items[4]", "$.Items[2]", "$" }, planner.RowScope(data.RootElement, rows[4], "$.Items", null).Paths);
+        Assert.Equal(new[] { "$.Items[4]", "$.Items[2]" }, planner.RowScope(data.RootElement, rows[4], "$.Items", null).Paths);
     }
 
     [Fact]
@@ -209,9 +209,9 @@ public sealed partial class Feature012BindingTests
             """);
         var previous = planner.BindSheet(template, first.RootElement, new(new MergeOptions())).Rows[0];
         var current = planner.BindSheet(template, next.RootElement, new(new MergeOptions())).Rows[0];
-        Assert.Equal(new[] { "next child", "NEXT", "NEXT ROOT" }, planner.RowScope(next.RootElement, current[1], "$.Items", null)
+        Assert.Equal(new[] { "next child", "NEXT" }, planner.RowScope(next.RootElement, current[1], "$.Items", null)
             .Values.Select(value => value.GetProperty("Name").GetString()));
-        Assert.Equal(new[] { "G-first", "CA-first", "P-first", "ROOT" }, planner.RowScope(first.RootElement, previous[2], "$.Items", null)
+        Assert.Equal(new[] { "G-first", "CA-first", "P-first" }, planner.RowScope(first.RootElement, previous[2], "$.Items", null)
             .Values.Select(value => value.GetProperty("Name").GetString()));
         Assert.Same(previous[0], previous[1].Parent); Assert.Same(current[0], current[1].Parent);
         Assert.NotSame(previous[0], current[1].Parent);

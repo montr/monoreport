@@ -37,7 +37,9 @@ internal sealed partial class XlsxTemplatePlanner(TemplateLanguageParser languag
         {
             var controls = ReadControls(sheet, context);
             var regions = VerticalRegions(controls);
-            var scopes = CellScopes(controls, regions);
+            var scopes = CellScopes(controls);
+            var verticalScopes = controls.Where(marker => marker.Kind == XlsxControlKind.Vertical)
+                .ToDictionary(marker => marker.Cell.Id.Address.Row, marker => marker.CollectionPath!);
             var sheetDependencies = new List<PlannedDependency>();
             foreach (var marker in controls.Where(marker => marker.Collection is not null))
                 sheetDependencies.Add(new("for", marker.Collection!, marker.CollectionPath!, "array", sheet.Part,
@@ -66,6 +68,7 @@ internal sealed partial class XlsxTemplatePlanner(TemplateLanguageParser languag
                     }
                 }
                 var scope = scopes.TryGetValue(cell.Id.Address.Row, out var found) ? found : ImmutableArray<string>.Empty;
+                var verticalCollection = verticalScopes.GetValueOrDefault(cell.Id.Address.Row);
                 var parsed = cell.Text is null ? new TemplateParseResult([], []) : _language.Parse(cell.Text, location);
                 foreach (var error in parsed.Diagnostics)
                 {
@@ -84,14 +87,18 @@ internal sealed partial class XlsxTemplatePlanner(TemplateLanguageParser languag
                             token.Expression.Source, Location: location,
                             Explanation: "Use XLSX worksheet control markers for repetition; scalar cells accept fields only.",
                             SourceOrder: Order(cell.Id.Address) + token.Start));
-                    else if (token.Expression.Path!.ParentDepth > scope.Length)
+                    else if (verticalCollection is null && token.Expression.Path!.ParentDepth > scope.Length)
                         Report(new StructuralDiagnostic(DiagnosticCodes.TemplateInvalidContext, "The field has no corresponding parent scope.",
                             token.Expression.Source, Location: location, SourceOrder: Order(cell.Id.Address) + token.Start));
                     else
                     {
                         var path = token.Expression.Path!;
-                        var basis = path.Origin == TemplatePathOrigin.Root || path.ParentDepth == scope.Length
-                            ? "$" : scope[path.ParentDepth] + "[]";
+                        var basis = "$";
+                        if (path.Origin != TemplatePathOrigin.Root)
+                        {
+                            if (verticalCollection is not null) basis = verticalCollection + "[]";
+                            else if (path.ParentDepth < scope.Length) basis = scope[path.ParentDepth] + "[]";
+                        }
                         var canonical = basis + (path.CurrentElement || path.Segments.Count == 0 ? string.Empty : "." + string.Join('.', path.Segments));
                         sheetDependencies.Add(new("field", token.Expression, canonical, "value", sheet.Part,
                             location, Order(cell.Id.Address) + token.Start));
@@ -132,10 +139,23 @@ internal sealed partial class XlsxTemplatePlanner(TemplateLanguageParser languag
             var expression = token.Expression!;
             var path = expression.Path!;
             context.ResolvedFields = checked(context.ResolvedFields + 1);
-            var value = _resolver.Resolve(path, scope);
-            var dataPath = _resolver.DataPath(path, scope);
+            var unavailableAncestor = path.Origin != TemplatePathOrigin.Root && path.ParentDepth >= scope.Values.Count;
+            var dataPath = unavailableAncestor ? scope.Paths[0] : _resolver.DataPath(path, scope);
             try
             {
+                if (unavailableAncestor)
+                {
+                    var message = "The requested data ancestor at depth " + path.ParentDepth +
+                        " is unavailable; use an existing data ancestor or an explicit $. root reference.";
+                    if (context.Options.MissingValues == MissingValueBehavior.Error)
+                        throw new StructuralDiagnostic(DiagnosticCodes.GenerationInvalidData, message, expression.Source,
+                            expression.Source, cell.Location, Explanation: message).ToException();
+                    context.Warnings.Add(new(message + " An empty value was used.", expression.Source, expression.Source,
+                        cell.Location, cell.Location.Split(',', 2)[0], dataPath) { Code = DiagnosticCodes.XlsxMissingValue });
+                    if (cell.NativeField) return new(null, null);
+                    continue;
+                }
+                var value = _resolver.Resolve(path, scope);
                 if (value.State == ResolutionState.Missing)
                 {
                     if (context.Options.MissingValues == MissingValueBehavior.Error)

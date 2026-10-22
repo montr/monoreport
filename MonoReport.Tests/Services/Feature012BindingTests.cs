@@ -25,7 +25,8 @@ public sealed partial class Feature012BindingTests
         Assert.Equal("parent", header.Values[1].GetProperty("Company").GetString());
         Assert.Equal("root", header.Root.GetProperty("Name").GetString());
         Assert.Equal(new[] { "$.Criteria[0]", "$.Bids[0]", "$" }, header.Paths);
-        Assert.Equal("root", leaf.Values[1].GetProperty("Name").GetString()); // no implicit header ancestor
+        Assert.Single(leaf.Values); Assert.Single(leaf.Paths); // no implicit header or document-root ancestor
+        Assert.Equal("root", leaf.Root.GetProperty("Name").GetString());
     }
 
     [Theory]

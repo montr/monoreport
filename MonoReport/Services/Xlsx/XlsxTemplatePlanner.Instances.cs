@@ -39,7 +39,7 @@ internal sealed partial class XlsxTemplatePlanner
             else if (placement.Id.Vertical is { } vertical)
             {
                 var region = template.Regions.Single(item => item.Id == vertical.RegionId);
-                var row = logicalRows[region.Id][vertical.LogicalRows[0]];
+                var row = logicalRows[region.Id][vertical.LogicalRows[^1]];
                 int? tuple = null;
                 if (path.Count == data.Headers.Length && path.Count > 0 && nodes[path[^1].NodeId].Children.IsEmpty)
                 {
