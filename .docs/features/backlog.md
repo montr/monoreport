@@ -19,6 +19,8 @@ Potential work for MonoReport. Items are not approved Features; scope and priori
 5. **C# formatting and code style** — establish and automate consistent rules.
 6. **UI performance** — measure bundle size and loading before optimizing.
 7. **API documentation** — verify OpenAPI and interactive documentation coverage; address confirmed gaps only.
+8. **Optional template data schema:** Allow templates to include an optional JSON data schema for validating input data and field references. Evaluate JSON Schema compatibility.
+9. **Configurable diagnostic severity:** Allow individual diagnostic codes to be configured as warnings or errors, similar to compiler diagnostics.
 
 ## Data Source Catalog
 
@@ -149,3 +151,35 @@ An equivalent workflow should be supported in Excel, accounting for cell, range,
 4. Authentication for direct enterprise Data Source connections, including SSO, CORS, and Office WebView constraints.
 5. Storage and management of Data Source connection settings and selected Data Definitions.
 6. Feasibility of a shared Word/Excel Add-in architecture given differences between Office APIs.
+
+## DOCX — Architecture Review: Data Hierarchy vs. Template Presentation
+
+**Goal:** Verify that the MonoReport DOCX engine follows the principle **“Data defines the hierarchy; the template defines its presentation”**, consistent with the architectural direction adopted for XLSX.
+
+### Review Scope
+
+1. Verify that object hierarchy is determined exclusively by input data, independently of the DOCX template structure.
+2. Verify that parent (`../`) and root references follow the data hierarchy, including ancestors not represented in the template.
+3. Check whether templates can omit intermediate data levels while still rendering their descendants.
+4. Verify that missing data levels do not require synthetic objects or placeholder sections.
+5. Ensure input order and record multiplicity are preserved without implicit deduplication.
+6. Review nested repetitions, scope resolution, and field binding for predictable behavior.
+
+### Expected Behavior Example
+
+**Data:** Company → Department → Employee.
+
+**Template:** Renders companies and employees, omitting department sections, but displays each employee's department name using a parent reference (`../`).
+
+**Expected result:** All employees appear in input order, with their actual department names, even though departments are not rendered as separate sections.
+
+### Deliverables
+
+1. Document the actual DOCX engine architecture and identify deviations from the data-authoritative principle.
+2. Recommend minimal corrections and focused regression tests where necessary.
+3. Propose architectural rules and worked examples for developer documentation.
+4. Identify any DOCX-specific constraints that justify differences from XLSX behavior.
+
+**Constraints:** Architecture review only. No implementation, speculative refactoring, or premature unification of DOCX and XLSX engines.
+
+**Priority:** After Feature 012 stabilizes. Not a blocker for XLSX development.

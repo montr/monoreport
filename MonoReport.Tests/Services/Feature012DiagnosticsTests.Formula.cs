@@ -63,7 +63,7 @@ public sealed partial class Feature012DiagnosticsTests
         var planner = services.GetRequiredService<XlsxTemplatePlanner>(); var geometry = services.GetRequiredService<XlsxGeometryPlanner>();
         var plan = planner.Plan(services.GetRequiredService<XlsxPackageReader>().Read(document, context), context);
         var bound = planner.BindSheet(plan.Sheets[0], data.RootElement, context);
-        var output = geometry.PlanReports(plan, [bound], context).Sheets[0];
+        var output = geometry.PlanReports(plan, [bound], [planner.ScheduleSheet(plan.Sheets[0], bound, context)], context).Sheets[0];
         var error = Assert.Throws<TemplateException>(() => planner.BindInstances(plan.Sheets[0], output, bound, context));
         Assert.Equal(Math.Min(100, count), error.Errors.Count); Assert.Equal(Math.Min(100, count), context.ResolvedFields);
         Assert.Equal(count >= 100, error.LimitReached);

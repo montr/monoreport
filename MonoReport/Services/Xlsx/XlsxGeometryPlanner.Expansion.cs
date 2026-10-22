@@ -1,22 +1,25 @@
 using System.Collections.Immutable;
-using MonoReport.Models;
 using MonoReport.Models.Xlsx;
 
 namespace MonoReport.Services.Xlsx;
 
 internal sealed partial class XlsxGeometryPlanner
 {
-    internal XlsxSheetGeometry ExpansionGeometry(XlsxSheetTemplate sheet, XlsxBoundSheet data, XlsxOperationContext context)
+    internal XlsxSheetGeometry ExpansionGeometry(XlsxSheetTemplate sheet, XlsxLogicalSheetSchedule schedule,
+        ImmutableArray<XlsxAxisSpan> columns)
     {
-        var columns = HorizontalSpans(sheet, data);
+        if (schedule.SheetId != sheet.Source.Id || !sheet.Regions.Select(region => region.Id).SequenceEqual(schedule.Regions.Select(region => region.RegionId)))
+            throw new ArgumentException("The vertical schedule must match the sheet and its source regions in order.", nameof(schedule));
         var rows = ImmutableArray.CreateBuilder<XlsxAxisSpan>();
         var source = sheet.Source.PrintArea.First.Row;
         var at = 1;
         long height = sheet.Source.PrintArea.Height;
-        foreach (var region in sheet.Regions)
+        for (var index = 0; index < sheet.Regions.Length; index++)
         {
-            var count = data.Rows[region.Id].Count(row => row.Level == region.Level);
-            height = checked(height + (long)(region.LastRow - region.FirstRow + 1) * (count - 1));
+            var region = sheet.Regions[index];
+            height = checked(height - (region.LastRow - region.FirstRow + 1));
+            foreach (var block in schedule.Regions[index].Blocks)
+                height = checked(height + (long)block.Source.LastRow - block.Source.FirstRow + 1);
         }
         var width = columns.IsEmpty ? 1 : columns[^1].OutputLast;
         Dimensions(Math.Max(1, height), width, 1, 1);
@@ -25,20 +28,12 @@ internal sealed partial class XlsxGeometryPlanner
             if (last < first) return;
             rows.Add(new(first, last, at, path)); at = checked(at + last - first + 1);
         }
-        foreach (var region in sheet.Regions)
+        for (var index = 0; index < sheet.Regions.Length; index++)
         {
+            var region = sheet.Regions[index];
             Emit(source, region.FirstRow - 1, null);
-            foreach (var row in data.Rows[region.Id])
-            {
-                if (row.Level != region.Level)
-                {
-                    context.Warnings.Add(new("No template block matches this data level; its own rows were omitted.", "$level", "$level",
-                        sheet.Controls.First(marker => marker.Kind == XlsxControlKind.Vertical && marker.Cell.Id.Address.Row == region.FirstRow).Location, sheet.Source.Part,
-                        region.Collection + "[" + row.FirstIndex + "]") { Code = DiagnosticCodes.XlsxMissingLevel });
-                    continue;
-                }
-                Emit(region.FirstRow, region.LastRow, new(region.Id, [row.FirstIndex]));
-            }
+            foreach (var block in schedule.Regions[index].Blocks)
+                Emit(block.Source.FirstRow, block.Source.LastRow, block.Owner);
             source = region.LastRow + 1;
         }
         Emit(source, sheet.Source.PrintArea.Last.Row, null);

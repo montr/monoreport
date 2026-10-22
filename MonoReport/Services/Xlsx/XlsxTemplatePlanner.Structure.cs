@@ -55,6 +55,6 @@ internal sealed partial class XlsxTemplatePlanner
                 if (cell.Tokens.Any(token => token.Expression?.Path is { Origin: not TemplatePathOrigin.Root }) &&
                     !allNodes.Any(node => node.Level == header.Level && node.FirstColumn <= cell.Source.Id.Address.Column && node.LastColumn >= cell.Source.Id.Address.Column))
                     throw ControlError(cell.Location, "Place header fields inside their matching horizontal block or use explicit root fields outside it.");
-        return sheet with { Horizontal = roots.SingleOrDefault(), Regions = VerticalRegions(sheet) };
+        return sheet with { Horizontal = roots.SingleOrDefault() };
     }
 }

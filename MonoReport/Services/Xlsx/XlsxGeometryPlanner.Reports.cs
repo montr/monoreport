@@ -23,9 +23,9 @@ internal sealed partial class XlsxGeometryPlanner
                 var nested = sheet.Regions.FirstOrDefault(region => !region.Root.Children.IsEmpty);
                 if (nested is not null)
                     throw new StructuralDiagnostic(DiagnosticCodes.XlsxUnsupportedFeature,
-                        "Nested vertical groups require M3 hierarchy binding and placement; only their source grammar is implemented.",
+                        "Nested emission and placement are pending in M3.",
                         Location: sheet.Controls.First(marker => marker.Kind == XlsxControlKind.Vertical && marker.Cell.Id.Address.Row == nested.FirstRow).Location,
-                        Explanation: "Use one level per marked run until nested hierarchy binding and placement are implemented in M3; separate independent runs with an unmarked control row.").ToException();
+                        Explanation: "Use one level per marked run until nested emission and placement are implemented in M3; separate independent runs with an unmarked control row.").ToException();
                 ValidateFeatures(template.Source, sheet.Source);
                 var area = sheet.Source.PrintArea;
                 var identity = new XlsxSheetGeometry(sheet.Source, new(new(1, 1), new(area.Height, area.Width)), 1 - area.First.Row, 1 - area.First.Column)
@@ -44,13 +44,15 @@ internal sealed partial class XlsxGeometryPlanner
         return null;
     }
 
-    internal XlsxWorkbookPlan PlanReports(XlsxTemplatePlan template, ImmutableArray<XlsxBoundSheet> data, XlsxOperationContext context)
+    internal XlsxWorkbookPlan PlanReports(XlsxTemplatePlan template, ImmutableArray<XlsxBoundSheet> data,
+        ImmutableArray<XlsxLogicalSheetSchedule> schedules, XlsxOperationContext context)
     {
         var names = template.Source.Names.Select(name => new XElement(name)).ToArray();
         var sheets = ImmutableArray.CreateBuilder<XlsxSheetOutput>();
         for (var index = 0; index < template.Sheets.Length; index++)
         {
-            var sheet = template.Sheets[index]; var geometry = ExpansionGeometry(sheet, data[index], context);
+            var sheet = template.Sheets[index];
+            var geometry = ExpansionGeometry(sheet, schedules[index], HorizontalSpans(sheet, data[index]));
             var output = EmitCells(sheet, geometry);
             output = PlanHeaderOwners(sheet, ProjectMerges(sheet, output));
             // Expanded view/break reconstruction is later fidelity work; never reuse offset-only transforms for it.

@@ -5,7 +5,7 @@ namespace MonoReport.Services.Xlsx;
 
 internal sealed partial class XlsxTemplatePlanner
 {
-    private static ImmutableArray<XlsxVerticalRegion> VerticalRegions(XlsxSheetTemplate sheet)
+    private static ImmutableArray<XlsxVerticalRegion> VerticalRegions(ImmutableArray<XlsxControlMarker> controls)
     {
         var regions = ImmutableArray.CreateBuilder<XlsxVerticalRegion>();
         var run = new List<XlsxControlMarker>();
@@ -20,7 +20,7 @@ internal sealed partial class XlsxTemplatePlanner
                 collection, VerticalTree(run)));
             run.Clear();
         }
-        foreach (var marker in sheet.Controls.Where(marker => marker.Kind == XlsxControlKind.Vertical).OrderBy(marker => marker.Cell.Id.Address.Row))
+        foreach (var marker in controls.Where(marker => marker.Kind == XlsxControlKind.Vertical).OrderBy(marker => marker.Cell.Id.Address.Row))
         {
             if (run.Count > 0 && marker.Cell.Id.Address.Row != run[^1].Cell.Id.Address.Row + 1) Finish();
             run.Add(marker);

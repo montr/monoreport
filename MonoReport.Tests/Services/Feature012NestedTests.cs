@@ -8,7 +8,7 @@ using MonoReport.Services.Xlsx;
 
 namespace MonoReport.Tests.Services;
 
-public sealed class Feature012NestedTests
+public sealed partial class Feature012NestedTests
 {
     private readonly XlsxFixture _fixture = new();
 

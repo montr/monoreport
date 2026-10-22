@@ -60,31 +60,29 @@ internal sealed partial class XlsxTemplatePlanner
         return controls.ToImmutable();
     }
 
-    private static Dictionary<int, ImmutableArray<string>> CellScopes(XlsxSheetSource sheet, ImmutableArray<XlsxControlMarker> controls)
+    private static Dictionary<int, ImmutableArray<string>> CellScopes(ImmutableArray<XlsxControlMarker> controls,
+        ImmutableArray<XlsxVerticalRegion> regions)
     {
         var result = new Dictionary<int, ImmutableArray<string>>();
-        var rowControls = controls.Where(marker => marker.Kind != XlsxControlKind.Geometry)
-            .ToDictionary(marker => marker.Cell.Id.Address.Row);
-        var vertical = new List<XlsxControlMarker>();
         var headers = new SortedDictionary<int, XlsxControlMarker>();
-        var precedingVerticalRow = -1;
-        foreach (var marker in rowControls.Values.OrderBy(marker => marker.Cell.Id.Address.Row))
+        foreach (var marker in controls.Where(marker => marker.Kind == XlsxControlKind.Header).OrderBy(marker => marker.Cell.Id.Address.Row))
         {
             var row = marker.Cell.Id.Address.Row;
-            if (marker.Kind == XlsxControlKind.Header)
+            foreach (var key in headers.Keys.Where(key => key >= marker.Level).ToArray()) headers.Remove(key);
+            headers.Add(marker.Level, marker);
+            result[row] = headers.Values.Reverse().Select(item => item.CollectionPath!).ToImmutableArray();
+        }
+        foreach (var region in regions)
+        {
+            var pending = new Stack<(XlsxVerticalNode Node, ImmutableArray<string> Ancestors)>();
+            pending.Push((region.Root, []));
+            while (pending.TryPop(out var item))
             {
-                foreach (var key in headers.Keys.Where(key => key >= marker.Level).ToArray()) headers.Remove(key);
-                headers.Add(marker.Level, marker);
-                result[row] = headers.Values.Reverse().Select(item => item.CollectionPath!).ToImmutableArray();
-                vertical.Clear();
-            }
-            else
-            {
-                if (row != precedingVerticalRow + 1) vertical.Clear();
-                while (vertical.Count > 0 && vertical[^1].Level >= marker.Level) vertical.RemoveAt(vertical.Count - 1);
-                vertical.Add(marker);
-                result[row] = vertical.AsEnumerable().Reverse().Select(item => item.CollectionPath!).ToImmutableArray();
-                precedingVerticalRow = row;
+                var scope = ImmutableArray.Create(region.Collection).AddRange(item.Ancestors);
+                foreach (var block in new[] { item.Node.Header, item.Node.Body, item.Node.Footer })
+                    if (block is not null)
+                        for (var row = block.FirstRow; row <= block.LastRow; row++) result.Add(row, scope);
+                foreach (var child in item.Node.Children) pending.Push((child, scope));
             }
         }
         return result;

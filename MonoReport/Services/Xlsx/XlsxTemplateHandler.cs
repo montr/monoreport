@@ -57,7 +57,8 @@ internal sealed class XlsxTemplateHandler(XlsxPackageReader reader, XlsxTemplate
                 else
                 {
                     var bound = source.Sheets.Select(sheet => _planner.BindSheet(sheet, data.RootElement, context)).ToImmutableArray();
-                    plan = _geometry.PlanReports(source, bound, context);
+                    var schedules = source.Sheets.Select((sheet, index) => _planner.ScheduleSheet(sheet, bound[index], context)).ToImmutableArray();
+                    plan = _geometry.PlanReports(source, bound, schedules, context);
                     plan = plan with { Sheets = plan.Sheets.Select((sheet, index) => _planner.BindInstances(source.Sheets[index], sheet, bound[index], context)).ToImmutableArray() };
                 }
                 plan = _formulas.Finalize(source, plan, context);

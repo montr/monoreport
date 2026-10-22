@@ -61,7 +61,7 @@ public sealed class Feature012FormulaTests
         using var services = _fixture.Services(); using var json = JsonDocument.Parse(fixture.Data(criteria));
         var context = new XlsxOperationContext(new MergeOptions()); var geometry = services.GetRequiredService<XlsxGeometryPlanner>();
         var data = services.GetRequiredService<XlsxTemplatePlanner>().BindSheet(sheet, json.RootElement, context);
-        var positions = geometry.ExpansionGeometry(sheet, data, context);
+        var positions = geometry.ExpansionGeometry(sheet, services.GetRequiredService<XlsxTemplatePlanner>().ScheduleSheet(sheet, data, context), geometry.HorizontalSpans(sheet, data));
         var cell = geometry.EmitCells(sheet, positions).Rows.SelectMany(row => row.Cells).First(cell => cell.Source.Id.Address == (leaf ? new XlsxAddress(10, 5) : new XlsxAddress(9, 2)));
         var parsed = services.GetRequiredService<XlsxFormulaReferences>().Read(formula, "Report B9");
         var error = Assert.Throws<TemplateException>(() => services.GetRequiredService<XlsxFormulaPlanner>().BindFormula(parsed, cell, positions));
@@ -77,7 +77,7 @@ public sealed class Feature012FormulaTests
         using var services = _fixture.Services(); using var json = JsonDocument.Parse(fixture.Data());
         var context = new XlsxOperationContext(new MergeOptions()); var geometry = services.GetRequiredService<XlsxGeometryPlanner>();
         var data = services.GetRequiredService<XlsxTemplatePlanner>().BindSheet(sheet, json.RootElement, context);
-        var positions = geometry.ExpansionGeometry(sheet, data, context);
+        var positions = geometry.ExpansionGeometry(sheet, services.GetRequiredService<XlsxTemplatePlanner>().ScheduleSheet(sheet, data, context), geometry.HorizontalSpans(sheet, data));
         var cell = geometry.EmitCells(sheet, positions).Rows.SelectMany(row => row.Cells).Single(cell => cell.Source.Id.Address == new XlsxAddress(sourceRow, 2));
         var parsed = services.GetRequiredService<XlsxFormulaReferences>().Read("SUM(D10:E10)+COUNT(D10:E10)+SUBTOTAL(9,D10:E10)+_xlfn.FUTURE(C10:C10)", "B" + sourceRow);
         Assert.Equal("SUM(C4:J5)+COUNT(C4:J5)+SUBTOTAL(9,C4:J5)+_xlfn.FUTURE(B4:B5)", services.GetRequiredService<XlsxFormulaPlanner>().BindFormula(parsed, cell, positions));
@@ -90,7 +90,7 @@ public sealed class Feature012FormulaTests
         using var services = _fixture.Services(); using var json = JsonDocument.Parse(fixture.Data());
         var context = new XlsxOperationContext(new MergeOptions()); var geometry = services.GetRequiredService<XlsxGeometryPlanner>();
         var data = services.GetRequiredService<XlsxTemplatePlanner>().BindSheet(sheet, json.RootElement, context);
-        var positions = geometry.ExpansionGeometry(sheet, data, context);
+        var positions = geometry.ExpansionGeometry(sheet, services.GetRequiredService<XlsxTemplatePlanner>().ScheduleSheet(sheet, data, context), geometry.HorizontalSpans(sheet, data));
         var output = geometry.EmitCells(sheet, positions);
         var references = services.GetRequiredService<XlsxFormulaReferences>(); var formulas = services.GetRequiredService<XlsxFormulaPlanner>();
         var parsed = references.Read("E10+$C10+E$9+$B$9", "E10");

@@ -252,7 +252,7 @@ public sealed class Feature012TwoAxisTests
         using var json = JsonDocument.Parse(_twoAxis.Data(criteria, 2, companies)); using var services = _fixture.Services();
         var context = new XlsxOperationContext(new MergeOptions()); var planner = services.GetRequiredService<XlsxTemplatePlanner>();
         var geometry = services.GetRequiredService<XlsxGeometryPlanner>(); var data = planner.BindSheet(sheet, json.RootElement, context);
-        var positions = geometry.ExpansionGeometry(sheet, data, context); var output = geometry.EmitCells(sheet, positions);
+        var positions = geometry.ExpansionGeometry(sheet, services.GetRequiredService<XlsxTemplatePlanner>().ScheduleSheet(sheet, data, context), geometry.HorizontalSpans(sheet, data)); var output = geometry.EmitCells(sheet, positions);
         geometry.ProjectMerges(sheet, output); output = planner.BindInstances(sheet, output, data, context);
         XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
         Assert.Empty(output.Settings.Descendants(ns + "mergeCell"));
@@ -286,7 +286,7 @@ public sealed class Feature012TwoAxisTests
         using var services = _fixture.Services(); using var json = JsonDocument.Parse(_twoAxis.Data());
         var context = new XlsxOperationContext(new MergeOptions()); var geometry = services.GetRequiredService<XlsxGeometryPlanner>();
         var data = services.GetRequiredService<XlsxTemplatePlanner>().BindSheet(sheet, json.RootElement, context);
-        var output = geometry.EmitCells(sheet, geometry.ExpansionGeometry(sheet, data, context));
+        var output = geometry.EmitCells(sheet, geometry.ExpansionGeometry(sheet, services.GetRequiredService<XlsxTemplatePlanner>().ScheduleSheet(sheet, data, context), geometry.HorizontalSpans(sheet, data)));
         Assert.Contains(remedy, Assert.Throws<TemplateException>(() => geometry.ProjectMerges(sheet, output)).Message);
     }
 
@@ -299,7 +299,7 @@ public sealed class Feature012TwoAxisTests
         var context = new XlsxOperationContext(new MergeOptions());
         var planner = services.GetRequiredService<XlsxTemplatePlanner>(); var geometry = services.GetRequiredService<XlsxGeometryPlanner>();
         var data = planner.BindSheet(sheet, json.RootElement, context);
-        var positions = geometry.ExpansionGeometry(sheet, data, context);
+        var positions = geometry.ExpansionGeometry(sheet, services.GetRequiredService<XlsxTemplatePlanner>().ScheduleSheet(sheet, data, context), geometry.HorizontalSpans(sheet, data));
         var output = planner.BindInstances(sheet, geometry.EmitCells(sheet, positions), data, context);
         using var buffer = new MemoryStream(); buffer.Write(bytes); buffer.Position = 0;
         using (var document = SpreadsheetDocument.Open(buffer, true))

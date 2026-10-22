@@ -20,7 +20,7 @@ internal sealed partial class XlsxTemplatePlanner(TemplateLanguageParser languag
         return plan with { Sheets = plan.Sheets.Select(Structure).ToImmutableArray() };
     }
 
-    // Prepares lexical scopes/dependencies only. Recursive grammar/geometry validation remains M2/M3.
+    // Parse vertical ownership before validating fields; horizontal geometry is validated by Structure.
     internal XlsxTemplatePlan Prepare(XlsxSourceInventory source, XlsxOperationContext context)
     {
         var diagnostics = new List<StructuralDiagnostic>();
@@ -36,7 +36,8 @@ internal sealed partial class XlsxTemplatePlanner(TemplateLanguageParser languag
         foreach (var sheet in source.Sheets)
         {
             var controls = ReadControls(sheet, context);
-            var scopes = CellScopes(sheet, controls);
+            var regions = VerticalRegions(controls);
+            var scopes = CellScopes(controls, regions);
             var sheetDependencies = new List<PlannedDependency>();
             foreach (var marker in controls.Where(marker => marker.Collection is not null))
                 sheetDependencies.Add(new("for", marker.Collection!, marker.CollectionPath!, "array", sheet.Part,
@@ -98,7 +99,7 @@ internal sealed partial class XlsxTemplatePlanner(TemplateLanguageParser languag
                 }
                 cells.Add(new(cell, parsed.Tokens.ToImmutableArray(), location) { Formula = formula });
             }
-            sheets.Add(new(sheet, cells.ToImmutable(), controls));
+            sheets.Add(new(sheet, cells.ToImmutable(), controls) { Regions = regions });
             dependencies.AddRange(sheetDependencies.OrderBy(item => item.SourceOrder));
         }
         var requirements = new TemplateRequirementBuilder();

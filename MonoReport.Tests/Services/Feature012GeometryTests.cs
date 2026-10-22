@@ -40,7 +40,8 @@ public sealed class Feature012GeometryTests
         using var services = _fixture.Services(); using var json = JsonDocument.Parse(_twoAxis.Data(criteria));
         var context = new XlsxOperationContext(new MergeOptions()); var planner = services.GetRequiredService<XlsxTemplatePlanner>();
         var geometry = services.GetRequiredService<XlsxGeometryPlanner>();
-        var positions = geometry.ExpansionGeometry(sheet, planner.BindSheet(sheet, json.RootElement, context), context);
+        var data = planner.BindSheet(sheet, json.RootElement, context);
+        var positions = geometry.ExpansionGeometry(sheet, planner.ScheduleSheet(sheet, data, context), geometry.HorizontalSpans(sheet, data));
         var output = geometry.EmitCells(sheet, positions); geometry.ProjectMerges(sheet, output);
         XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
         Assert.Equal(new[] { first, second }, output.Settings.Descendants(ns + "mergeCell").Select(cell => (string?)cell.Attribute("ref")));
@@ -54,7 +55,9 @@ public sealed class Feature012GeometryTests
         using var services = _fixture.Services(); using var json = JsonDocument.Parse(_twoAxis.Data(3, count));
         var context = new XlsxOperationContext(new MergeOptions());
         var data = services.GetRequiredService<XlsxTemplatePlanner>().BindSheet(sheet, json.RootElement, context);
-        var geometry = services.GetRequiredService<XlsxGeometryPlanner>().ExpansionGeometry(sheet, data, context);
+        var planner = services.GetRequiredService<XlsxTemplatePlanner>();
+        var geometryPlanner = services.GetRequiredService<XlsxGeometryPlanner>();
+        var geometry = geometryPlanner.ExpansionGeometry(sheet, planner.ScheduleSheet(sheet, data, context), geometryPlanner.HorizontalSpans(sheet, data));
         Assert.Equal((height, 11), (geometry.OutputArea.Height, geometry.OutputArea.Width));
         Assert.Equal(1, geometry.RowSpans[0].OutputFirst);
         Assert.Equal(below, geometry.RowSpans.Single(span => span.First == 11).OutputFirst);
