@@ -27,6 +27,13 @@ internal sealed partial class XlsxTemplatePlanner(TemplateLanguageParser languag
         // Requirement conflicts can refer back to earlier cells, including across worksheets.
         // Apply the published cap only after merging/sorting source diagnostics; Bind keeps its evaluation cap.
         var partOrder = source.Sheets.Select((sheet, index) => (sheet.Part, index)).ToDictionary(item => item.Part, item => item.index, StringComparer.Ordinal);
+        var sheetIds = source.Sheets.ToDictionary(sheet => sheet.Name, sheet => sheet.Id, StringComparer.OrdinalIgnoreCase);
+        var names = _references.ReadNames(source, context);
+        var nameLookup = names.ToDictionary(name => (name.ScopeSheetId ?? 0, name.Name.ToUpperInvariant()));
+        var sharedFormulas = _references.ReadSharedFormulas(source, context);
+        var sharedMembers = sharedFormulas.SelectMany(group => group.Members.Select(member => (member, group.Index)))
+            .ToDictionary(item => item.member, item => item.Index);
+        var sharedCopies = _references.ReadSharedCopies(source, sharedFormulas, nameLookup, sheetIds, context);
         void Report(StructuralDiagnostic diagnostic)
         {
             diagnostics.Add(diagnostic);
@@ -48,19 +55,17 @@ internal sealed partial class XlsxTemplatePlanner(TemplateLanguageParser languag
             foreach (var cell in sheet.Cells.Where(cell => sheet.PrintArea.Contains(cell.Id.Address)))
             {
                 var location = Location(sheet, cell.Id.Address);
-                XlsxParsedFormula? formula = null;
-                if (cell.HasFormula)
+                XlsxParsedFormula? formula = sharedCopies.GetValueOrDefault(cell.Id);
+                if (cell.HasFormula && !sharedMembers.ContainsKey(cell.Id))
                 {
                     try
                     {
                         var elements = cell.Xml.Elements().Where(element => element.Name.LocalName == "f").ToArray();
                         if (elements.Length != 1 || elements[0].Attributes().Any(attribute => attribute.Name.LocalName != "t" || attribute.Value != "normal"))
-                            throw new StructuralDiagnostic(DiagnosticCodes.XlsxUnsafeFormula, "Use ordinary scalar formulas; shared groups require M3 and array/data-table/spill structures are unsupported.", Location: location,
+                            throw new StructuralDiagnostic(DiagnosticCodes.XlsxUnsafeFormula, "Use ordinary scalar formulas; array/data-table/spill structures are unsupported.", Location: location,
                                 Explanation: "Re-save the affected formula as an ordinary scalar formula using explicit retained A1 operands.").ToException();
-                        formula = _references.Read(elements[0].Value, location);
-                        if (formula.References.Any(reference => reference.Prefix.Length > 0))
-                            throw new StructuralDiagnostic(DiagnosticCodes.XlsxUnsafeFormula, "Sheet-qualified formula binding requires M3.",
-                                Location: location, Explanation: "Use explicit local retained A1 operands in M2; sheet-qualified formula binding requires M3.").ToException();
+                        formula = _references.ResolveSheets(_references.Read(elements[0].Value, location,
+                            (prefix, name) => _references.ResolveName(nameLookup, sheetIds, sheet.Id, prefix, name, location)), sheet.Id, sheetIds, location);
                     }
                     catch (TemplateException error)
                     {
@@ -104,7 +109,8 @@ internal sealed partial class XlsxTemplatePlanner(TemplateLanguageParser languag
                             location, Order(cell.Id.Address) + token.Start));
                     }
                 }
-                cells.Add(new(cell, parsed.Tokens.ToImmutableArray(), location) { Formula = formula });
+                cells.Add(new(cell, parsed.Tokens.ToImmutableArray(), location)
+                { Formula = formula, SharedFormulaIndex = sharedMembers.TryGetValue(cell.Id, out var sharedIndex) ? sharedIndex : null });
             }
             sheets.Add(new(sheet, cells.ToImmutable(), controls) { Regions = regions });
             dependencies.AddRange(sheetDependencies.OrderBy(item => item.SourceOrder));
@@ -118,7 +124,8 @@ internal sealed partial class XlsxTemplatePlanner(TemplateLanguageParser languag
         foreach (var diagnostic in diagnostics.OrderBy(item => partOrder.GetValueOrDefault(item.Location?.Split(',', 2)[0] ?? string.Empty, int.MaxValue))
             .ThenBy(item => item.SourceOrder).Take(GenerationDiagnosticPolicy.ErrorLimit)) context.Report(diagnostic.ToException());
         context.ThrowIfErrors();
-        return new(source, sheets.ToImmutable(), dependencies.ToImmutable(), requirements.Requirements, requirements.Occurrences);
+        return new(source, sheets.ToImmutable(), dependencies.ToImmutable(), requirements.Requirements, requirements.Occurrences)
+        { DefinedNames = names, SharedFormulas = sharedFormulas };
     }
 
     internal XlsxPreparedValue PrepareValue(XlsxCellPlan cell, DataScope scope, XlsxOperationContext context)

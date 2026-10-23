@@ -127,7 +127,7 @@ public sealed class Feature012CropTests
 
     [Theory]
     [InlineData("hyperlink", "hyperlinks")]
-    [InlineData("name", "defined names")]
+    [InlineData("print-title", "print titles")]
     [InlineData("pane", "pane")]
     [InlineData("partial-merge", "partial merge")]
     [InlineData("invalid-column", "coordinates")]
@@ -139,7 +139,7 @@ public sealed class Feature012CropTests
         {
             var sheet = worksheet.Worksheet!;
             if (scenario == "hyperlink") sheet.Append(new Hyperlinks(new Hyperlink { Reference = "B3", Location = "Report!B4" }));
-            if (scenario == "name") workbook.Workbook!.DefinedNames!.Append(new DefinedName("Report!$B$3") { Name = "Amount" });
+            if (scenario == "print-title") workbook.Workbook!.DefinedNames!.Append(new DefinedName("Report!$B$3:$D$3") { Name = "_xlnm.Print_Titles", LocalSheetId = 0 });
             if (scenario == "pane") sheet.PrependChild(new SheetViews(new SheetView(new Pane { State = PaneStateValues.Frozen, VerticalSplit = 2, TopLeftCell = "B3" }) { WorkbookViewId = 0 }));
             if (scenario == "partial-merge") sheet.Append(new MergeCells(new MergeCell { Reference = "A3:B3" }));
             if (scenario == "invalid-column") sheet.PrependChild(new Columns(new Column { Min = 3, Max = 2, Width = 10 }));

@@ -13,8 +13,6 @@ internal sealed partial class XlsxGeometryPlanner
         {
             return Plan(template, ImmutableDictionary<SourceCellId, XlsxPreparedValue>.Empty, context);
         }
-        if (template.Source.Names.Length != template.Source.Sheets.Select(sheet => sheet.PrintAreaNameIndex).Distinct().Count())
-            throw Unsupported(template.Source.Sheets[0], "Remove defined names/print titles until their reference transformation is implemented in M3/M4.");
         foreach (var sheet in template.Sheets)
         {
             if (context.LimitReached) break;

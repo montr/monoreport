@@ -90,7 +90,7 @@ public sealed partial class Feature012DiagnosticsTests
     [InlineData("_xlfn.offset(B3,1,0)")]
     [InlineData("SUM(B:B)")]
     [InlineData("A1")]
-    [InlineData("'Report'!B3")]
+    [InlineData("'Missing'!B3")]
     public void Formula_Unsafe_source_preflight_is_coded_actionable_and_shared_by_analyze_merge(string formula)
     {
         var fixture = new XlsxFixture();

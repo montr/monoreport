@@ -17,9 +17,6 @@ internal sealed partial class XlsxGeometryPlanner
     {
         var sheets = ImmutableArray.CreateBuilder<XlsxSheetOutput>();
         var names = template.Source.Names.Select(name => new XElement(name)).ToArray();
-        if (names.Length != template.Source.Sheets.Select(sheet => sheet.PrintAreaNameIndex).Distinct().Count())
-            throw new StructuralDiagnostic(DiagnosticCodes.XlsxUnsupportedFeature, "Unsupported or unresolved workbook names.",
-                Location: "/xl/workbook.xml", Explanation: "Remove defined names/print titles or invalid PrintArea scopes until their reference transformation is implemented.").ToException();
         foreach (var sheet in template.Sheets)
         {
             if (context.LimitReached) break;
@@ -86,9 +83,6 @@ internal sealed partial class XlsxGeometryPlanner
             if (!safeWorkbook.Contains(feature) && feature is not (Relationships + "worksheet" or Relationships + "styles" or
                 Relationships + "sharedStrings" or Relationships + "theme" or Relationships + "calcChain"))
                 throw Unsupported(sheet, "Remove the unsupported workbook feature or relationship before generation: " + feature.Split('/')[^1]);
-        foreach (var name in inventory.Names)
-            if ((string?)name.Attribute("name") != "_xlnm.Print_Area")
-                throw Unsupported(sheet, "Remove defined names/print titles until their reference transformation is implemented.");
         var safeSheet = new HashSet<XName>(new[] { "sheetPr", "dimension", "sheetViews", "sheetFormatPr", "cols", "sheetData", "sheetProtection",
             "mergeCells", "printOptions", "pageMargins", "pageSetup", "headerFooter", "rowBreaks", "colBreaks" }.Select(name => S + name));
         foreach (var element in sheet.Xml.Root!.Elements())

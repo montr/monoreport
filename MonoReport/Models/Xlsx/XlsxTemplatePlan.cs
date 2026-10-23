@@ -53,6 +53,7 @@ internal sealed record XlsxSourceInventory(ImmutableArray<XlsxSheetSource> Sheet
 internal sealed record XlsxCellPlan(XlsxCellSource Source, ImmutableArray<TemplateToken> Tokens, string Location)
 {
     internal XlsxParsedFormula? Formula { get; init; }
+    internal uint? SharedFormulaIndex { get; init; }
     internal bool NativeField => Tokens is [{ Kind: TemplateTokenKind.Expression, Start: 0, Expression.Formatter: null } token] &&
         token.Length == Source.Text?.Length;
 }
@@ -76,5 +77,9 @@ internal sealed record XlsxVerticalRegion(int Id, int FirstRow, int LastRow, str
 }
 internal sealed record XlsxTemplatePlan(XlsxSourceInventory Source, ImmutableArray<XlsxSheetTemplate> Sheets,
     ImmutableArray<PlannedDependency> Dependencies, IReadOnlyList<TemplateRequirement> Requirements,
-    IReadOnlyList<TemplateOccurrence> Occurrences);
+    IReadOnlyList<TemplateOccurrence> Occurrences)
+{
+    internal ImmutableArray<XlsxDefinedName> DefinedNames { get; init; } = [];
+    internal ImmutableArray<XlsxSharedFormulaGroup> SharedFormulas { get; init; } = [];
+}
 internal sealed record XlsxPreparedValue(string? Type, string? Value);

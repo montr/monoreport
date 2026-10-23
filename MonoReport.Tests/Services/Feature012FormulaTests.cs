@@ -55,6 +55,8 @@ public sealed partial class Feature012FormulaTests
     [InlineData("SUM(E10:E10)", 3, false)] [InlineData("E10", 0, false)]
     [InlineData("A1", 3, false)] [InlineData("'Other'!E10", 3, true)]
     [InlineData("SUM($D10:E10)", 3, true)]
+    [InlineData("SUM(E10:$D10)", 3, true)]
+    [InlineData("SUM(E10:A1)", 3, false)]
     public void Safety_Rejects_ambiguous_absolute_disjoint_empty_discarded_or_unbound_targets(string formula, int criteria, bool leaf)
     {
         var fixture = new XlsxTwoAxisFixture(); var sheet = fixture.Plan(fixture.Create()).Sheets.Single();

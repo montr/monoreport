@@ -11,6 +11,17 @@ internal sealed class XlsxFormulaPlanner(XlsxFormulaReferences references, XlsxG
 
     internal void ValidateStaticReferences(XlsxTemplatePlan template, XlsxOperationContext context)
     {
+        RequireScalarFormulas(template, context);
+        var sheets = template.Sheets.ToDictionary(sheet => sheet.Source.Id);
+        foreach (var name in template.DefinedNames)
+        {
+            if (context.LimitReached) break;
+            var reference = name.Formula.References[0];
+            var target = sheets[reference.TargetSheetId!.Value];
+            if (!target.Source.PrintArea.Contains(reference.First.Address) || !target.Source.PrintArea.Contains(reference.Last.Address))
+                context.Report(UnsafeImage(name.Location, name.Formula, reference));
+        }
+        context.ThrowIfErrors();
         foreach (var sheet in template.Sheets)
             foreach (var cell in sheet.Cells.Where(cell => cell.Formula is not null))
             {
@@ -22,7 +33,9 @@ internal sealed class XlsxFormulaPlanner(XlsxFormulaReferences references, XlsxG
                 foreach (var reference in cell.Formula!.References.Reverse())
                 {
                     if (context.LimitReached) break;
-                    if (!sheet.Source.PrintArea.Contains(reference.First.Address) || !sheet.Source.PrintArea.Contains(reference.Last.Address))
+                    if (reference.NameIndex is not null) continue; // Definitions have independent, fixed workbook semantics.
+                    var target = sheets[reference.TargetSheetId ?? sheet.Source.Id];
+                    if (!target.Source.PrintArea.Contains(reference.First.Address) || !target.Source.PrintArea.Contains(reference.Last.Address))
                     {
                         context.Report(UnsafeImage(cell.Location, cell.Formula, reference));
                         break; // As in formula finalization, report one failing operand per source formula.
@@ -34,7 +47,21 @@ internal sealed class XlsxFormulaPlanner(XlsxFormulaReferences references, XlsxG
 
     internal XlsxWorkbookPlan Finalize(XlsxTemplatePlan template, XlsxWorkbookPlan workbook, XlsxOperationContext context)
     {
+        RequireScalarFormulas(template, context);
         var parsed = template.Sheets.SelectMany(sheet => sheet.Cells).Where(cell => cell.Formula is not null).ToDictionary(cell => cell.Source.Id, cell => cell.Formula!);
+        var geometries = workbook.Sheets.ToDictionary(sheet => sheet.Geometry.Source.Id, sheet => sheet.Geometry);
+        var names = workbook.Names.Select(name => new System.Xml.Linq.XElement(name)).ToArray();
+        foreach (var name in template.DefinedNames)
+        {
+            if (context.LimitReached) break;
+            try
+            {
+                names[name.Index].Value = Relocate(name.Formula, geometries[name.Formula.References[0].TargetSheetId!.Value],
+                    null, null, false, geometries, name.Location);
+            }
+            catch (TemplateException error) { context.Report(error); }
+        }
+        context.ThrowIfErrors();
         var sheets = ImmutableArray.CreateBuilder<XlsxSheetOutput>();
         foreach (var sheet in workbook.Sheets)
         {
@@ -46,14 +73,25 @@ internal sealed class XlsxFormulaPlanner(XlsxFormulaReferences references, XlsxG
                 if (context.LimitReached) break;
                 if (cell.Suppressed || !parsed.TryGetValue(cell.Source.Id, out var formula)) continue;
                 try { formulas.Add(cell.Id, BindFormula(formula, cell, sheet.Geometry,
-                    groups.Any(block => block.FirstRow <= cell.Source.Id.Address.Row && cell.Source.Id.Address.Row <= block.LastRow))); }
+                    groups.Any(block => block.FirstRow <= cell.Source.Id.Address.Row && cell.Source.Id.Address.Row <= block.LastRow), geometries)); }
                 catch (TemplateException error) { context.Report(error); }
             }
             sheets.Add(sheet with { Rows = sheet.Rows.Select(row => row with { Cells = row.Cells.Select(cell =>
                 cell with { Formula = formulas.GetValueOrDefault(cell.Id) }).ToImmutableArray() }).ToImmutableArray() });
             if (context.LimitReached) break;
         }
-        context.ThrowIfErrors(); return workbook with { Sheets = sheets.ToImmutable() };
+        context.ThrowIfErrors(); return workbook with { Sheets = sheets.ToImmutable(), Names = names.ToImmutableArray() };
+    }
+
+    private static void RequireScalarFormulas(XlsxTemplatePlan template, XlsxOperationContext context)
+    {
+        foreach (var cell in template.Sheets.SelectMany(sheet => sheet.Cells).Where(cell => cell.SharedFormulaIndex is not null))
+        {
+            if (context.LimitReached) break;
+            context.Report(Unsafe(cell.Location, "Shared formula group " + cell.SharedFormulaIndex +
+                " requires shared-formula relocation before scalar output. Re-save the group as ordinary per-cell scalar A1 formulas."));
+        }
+        context.ThrowIfErrors();
     }
 
     private static List<XlsxVerticalBlock> GroupBlocks(XlsxSheetTemplate sheet)
@@ -70,26 +108,46 @@ internal sealed class XlsxFormulaPlanner(XlsxFormulaReferences references, XlsxG
     }
 
     internal string BindFormula(XlsxParsedFormula formula, XlsxCellPlacement placement, XlsxSheetGeometry geometry,
-        bool groupFormula = false)
+        bool groupFormula = false, IReadOnlyDictionary<uint, XlsxSheetGeometry>? geometries = null)
     {
         var location = geometry.Source.Part + ", sheet '" + geometry.Source.Name + "', " + placement.Source.Id.Address;
+        return Relocate(formula, geometry, placement.Id.Vertical, placement.Id.Horizontal, groupFormula, geometries, location);
+    }
+
+    private string Relocate(XlsxParsedFormula formula, XlsxSheetGeometry geometry, VerticalInstancePath? verticalOwner,
+        HorizontalInstancePath? horizontalOwner, bool groupFormula, IReadOnlyDictionary<uint, XlsxSheetGeometry>? geometries, string location)
+    {
         return _references.Rewrite(formula, reference =>
         {
-            if (reference.Prefix.Length != 0) throw Unsafe(location, "Sheet-qualified operands require M3; use a local retained A1 operand in this milestone.");
+            if (reference.NameIndex is not null) return formula.Text.Substring(reference.Start, reference.Length);
+            var targetId = reference.TargetSheetId ?? (reference.Prefix.Length == 0 ? geometry.Source.Id :
+                throw Unsafe(location, "Reference " + formula.Text.Substring(reference.Start, reference.Length) +
+                    " has no resolved worksheet identity. Use an existing same-workbook worksheet and a retained A1 operand."));
+            var target = targetId == geometry.Source.Id ? geometry :
+                geometries is not null && geometries.TryGetValue(targetId, out var resolved) ? resolved :
+                throw Unsafe(location, "Reference " + formula.Text.Substring(reference.Start, reference.Length) +
+                    " has no retained worksheet geometry. Use an existing same-workbook worksheet and a retained A1 operand.");
+            // Instance paths are worksheet-local; equal region/record indices on another sheet are not shared owners.
+            var ownerVertical = targetId == geometry.Source.Id ? verticalOwner : null;
+            var ownerHorizontal = targetId == geometry.Source.Id ? horizontalOwner : null;
             // Group range ownership is structural, including when dollar flags suppress authored copying.
             // Scalars and body/leaf formulas retain their exact-owner/absolute-anchor rules.
-            var descendants = groupFormula && reference.IsRange && placement.Id.Vertical is not null;
-            var vertical = !descendants && (reference.First.RowAbsolute || reference.Last.RowAbsolute) ? null : placement.Id.Vertical;
-            var horizontal = reference.First.ColumnAbsolute || reference.Last.ColumnAbsolute ? null : placement.Id.Horizontal;
-            var range = new XlsxRectangle(reference.First.Address, reference.Last.Address);
-            var image = _geometry.ProjectReference(range, geometry, vertical, horizontal, descendants);
-            if (geometry.Expanded && reference.IsRange &&
-                (reference.First.RowAbsolute != reference.Last.RowAbsolute && placement.Id.Vertical is not null ||
-                 reference.First.ColumnAbsolute != reference.Last.ColumnAbsolute && placement.Id.Horizontal is not null))
+            var descendants = groupFormula && reference.IsRange && ownerVertical is not null;
+            var vertical = !descendants && (reference.First.RowAbsolute || reference.Last.RowAbsolute) ? null : ownerVertical;
+            var horizontal = reference.First.ColumnAbsolute || reference.Last.ColumnAbsolute ? null : ownerHorizontal;
+            // Lexical endpoints retain their flags; geometry always consumes increasing bounds.
+            var first = reference.First.Address;
+            var last = reference.Last.Address;
+            var range = new XlsxRectangle(new(Math.Min(first.Row, last.Row), Math.Min(first.Column, last.Column)),
+                new(Math.Max(first.Row, last.Row), Math.Max(first.Column, last.Column)));
+            var image = _geometry.ProjectReference(range, target, vertical, horizontal, descendants);
+            if (target.Expanded && reference.IsRange &&
+                (reference.First.RowAbsolute != reference.Last.RowAbsolute && ownerVertical is not null ||
+                 reference.First.ColumnAbsolute != reference.Last.ColumnAbsolute && ownerHorizontal is not null))
             {
-                var scoped = _geometry.ProjectReference(range, geometry,
-                    reference.First.RowAbsolute != reference.Last.RowAbsolute ? placement.Id.Vertical : vertical,
-                    reference.First.ColumnAbsolute != reference.Last.ColumnAbsolute ? placement.Id.Horizontal : horizontal, descendants);
+                var scoped = _geometry.ProjectReference(range, target,
+                    reference.First.RowAbsolute != reference.Last.RowAbsolute ? ownerVertical : vertical,
+                    reference.First.ColumnAbsolute != reference.Last.ColumnAbsolute ? ownerHorizontal : horizontal, descendants);
                 if (scoped.Kind != image.Kind || scoped.Rectangle != image.Rectangle)
                     throw Unsafe(location, "Mixed endpoint copy flags select incompatible repeated owners. Re-author the A1 range with consistent flags or uniquely retained endpoints.");
             }
@@ -97,8 +155,12 @@ internal sealed class XlsxFormulaPlanner(XlsxFormulaReferences references, XlsxG
                 !reference.IsRange && image.Kind != XlsxRangeImageKind.Cell)
                 throw UnsafeImage(location, formula, reference);
             var result = image.Rectangle!.Value;
-            return (reference.First with { Address = result.First }).ToString() +
-                (reference.IsRange ? ":" + (reference.Last with { Address = result.Last }) : string.Empty);
+            var firstOutput = new XlsxAddress(first.Row <= last.Row ? result.First.Row : result.Last.Row,
+                first.Column <= last.Column ? result.First.Column : result.Last.Column);
+            var lastOutput = new XlsxAddress(first.Row <= last.Row ? result.Last.Row : result.First.Row,
+                first.Column <= last.Column ? result.Last.Column : result.First.Column);
+            return reference.Prefix + (reference.First with { Address = firstOutput }).ToString() +
+                (reference.IsRange ? ":" + (reference.Last with { Address = lastOutput }) : string.Empty);
         });
     }
 
