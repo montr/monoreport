@@ -2,7 +2,7 @@
 
 MonoReport generates DOCX reports, contracts, acts, protocols, invoices, and similar documents from Microsoft Word templates and JSON data. It requires .NET SDK 10. Microsoft Word is useful for authoring and visual verification but is not required by the engine.
 
-1. Feature 012 M2 also supports XLSX templates through Core, CLI and the existing HTTP document endpoints: static fields, single-level vertical runs, nested horizontal blocks, Cartesian tuple data and local scalar A1 formulas with physical PrintArea crop. See [XLSX compatibility and current milestone limits](docs/xlsx-template-compatibility.md). Nested vertical group generation, sheet/name/shared-formula binding and Playground support are outside this milestone.
+1. MonoReport supports ordinary XLSX templates through Core, CLI and the existing HTTP document endpoints: scalar fields, nested vertical headers/footers and multirow blocks, horizontal Cartesian expansion, safe scalar A1 formulas including supported sheet/name/shared references, and physical PrintArea crop. Worksheets with nested vertical regions allow at most two horizontal levels, one authored block and one physical header row per level; no horizontal expansion is also supported. See [XLSX compatibility and current limits](docs/xlsx-template-compatibility.md). XLSX Playground support is not included.
 
 ## Projects
 
@@ -109,7 +109,7 @@ For the support, preservation, and rejection policy for Microsoft Word features,
    Diagnostics retain the offending token or fragment in `field` and the precise part and paragraph/table coordinates in `location`. Their `message` includes bounded nearby template text where available so it can be found in Word; an incomplete fragment is never presented as a complete expression. Analyzer and generation use the same diagnostic messages in Core, API, CLI, and Playground.
 2. The result contains `valid`, `errors`, `warnings`, recursive `requirements`, and source-ordered `occurrences`.
 3. Each requirement contains only `name`, `type`, and optional nonempty `fields`. Allowed types are `object`, `array`, `value`, and `boolean`. Array fields describe expressions evaluated against elements; they are dependencies, not a homogeneous JSON schema.
-4. Each occurrence contains `kind`, the original `expression`, canonical `path`, document `part`, and source `location`. Duplicate occurrences are preserved. XLSX locations identify source worksheet names and A1 coordinates. XLSX analysis also accepts nested vertical templates and reports their source dependencies; a valid analysis does not validate JSON cardinality or data-dependent formula images. Public nested vertical generation remains unavailable.
+4. Each occurrence contains `kind`, the original `expression`, canonical `path`, document `part`, and source `location`. Duplicate occurrences are preserved. XLSX locations identify source worksheet names and A1 coordinates. XLSX analysis also accepts nested vertical templates and reports their source dependencies; a valid analysis does not validate JSON cardinality or data-dependent formula images. Nested generation uses the bounded layout rules in the [XLSX compatibility guidance](docs/xlsx-template-compatibility.md); analysis does not check runtime horizontal eligibility.
 5. A loop using `{.}` can produce the requirement `{ "name": "Tags", "type": "array" }` and an occurrence at `$.Tags[]`; no artificial element property is inferred.
 
 ## CLI

@@ -25,11 +25,11 @@ public sealed partial class Feature012FormulaTests
             workbook.Workbook!.DefinedNames!.Elements<DefinedName>().Single().Text = "'Report'!$B$2:$C$3";
         });
         var original = source.ToArray();
-        GroupRenderResult? result = null;
+        MergeResult? result = null;
 
-        // Exercise the real internal pipeline while public nested generation remains guarded.
+        // Exercise public generation, including source preflight and final owner checks.
         // Both B2 (parent header) and B3 (current body) are operands; dropping B2 is unsafe.
-        var error = Assert.Throws<TemplateException>(() => result = RenderGroups(source,
+        var error = Assert.Throws<TemplateException>(() => result = _fixture.Merge(source,
             """{"Items":[{"$level":10,"Name":"Parent"},{"$level":40,"Price":11}]}"""));
 
         Assert.Null(result);
@@ -207,8 +207,8 @@ public sealed partial class Feature012FormulaTests
 
     private void AssertOwnerRangeUnsafe(byte[] source, string data, string address, string operand)
     {
-        var original = source.ToArray(); GroupRenderResult? result = null;
-        var error = Assert.Throws<TemplateException>(() => result = RenderGroups(source, data));
+        var original = source.ToArray(); MergeResult? result = null;
+        var error = Assert.Throws<TemplateException>(() => result = _fixture.Merge(source, data));
         Assert.Null(result); Assert.Equal(original, source);
         Assert.Equal(DiagnosticCodes.XlsxUnsafeFormula, error.Code);
         Assert.All(error.Errors, issue => Assert.Equal(DiagnosticCodes.XlsxUnsafeFormula, issue.Code));

@@ -19,6 +19,9 @@ public sealed partial class Feature012NestedTests
         var source = FullNestedTemplate(shared); var original = source.ToArray();
         var json = FullNestedData(criteria);
         var result = RenderNested(source, json);
+        var generated = _fixture.Merge(source, json);
+        Assert.Equal(MonoReport.Models.DocumentFormat.Xlsx, generated.Format); Assert.Empty(generated.Warnings);
+        result = result with { Document = generated.Document };
         Assert.Equal(original, source); Assert.Empty(result.Context.Errors); Assert.Empty(result.Context.Warnings);
         var main = result.Template.Sheets[0];
         Assert.Equal(new[] { (9, 12), (15, 15) }, main.Regions.Select(region => (region.FirstRow, region.LastRow)));
@@ -92,8 +95,6 @@ public sealed partial class Feature012NestedTests
         Assert.Equal(new[] { "Bids", "Criteria", "Items", "Other" }, analysis.Requirements.Select(requirement => requirement.Name));
         Assert.Equal(new[] { "Name", "Quantity", "Price", "Delta" }, analysis.Requirements[2].Fields!.Select(field => field.Name));
         Assert.Contains(analysis.Occurrences, occurrence => occurrence.Expression == "{../Name}" && occurrence.Path == "$.Items[].Name" && occurrence.Location!.EndsWith(", C11", StringComparison.Ordinal));
-        var error = Assert.Throws<TemplateException>(() => _fixture.Merge(source, json));
-        Assert.Equal(DiagnosticCodes.XlsxUnsupportedFeature, error.Code); Assert.Contains("A9", error.Errors[0].Location);
         Assert.Equal(original, input.ToArray());
         if (shared && criteria == 3)
         {
@@ -117,7 +118,7 @@ public sealed partial class Feature012NestedTests
                 FirstGroupTotals = columns.Zip(expectedFirstGroup).ToDictionary(pair => pair.First + "3", pair => pair.Second),
                 SecondGroupTotals = columns.Zip(expectedSecondGroup).ToDictionary(pair => pair.First + "9", pair => pair.Second),
                 SummaryFormula = "SUM(Report!C13:" + (criteria == 3 ? "J" : "H") + "13)", SummaryTotal = expectedTotals.Sum(),
-                CalculationStatus = "Independent expectations only; actual Excel recalculation pending."
+                CalculationStatus = "Independent expectations only; numerical Excel result verification remains pending."
             }, new JsonSerializerOptions { WriteIndented = true }));
         }
     }
@@ -136,8 +137,8 @@ public sealed partial class Feature012NestedTests
         else records.RemoveRange(4, 8);
         var json = JsonSerializer.Serialize(new { Bids = data.RootElement.GetProperty("Bids"), Criteria = data.RootElement.GetProperty("Criteria"),
             Items = records, Other = data.RootElement.GetProperty("Other") });
-        NestedRenderResult? result = null;
-        var error = Assert.Throws<TemplateException>(() => result = RenderNested(source, json));
+        MergeResult? result = null;
+        var error = Assert.Throws<TemplateException>(() => result = _fixture.Merge(source, json));
         Assert.Null(result); Assert.Equal(original, source);
         Assert.All(error.Errors, issue => Assert.Equal(code, issue.Code));
         Assert.Contains(error.Errors, issue => issue.Location!.Contains(scenario == "no-first-children" ? "E9" : "A9", StringComparison.Ordinal));
@@ -165,7 +166,10 @@ public sealed partial class Feature012NestedTests
         if (scenario == "affected-feature") Assert.Contains(analysis.Errors, issue => issue.Message.Contains("conditionalFormatting", StringComparison.Ordinal));
         Assert.All(analysis.Errors, issue => Assert.False(string.IsNullOrWhiteSpace(issue.Message)));
         Assert.Equal(original, input.ToArray());
-        Assert.Throws<TemplateException>(() => _fixture.Merge(source, FullNestedData(2)));
+        MergeResult? result = null;
+        var error = Assert.Throws<TemplateException>(() => result = _fixture.Merge(source, FullNestedData(2)));
+        Assert.Null(result); Assert.Equal(original, source);
+        Assert.Contains(error.Errors, issue => issue.Code == code && issue.Location!.Contains(location, StringComparison.Ordinal));
     }
 
     private void AssertFullNestedPackage(byte[] bytes, Dictionary<string, string> expected, string lastColumn, int cellCount)
@@ -194,60 +198,8 @@ public sealed partial class Feature012NestedTests
         Assert.All(sheets, sheet => { Assert.DoesNotContain("DISPOSABLE", sheet.InnerText); Assert.DoesNotContain("$l(", sheet.InnerText); Assert.DoesNotContain("$h(", sheet.InnerText); });
     }
 
-    private byte[] FullNestedTemplate(bool shared, Action<WorkbookPart, WorksheetPart>? customize = null) => _fixture.Create((workbook, part) =>
-    {
-        workbook.AddNewPart<WorkbookStylesPart>().Stylesheet = new Stylesheet(new Fonts(new Font()),
-            new Fills(new Fill(new PatternFill { PatternType = PatternValues.None })), new Borders(new Border()),
-            new CellStyleFormats(new CellFormat()), new CellFormats(new CellFormat(), new CellFormat { NumberFormatId = 1 },
-                new CellFormat { NumberFormatId = 2 }, new CellFormat { NumberFormatId = 3 }));
-        Cell Formula(string address, string text, bool master = false)
-        {
-            var formula = new CellFormula(text);
-            if (shared && address is "E9" or "E12")
-            {
-                formula = new CellFormula(master ? text : "ignored follower text") { FormulaType = CellFormulaValues.Shared, SharedIndex = 7 };
-                if (master) formula.Reference = "E9:E12";
-            }
-            return new Cell { CellReference = address, CellValue = new CellValue("99999"), CellFormula = formula };
-        }
-        var name = _fixture.Text("B10", "{Name}"); name.StyleIndex = 1;
-        var price = _fixture.Text("E10", "{Price}"); price.StyleIndex = 3;
-        part.Worksheet = new Worksheet(new Columns(new Column { Min = 2, Max = 3, Width = 18, CustomWidth = true },
-                new Column { Min = 4, Max = 4, Width = 0, CustomWidth = true, Hidden = true }, new Column { Min = 5, Max = 6, Width = 14, CustomWidth = true }),
-            new SheetData(
-                new Row(_fixture.Text("D1", "$h(1)"), _fixture.Text("E1", "$h(1)")) { RowIndex = 1 },
-                new Row(_fixture.Text("E2", "$h(2)")) { RowIndex = 2 },
-                new Row(_fixture.Text("B6", "DISPOSABLE ABOVE")) { RowIndex = 6 },
-                new Row(_fixture.Text("A7", "$header(1).Bids"), _fixture.Text("D7", "{Company}"), new Cell { CellReference = "E7" }, _fixture.Text("F7", "Static right")) { RowIndex = 7 },
-                new Row(_fixture.Text("A8", "$header(2).Criteria"), _fixture.Text("E8", "{Name}")) { RowIndex = 8 },
-                new Row(_fixture.Text("A9", "$l(10).Items"), _fixture.Text("B9", "{Name}"), Formula("E9", "SUBTOTAL(9,E$10:E$11)")) { RowIndex = 9 },
-                new Row(_fixture.Text("A10", "$l(20).Items"), name, _fixture.Text("C10", "{Quantity}"), _fixture.Text("D10", "{Name}"), price) { RowIndex = 10, Height = 18, CustomHeight = true },
-                new Row(_fixture.Text("A11", "$level(20).Items"), new Cell { CellReference = "B11", StyleIndex = 2 }, _fixture.Text("C11", "{../Name}"), _fixture.Text("E11", "{Delta}")) { RowIndex = 11, Height = 19, CustomHeight = true },
-                new Row(_fixture.Text("A12", "$l(10).Items"), _fixture.Text("B12", "Footer: {Name}"), Formula("E12", "SUBTOTAL(9,E$10:E$11)", master: true)) { RowIndex = 12 },
-                new Row(_fixture.Text("B13", "Grand"), Formula("E13", "SUBTOTAL(9,E9:E12)")) { RowIndex = 13 },
-                new Row(_fixture.Text("B14", "Separator")) { RowIndex = 14, Height = 0, CustomHeight = true, Hidden = true },
-                new Row(_fixture.Text("A15", "$l(5).Other"), _fixture.Text("B15", "{Name}")) { RowIndex = 15 },
-                new Row(_fixture.Text("B16", "After second table")) { RowIndex = 16 },
-                new Row(_fixture.Text("B17", "DISPOSABLE BELOW"), _fixture.Text("G17", "DISPOSABLE RIGHT")) { RowIndex = 17 }),
-            new MergeCells(new MergeCell { Reference = "D7:E7" }, new MergeCell { Reference = "B10:B11" }));
-        workbook.Workbook!.DefinedNames!.Elements<DefinedName>().Single().Text = "'Report'!$B$7:$F$16";
-        var summary = workbook.AddNewPart<WorksheetPart>();
-        summary.Worksheet = new Worksheet(new SheetData(new Row(Formula("B4", "SUM(Report!D13:E13)")) { RowIndex = 4 }));
-        workbook.Workbook.Sheets!.Append(new Sheet { Name = "Summary", SheetId = 2, Id = workbook.GetIdOfPart(summary) });
-        workbook.Workbook.DefinedNames.Append(new DefinedName("'Summary'!$B$4:$B$4") { Name = "_xlnm.Print_Area", LocalSheetId = 1 });
-        customize?.Invoke(workbook, part);
-    });
+    private byte[] FullNestedTemplate(bool shared, Action<WorkbookPart, WorksheetPart>? customize = null) =>
+        new XlsxNestedFixture().Create(shared, customize);
 
-    private static string FullNestedData(int criteria) => JsonSerializer.Serialize(new
-    {
-        Bids = new[] { new { Company = "Alpha" }, new { Company = "Beta" } },
-        Criteria = Enumerable.Range(0, criteria).Select(index => new { Name = "Criterion " + index }),
-        Items = new[] { (10, "z", "Lot 1", 100), (20, "opaque-child", "A", 10), (20, "a", "B", 20), (10, "b", "Lot 2", 200), (20, "no/slash/ancestry", "C", 30) }
-            .SelectMany((item, index) => Enumerable.Range(0, criteria * 2).Select(tuple => new Dictionary<string, object>
-            {
-                ["$level"] = item.Item1, ["$path"] = item.Item2, ["Name"] = tuple == 0 ? item.Item3 : "not ordinary name " + tuple,
-                ["Quantity"] = index + 1, ["Price"] = item.Item4 + tuple, ["Delta"] = 1
-            })),
-        Other = new[] { "X", "Y", "Z" }.Select(name => new Dictionary<string, object> { ["$level"] = 5, ["Name"] = name })
-    });
+    private static string FullNestedData(int criteria) => new XlsxNestedFixture().Data(criteria);
 }

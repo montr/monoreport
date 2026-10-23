@@ -246,8 +246,10 @@ public sealed partial class Feature012FormulaTests
         Assert.Equal("SUBTOTAL(9,Report!B10:B11)", cells["B12"].CellFormula!.Text);
         Assert.Equal("SUBTOTAL(9,Report!B16:B17)", cells["B18"].CellFormula!.Text);
         Assert.Equal(new[] { "Report!B4*2", "Report!B6*2", "Report!B10*2", "Report!B16*2" }, new[] { 5, 7, 11, 17 }.Select(row => cells["B" + row].CellFormula!.Text));
-        var error = Assert.Throws<TemplateException>(() => _fixture.Merge(source, GroupData()));
-        Assert.Equal(DiagnosticCodes.XlsxUnsupportedFeature, error.Code); // Public nested guard stays in force.
+        using var publicPackage = SpreadsheetDocument.Open(new MemoryStream(_fixture.Merge(source, GroupData()).Document), false);
+        var publicCells = CrossSheetCells(publicPackage, "Report");
+        Assert.Equal(cells.Where(pair => pair.Value.CellFormula is not null).Select(pair => (pair.Key, pair.Value.CellFormula!.Text)).Order(),
+            publicCells.Where(pair => pair.Value.CellFormula is not null).Select(pair => (pair.Key, pair.Value.CellFormula!.Text)).Order());
     }
 
     private byte[] CrossSheetTemplate(string? summaryFormula = null, bool childFirst = false, string? consumerFormula = null,

@@ -51,9 +51,8 @@ public sealed class Feature012AnalyzerTests
         Assert.Equal(source, input.ToArray());
         var json = JsonSerializer.SerializeToElement(analysis, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
         Assert.Equal(new[] { "errors", "occurrences", "requirements", "valid", "warnings" }, json.EnumerateObject().Select(item => item.Name).Order());
-        // Analysis is data-independent; public nested output is still separately gated.
-        Assert.Equal(DiagnosticCodes.XlsxUnsupportedFeature,
-            Assert.Throws<TemplateException>(() => _fixture.Merge(source, "{\"Items\":[]}")).Code);
+        // Analysis is data-independent; runtime matrix validation still belongs to generation.
+        Assert.Equal(MonoReport.Models.DocumentFormat.Xlsx, _fixture.Merge(source, "{\"Items\":[]}").Format);
     }
 
     [Fact]

@@ -130,9 +130,7 @@ public sealed partial class Feature012FormulaTests
             ["B18"] = "SUBTOTAL(9,B16:B17)", ["B19"] = "SUBTOTAL(9,B15:B18)", ["B20"] = "SUM(B2:B19)"
         };
         AssertSharedGeometryPackage(result.Document, allExpected, 42, "A1:C20");
-        // Public nested activation remains a separate boundary.
-        var error = Assert.Throws<TemplateException>(() => _fixture.Merge(source, GroupData()));
-        Assert.Contains("nested", error.Message, StringComparison.OrdinalIgnoreCase);
+        AssertSharedGeometryPackage(_fixture.Merge(source, GroupData()).Document, allExpected, 42, "A1:C20");
         ExportSharedGeometry("nested", source, GroupData(), result.Document);
     }
 

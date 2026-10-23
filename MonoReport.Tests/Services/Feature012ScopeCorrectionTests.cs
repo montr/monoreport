@@ -34,7 +34,7 @@ public sealed class Feature012ScopeCorrectionTests
         Assert.Equal(new[] { "{Name}", "{../Name}", "{../../Name}", "{$.Name}" }, fields.Select(item => item.Expression));
         Assert.Equal(new[] { "$.Items[].Name", "$.Items[].Name", "$.Items[].Name", "$.Name" }, fields.Select(item => item.Path));
         Assert.All(fields, field => Assert.Equal("/xl/worksheets/sheet1.xml", field.Part));
-        AssertGuarded(source);
+        AssertPublicGeneration(source);
     }
 
     [Theory]
@@ -49,7 +49,7 @@ public sealed class Feature012ScopeCorrectionTests
         var plan = Prepare(source);
         Assert.Equal(new[] { "$.Items[].Name", "$.Items[].Name", "$.Items[].Name", "$.Name" },
             plan.Occurrences.Where(item => item.Kind == "field" && item.Location!.EndsWith("B" + fieldRow)).Select(item => item.Path));
-        AssertGuarded(source);
+        AssertPublicGeneration(source);
     }
 
     [Theory]
@@ -60,7 +60,7 @@ public sealed class Feature012ScopeCorrectionTests
         var source = Create(sequence.Split(',').Select(value => (int?)int.Parse(value)).ToArray(), footerRow, "{../Name}");
         var occurrence = Assert.Single(Prepare(source).Occurrences, item => item.Kind == "field" && item.Expression == "{../Name}");
         Assert.Equal("$.Items[].Name", occurrence.Path);
-        AssertGuarded(source);
+        AssertPublicGeneration(source);
     }
 
     [Theory]
@@ -72,7 +72,7 @@ public sealed class Feature012ScopeCorrectionTests
         var occurrence = Assert.Single(Prepare(source).Occurrences, item => item.Kind == "field" && item.Expression == field);
         Assert.Equal("$.Items[].Name", occurrence.Path);
         Assert.Equal("/xl/worksheets/sheet1.xml, sheet 'Report', B" + row, occurrence.Location);
-        AssertGuarded(source);
+        AssertPublicGeneration(source);
     }
 
     [Fact]
@@ -81,7 +81,7 @@ public sealed class Feature012ScopeCorrectionTests
         var source = Create([90, 40, 10, null, 40], 7, "{../Name}");
         var occurrence = Assert.Single(Prepare(source).Occurrences, item => item.Kind == "field" && item.Expression == "{../Name}");
         Assert.Equal("$.Items[].Name", occurrence.Path);
-        AssertGuarded(source);
+        AssertPublicGeneration(source);
     }
 
     [Fact]
@@ -120,13 +120,12 @@ public sealed class Feature012ScopeCorrectionTests
 
     [Theory]
     [InlineData(false)] [InlineData(true)]
-    public void F2_Guard_names_pending_emission_and_placement_and_returns_no_report(bool footerFirst)
+    public void F2_Public_generation_emits_parent_first_and_footer_first_roles(bool footerFirst)
     {
-        var source = Create(footerFirst ? [40, 10] : [10, 40], 3, "authored text");
-        var issue = AssertGuarded(source);
-        Assert.Contains("nested emission and placement", issue.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("hierarchy binding", issue.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("M3", issue.Message);
+        var source = Create(footerFirst ? [40, 10] : [10, 40], 3, "{Name}");
+        var result = _fixture.Merge(source, "{\"Items\":[{\"$level\":10,\"Name\":\"parent\"},{\"$level\":40,\"Name\":\"child\"}]}");
+        Assert.Equal(footerFirst ? "child" : "parent", _fixture.ReadCellText(result.Document, "A1"));
+        Assert.Equal(footerFirst ? "parent" : "child", _fixture.ReadCellText(result.Document, "A2"));
     }
 
     private XlsxTemplatePlan Prepare(byte[] source)
@@ -138,24 +137,19 @@ public sealed class Feature012ScopeCorrectionTests
             services.GetRequiredService<XlsxPackageReader>().Read(package, context), context);
     }
 
-    private GenerationDiagnostic AssertGuarded(byte[] source)
+    private void AssertPublicGeneration(byte[] source)
     {
+        var original = source.ToArray();
         using var services = _fixture.Services(); using var input = new MemoryStream(source);
         var analysis = services.GetRequiredService<TemplateAnalyzer>().Analyze(input);
         Assert.True(analysis.Valid); Assert.Empty(analysis.Errors); Assert.Empty(analysis.Warnings);
-        var issue = Assert.Single(Assert.Throws<TemplateException>(() => _fixture.Merge(source, "{\"Items\":[]}")).Errors);
-        Assert.Equal(DiagnosticCodes.XlsxUnsupportedFeature, issue.Code);
-        Assert.Equal("/xl/worksheets/sheet1.xml, sheet 'Report', A3", issue.Location);
         foreach (var json in new[] { "{\"Items\":[]}", "{\"Items\":null}", "{\"Items\":[{\"$level\":10,\"Name\":\"parent\"},{\"$level\":40,\"Name\":\"child\"}]}" })
         {
-            MergeResult? result = null;
-            var error = Assert.Throws<TemplateException>(() => result = _fixture.Merge(source, json));
-            Assert.Null(result);
-            Assert.Equal(issue.Code, error.Code); Assert.Equal(issue.Message, error.Errors[0].Message);
-            Assert.Equal(issue.Location, error.Errors[0].Location); Assert.False(error.LimitReached);
+            var result = _fixture.Merge(source, json);
+            using var package = SpreadsheetDocument.Open(new MemoryStream(result.Document), false);
+            Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(package));
         }
-        Assert.Equal(source, input.ToArray());
-        return issue;
+        Assert.Equal(original, source); Assert.Equal(original, input.ToArray());
     }
 
     private byte[] Create(int?[] levels, int fieldRow, string field) => _fixture.Create((workbook, worksheet) =>

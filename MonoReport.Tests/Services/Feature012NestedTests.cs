@@ -122,15 +122,15 @@ public sealed partial class Feature012NestedTests
     }
 
     [Fact]
-    public void Grammar_Parsed_nested_source_analyzes_but_public_generation_remains_gated()
+    public void Grammar_Parsed_nested_source_analyzes_and_public_empty_generation_succeeds()
     {
         var source = Create("$l(10).Items", "$l(40).Items", "$l(10).Items");
         using var services = _fixture.Services(); using var input = new MemoryStream(source);
         Assert.True(services.GetRequiredService<TemplateAnalyzer>().Analyze(input).Valid);
-        MergeResult? result = null;
-        var error = Assert.Throws<TemplateException>(() => result = _fixture.Merge(source, "{\"Items\":[]}"));
-        Assert.Null(result); Assert.Equal(DiagnosticCodes.XlsxUnsupportedFeature, error.Code);
-        Assert.Contains("A3", Assert.Single(error.Errors).Location); Assert.Contains("M3", error.Message);
+        var result = _fixture.Merge(source, "{\"Items\":[]}");
+        using var package = SpreadsheetDocument.Open(new MemoryStream(result.Document), false);
+        Assert.Empty(package.WorkbookPart!.WorksheetParts.Single().Worksheet!.Descendants<Cell>());
+        Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(package));
         Assert.Equal(source, input.ToArray());
     }
 

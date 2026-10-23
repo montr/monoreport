@@ -32,6 +32,8 @@ public sealed partial class Feature012NestedTests
                 }))
         });
         var result = RenderNested(source, json);
+        var generated = _fixture.Merge(source, json);
+        result = result with { Document = generated.Document };
         var schedule = Assert.Single(Assert.Single(result.Schedules).Regions).Blocks;
         Assert.Equal(new[] { XlsxLogicalBlockRole.Header, XlsxLogicalBlockRole.Body, XlsxLogicalBlockRole.Body,
             XlsxLogicalBlockRole.Footer, XlsxLogicalBlockRole.Header, XlsxLogicalBlockRole.Body, XlsxLogicalBlockRole.Footer }, schedule.Select(block => block.Role));
@@ -98,6 +100,8 @@ public sealed partial class Feature012NestedTests
         var json = JsonSerializer.Serialize(new { Items = items.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(item =>
             new Dictionary<string, object> { ["$level"] = int.Parse(item.Split(':')[0]), ["Name"] = item.Split(':')[1] }) });
         var result = RenderNested(source, json);
+        var generated = _fixture.Merge(source, json);
+        result = result with { Document = generated.Document };
         using var package = SpreadsheetDocument.Open(new MemoryStream(result.Document), false);
         Assert.Empty(new OpenXmlValidator().Validate(package));
         var addresses = package.WorkbookPart!.WorksheetParts.Single().Worksheet!.Descendants<Cell>().Select(cell => cell.CellReference!.Value!).ToArray();
@@ -111,6 +115,7 @@ public sealed partial class Feature012NestedTests
             Assert.All(result.Context.Warnings, warning => Assert.Contains("data ancestor", warning.Message));
         }
         else Assert.Empty(result.Context.Warnings);
+        Assert.Equal(result.Context.Warnings.Select(warning => (warning.Code, warning.DataPath)), generated.Warnings.Select(warning => (warning.Code, warning.DataPath)));
     }
 
     [Fact]
@@ -150,8 +155,8 @@ public sealed partial class Feature012NestedTests
             part.Worksheet!.Descendants<Row>().Single(row => row.RowIndex!.Value == 4).Elements<Cell>().Single(cell => cell.CellReference == "B4").Remove();
             part.Worksheet.Append(new MergeCells(new MergeCell { Reference = "B3:B4" }));
         });
-        NestedRenderResult? result = null;
-        var error = Assert.Throws<TemplateException>(() => result = RenderNested(source, """{"Items":[{"$level":10,"Name":"P"},{"$level":40,"Name":"C"}]}"""));
+        MergeResult? result = null;
+        var error = Assert.Throws<TemplateException>(() => result = _fixture.Merge(source, """{"Items":[{"$level":10,"Name":"P"},{"$level":40,"Name":"C"}]}"""));
         Assert.Null(result); Assert.Equal(DiagnosticCodes.XlsxUnsupportedFeature, error.Code);
         Assert.Contains("one vertical source block", error.Message); Assert.Contains("B3:B4", error.Errors[0].Location);
     }
@@ -190,8 +195,8 @@ public sealed partial class Feature012NestedTests
             footer.Elements<Cell>().Single(cell => cell.CellReference == "B5").Remove();
             footer.Append(new Cell { CellReference = "B5", CellFormula = new CellFormula("B4") });
         });
-        NestedRenderResult? result = null;
-        var error = Assert.Throws<TemplateException>(() => result = RenderNested(source, """{"Items":[{"$level":10,"Name":"P"}]}"""));
+        MergeResult? result = null;
+        var error = Assert.Throws<TemplateException>(() => result = _fixture.Merge(source, """{"Items":[{"$level":10,"Name":"P"}]}"""));
         Assert.Null(result); var issue = Assert.Single(error.Errors);
         Assert.Equal(DiagnosticCodes.XlsxUnsafeFormula, issue.Code); Assert.Contains("B5", issue.Location); Assert.Contains("B4", issue.Message);
     }

@@ -16,7 +16,7 @@ public sealed class Feature012HttpTests
     private readonly XlsxFixture _fixture = new();
 
     [Fact]
-    public async Task Analyzer_Nested_scope_fixture_matches_core_and_keeps_generation_guard()
+    public async Task Analyzer_Nested_scope_fixture_matches_core_and_allows_empty_generation()
     {
         var source = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures/feature012/analyzer-scopes.template.xlsx"));
         using var services = _fixture.Services(); using var input = new MemoryStream(source);
@@ -29,14 +29,35 @@ public sealed class Feature012HttpTests
             new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }), json.RootElement));
         Assert.Equal(new[] { "Bids", "Criteria", "Items", "Title" }, json.RootElement.GetProperty("requirements").EnumerateArray().Select(item => item.GetProperty("name").GetString()));
         using var generation = Form(source, "{\"Items\":[]}", true);
-        using var rejected = await client.PostAsync("/api/documents/generate", generation);
+        using var generationResponse = await client.PostAsync("/api/documents/generate", generation);
+        generationResponse.EnsureSuccessStatusCode();
+        using var generated = SpreadsheetDocument.Open(new MemoryStream(await generationResponse.Content.ReadAsByteArrayAsync()), false);
+        Assert.Empty(new OpenXmlValidator().Validate(generated));
+        Assert.Equal(source, input.ToArray());
+    }
+
+    [Fact]
+    public async Task Nested_Public_generation_returns_xlsx_and_rejects_bad_matrix_without_report_headers()
+    {
+        var fixture = new XlsxNestedFixture(); var source = fixture.Create(shared: true); var original = source.ToArray();
+        using var factory = new WebApplicationFactory<Program>(); using var client = factory.CreateClient();
+        using var form = Form(source, fixture.Data(3), true);
+        using var response = await client.PostAsync("/api/documents/generate", form);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", response.Content.Headers.ContentType!.MediaType);
+        Assert.Contains("document.xlsx", response.Content.Headers.ContentDisposition!.ToString());
+        Assert.False(response.Headers.Contains("X-MonoReport-Warning-Count"));
+        fixture.AssertGenerated(await response.Content.ReadAsByteArrayAsync());
+        using var invalid = Form(source, "{\"Bids\":[{}],\"Criteria\":[{},{}],\"Items\":[{\"$level\":10,\"$path\":\"p\"}]}", true);
+        using var rejected = await client.PostAsync("/api/documents/generate", invalid);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, rejected.StatusCode);
         Assert.Equal("application/problem+json", rejected.Content.Headers.ContentType!.MediaType);
         Assert.Null(rejected.Content.Headers.ContentDisposition); Assert.False(rejected.Headers.Contains("X-MonoReport-Warning-Count"));
         using var error = JsonDocument.Parse(await rejected.Content.ReadAsStringAsync());
-        Assert.Equal(DiagnosticCodes.XlsxUnsupportedFeature, error.RootElement.GetProperty("code").GetString());
-        Assert.Contains("A5", error.RootElement.GetProperty("errors")[0].GetProperty("location").GetString());
-        Assert.Equal(source, input.ToArray());
+        Assert.Equal(DiagnosticCodes.GenerationInvalidData, error.RootElement.GetProperty("code").GetString());
+        var issue = error.RootElement.GetProperty("errors")[0];
+        Assert.Equal("$.Items[0]", issue.GetProperty("dataPath").GetString()); Assert.Contains("A9", issue.GetProperty("location").GetString());
+        Assert.Equal(original, source);
     }
 
     [Fact]

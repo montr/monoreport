@@ -18,6 +18,7 @@ public sealed partial class Feature012FormulaTests
     {
         var source = GroupTemplate(firstFlag, lastFlag);
         var result = RenderGroups(source, GroupData());
+        result = result with { Document = _fixture.Merge(source, GroupData()).Document };
         using var package = SpreadsheetDocument.Open(new MemoryStream(result.Document), false);
         Assert.Empty(new OpenXmlValidator().Validate(package));
         var worksheet = package.WorkbookPart!.WorksheetParts.Single().Worksheet!;
@@ -65,8 +66,8 @@ public sealed partial class Feature012FormulaTests
             var target = part.Worksheet!.Descendants<Cell>().Single(cell => cell.CellReference == (company ? "C8" : "C9"));
             target.CellFormula!.Text = "SUM(" + operand + ")";
         });
-        var original = source.ToArray(); GroupRenderResult? result = null;
-        var error = Assert.Throws<TemplateException>(() => result = RenderGroups(source, GroupData()));
+        var original = source.ToArray(); MergeResult? result = null;
+        var error = Assert.Throws<TemplateException>(() => result = _fixture.Merge(source, GroupData()));
         Assert.Null(result); Assert.Equal(original, source);
         Assert.All(error.Errors, issue => Assert.Equal(DiagnosticCodes.XlsxUnsafeFormula, issue.Code));
         var issue = error.Errors.First(issue => issue.Location!.EndsWith(company ? "C8" : "C9", StringComparison.Ordinal));
@@ -81,8 +82,8 @@ public sealed partial class Feature012FormulaTests
         var items = absentSourceLevel
             ? """[{"$level":10,"Name":"P"},{"$level":30,"Name":"Empty team"},{"$level":50,"Name":"Unrendered child"},{"$level":10,"Name":"Q"},{"$level":30,"Name":"Team"},{"$level":40,"Name":"Ivan","Price":99}]"""
             : """[{"$level":10,"Name":"P"},{"$level":30,"Name":"Empty team"},{"$level":10,"Name":"Q"},{"$level":30,"Name":"Team"},{"$level":40,"Name":"Ivan","Price":99}]""";
-        GroupRenderResult? result = null;
-        var error = Assert.Throws<TemplateException>(() => result = RenderGroups(source, "{\"Items\":" + items + "}"));
+        MergeResult? result = null;
+        var error = Assert.Throws<TemplateException>(() => result = _fixture.Merge(source, "{\"Items\":" + items + "}"));
         Assert.Null(result); Assert.Contains(error.Errors, issue => issue.Code == DiagnosticCodes.XlsxUnsafeFormula && issue.Location!.Contains("C9") && issue.Message.Contains("C10:C11"));
     }
 
@@ -95,7 +96,7 @@ public sealed partial class Feature012FormulaTests
             rows[8].Append(GroupFormula("D8", "COUNT(C8:C13)"));
             rows[13].Append(GroupFormula("D13", "SUM(C8:C8,C9:C12)"));
         });
-        var result = RenderGroups(source, GroupData());
+        var result = _fixture.Merge(source, GroupData());
         using var package = SpreadsheetDocument.Open(new MemoryStream(result.Document), false);
         Assert.Empty(new OpenXmlValidator().Validate(package));
         var cells = package.WorkbookPart!.WorksheetParts.Single().Worksheet!.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
@@ -183,8 +184,8 @@ public sealed partial class Feature012FormulaTests
     [InlineData(2, 0)] [InlineData(0, 2)]
     public void Groups_Surviving_formulas_reject_removed_horizontal_descendants(int bids, int criteria)
     {
-        var source = TupleGroupTemplate(); GroupRenderResult? result = null;
-        var error = Assert.Throws<TemplateException>(() => result = RenderGroups(source, TupleGroupData(bids, criteria)));
+        var source = TupleGroupTemplate(); MergeResult? result = null;
+        var error = Assert.Throws<TemplateException>(() => result = _fixture.Merge(source, TupleGroupData(bids, criteria)));
         Assert.Null(result); Assert.Equal(DiagnosticCodes.XlsxUnsafeFormula, error.Code);
         Assert.Contains(bids == 0 ? "F9" : "D9", error.Errors[0].Location);
         Assert.Contains(bids == 0 ? "D10:E11" : "E10:E11", error.Errors[0].Message);
@@ -202,8 +203,8 @@ public sealed partial class Feature012FormulaTests
             xml.Descendants(ns + "c").Single(cell => (string?)cell.Attribute("r") == (operand.StartsWith('$') ? "E9" : "F9")).Element(ns + "f")!.Value = "SUM(" + operand + ")";
             return xml.ToString(System.Xml.Linq.SaveOptions.DisableFormatting);
         });
-        GroupRenderResult? result = null;
-        var error = Assert.Throws<TemplateException>(() => result = RenderGroups(source, TupleGroupData(2, 2)));
+        MergeResult? result = null;
+        var error = Assert.Throws<TemplateException>(() => result = _fixture.Merge(source, TupleGroupData(2, 2)));
         Assert.Null(result); Assert.Equal(DiagnosticCodes.XlsxUnsafeFormula, error.Code);
         Assert.Contains(operand.StartsWith('$') ? "E9" : "F9", error.Errors[0].Location);
         Assert.Contains(operand.StartsWith('$') ? "Mixed endpoint copy flags" : "disjoint", error.Errors[0].Message);

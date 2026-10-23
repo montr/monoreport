@@ -26,7 +26,7 @@ namespace MonoReport.Cli.Services
 
             Exit codes: 0 success, 1 input/render/output error, 2 invalid arguments.
             Errors are written to stderr; document output on stdout is binary.
-            XLSX supports static fields, single-level vertical runs, nested horizontal blocks and local scalar A1 formulas with physical PrintArea crop. Nested vertical groups and sheet/name/shared formulas require later milestones.
+            XLSX supports static fields, nested vertical groups, multirow blocks and safe scalar formulas over finite A1 operands, including supported sheet/name/shared references, with physical PrintArea crop. Worksheets with nested vertical regions allow no horizontal expansion or at most two horizontal levels, one authored block and one physical header row per level. See docs/xlsx-template-compatibility.md for current limits.
             Analysis writes JSON to stdout: 0 valid, 1 invalid/execution failure, 2 invalid arguments.
             """;
 

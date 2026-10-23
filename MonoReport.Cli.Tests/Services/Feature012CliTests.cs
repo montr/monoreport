@@ -14,7 +14,7 @@ public sealed class Feature012CliTests
     private readonly XlsxFixture _fixture = new();
 
     [Fact]
-    public void Analyzer_Nested_scope_fixture_matches_core_and_keeps_generation_guard()
+    public void Analyzer_Nested_scope_fixture_matches_core_and_allows_empty_generation()
     {
         var path = Path.Combine(AppContext.BaseDirectory, "Fixtures/feature012/analyzer-scopes.template.xlsx");
         var source = File.ReadAllBytes(path);
@@ -29,10 +29,41 @@ public sealed class Feature012CliTests
         Assert.True(JsonElement.DeepEquals(JsonSerializer.SerializeToElement(expected,
             new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }), json.RootElement));
         Assert.Equal(new[] { "Bids", "Criteria", "Items", "Title" }, json.RootElement.GetProperty("requirements").EnumerateArray().Select(item => item.GetProperty("name").GetString()));
-        using var rejected = new MemoryStream();
-        Assert.Equal(1, app.Run(["--template", path, "--json", "{\"Items\":[]}"], Stream.Null, rejected, errors));
-        Assert.Empty(rejected.ToArray()); Assert.Contains(DiagnosticCodes.XlsxUnsupportedFeature, errors.ToString());
+        using var generation = new MemoryStream();
+        Assert.Equal(0, app.Run(["--template", path, "--json", "{\"Items\":[]}"], Stream.Null, generation, errors));
+        using var generated = SpreadsheetDocument.Open(new MemoryStream(generation.ToArray()), false);
+        Assert.Empty(new OpenXmlValidator().Validate(generated)); Assert.Empty(errors.ToString());
         Assert.Equal(source, File.ReadAllBytes(path));
+    }
+
+    [Fact]
+    public void Nested_Public_generation_writes_binary_stdout_and_file_and_protects_existing_output_on_failure()
+    {
+        var fixture = new XlsxNestedFixture(); var source = fixture.Create(shared: true);
+        var path = Path.Combine(Path.GetTempPath(), "feature012-nested-" + Guid.NewGuid().ToString("N") + ".xlsx");
+        var destination = path + ".result";
+        File.WriteAllBytes(path, source);
+        try
+        {
+            using var services = _fixture.Services();
+            var app = new CliApplication(new CliOptionsParser(), services.GetRequiredService<MergeEngine>(), services.GetRequiredService<TemplateAnalyzer>());
+            using var output = new MemoryStream(); using var errors = new StringWriter();
+            Assert.Equal(0, app.Run(["--template", path, "--json", fixture.Data(3)], Stream.Null, output, errors));
+            fixture.AssertGenerated(output.ToArray()); Assert.Empty(errors.ToString());
+            using var fileOutput = new MemoryStream();
+            Assert.Equal(0, app.Run(["--template", path, "--json", fixture.Data(3), "--output", destination], Stream.Null, fileOutput, errors));
+            Assert.Empty(fileOutput.ToArray()); fixture.AssertGenerated(File.ReadAllBytes(destination));
+            File.WriteAllText(destination, "existing output sentinel");
+            const string invalid = "{\"Bids\":[{}],\"Criteria\":[{},{}],\"Items\":[{\"$level\":10,\"$path\":\"p\"}]}";
+            using var failure = new MemoryStream();
+            Assert.Equal(1, app.Run(["--template", path, "--json", invalid], Stream.Null, failure, errors));
+            Assert.Equal(1, app.Run(["--template", path, "--json", invalid, "--output", destination], Stream.Null, failure, errors));
+            Assert.Empty(failure.ToArray()); Assert.Equal("existing output sentinel", File.ReadAllText(destination));
+            Assert.Contains(DiagnosticCodes.GenerationInvalidData, errors.ToString());
+            Assert.Contains("$.Items[0]", errors.ToString()); Assert.Contains("A9", errors.ToString());
+            Assert.Equal(source, File.ReadAllBytes(path));
+        }
+        finally { File.Delete(path); File.Delete(destination); }
     }
 
     [Fact]

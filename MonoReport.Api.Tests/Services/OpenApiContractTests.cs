@@ -113,6 +113,8 @@ public sealed class OpenApiContractTests
             content.EnumerateObject().Select(item => item.Name).Order());
         Assert.Contains("static", operation.GetProperty("description").GetString());
         Assert.Contains("scalar formulas", operation.GetProperty("description").GetString());
+        Assert.Contains("at most two horizontal levels", operation.GetProperty("description").GetString());
+        Assert.Contains("one physical header row per level", operation.GetProperty("description").GetString());
         Assert.Contains(DiagnosticCodes.XlsxUnsafeFormula, operation.GetProperty("responses").GetProperty("422").GetProperty("description").GetString());
     }
 }

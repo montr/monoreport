@@ -17,6 +17,7 @@
     <ProjectReference Include="../MonoReport.Cli/MonoReport.Cli.csproj" />
     <Compile Include="../MonoReport.Tests/Services/Docx.cs" Link="Services/Docx.cs" />
     <Compile Include="../MonoReport.Tests/Services/XlsxFixture.cs" Link="Services/XlsxFixture.cs" />
+    <Compile Include="../MonoReport.Tests/Services/XlsxNestedFixture.cs" Link="Services/XlsxNestedFixture.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="../MonoReport.Tests/Fixtures/feature012/analyzer-scopes.template.xlsx" Link="Fixtures/feature012/analyzer-scopes.template.xlsx" CopyToOutputDirectory="PreserveNewest" />

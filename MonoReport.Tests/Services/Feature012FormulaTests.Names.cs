@@ -248,17 +248,19 @@ public sealed partial class Feature012FormulaTests
         });
         if (valid)
         {
-            var result = RenderGroups(source, GroupData());
+            var result = _fixture.Merge(source, GroupData());
             using var package = SpreadsheetDocument.Open(new MemoryStream(result.Document), false);
             Assert.Empty(new OpenXmlValidator().Validate(package));
             Assert.Equal("Report!$B$2:$B$19", package.WorkbookPart!.Workbook!.DefinedNames!.Elements<DefinedName>().Single(name => name.Name == "AllData").Text);
             var cells = CrossSheetCells(package, "Report");
             foreach (var row in new[] { 3, 9, 15 }) Assert.Equal("SUM(AllData)", cells["B" + row].CellFormula!.Text);
-            Assert.Equal(DiagnosticCodes.XlsxUnsupportedFeature, Assert.Throws<TemplateException>(() => _fixture.Merge(source, GroupData())).Code);
         }
         else
         {
-            var error = Assert.Throws<TemplateException>(() => RenderGroups(source, GroupData()));
+            MergeResult? result = null; var original = source.ToArray();
+            var error = Assert.Throws<TemplateException>(() => result = _fixture.Merge(source, GroupData()));
+            Assert.Null(result); Assert.Equal(original, source);
+            Assert.Equal(DiagnosticCodes.XlsxUnsafeFormula, error.Code);
             var issue = Assert.Single(error.Errors);
             Assert.Contains("defined name 'AllData'", issue.Location);
             Assert.Contains("retained contiguous A1 range", issue.Message);
