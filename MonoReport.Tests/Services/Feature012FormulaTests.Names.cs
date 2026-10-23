@@ -84,7 +84,8 @@ public sealed partial class Feature012FormulaTests
     public void Names_Definitions_follow_final_geometry_while_repeated_and_cross_sheet_uses_keep_global_meaning(int rows, int criteria, int consumers)
     {
         var source = EditNamesWorkbook(CrossSheetTemplate("SUM(Body)+Tail+Report!F12", consumerFormula: "SUM(Body)+Rate", leafFormula: "Rate+Report!$C10"), workbook =>
-            workbook.Workbook!.DefinedNames!.Append(new DefinedName("Report!$D$10:$E$10") { Name = "Body" },
+            // Empty child collections require an explicitly retained parent-only source range.
+            workbook.Workbook!.DefinedNames!.Append(new DefinedName(criteria == 0 ? "Report!$D$10:$D$10" : "Report!$D$10:$E$10") { Name = "Body" },
                 new DefinedName("Consumers!$D$8") { Name = "Tail" }, new DefinedName("'O''Brien Summary'!$I$8") { Name = "Rate" }));
         var json = CrossSheetData(rows, criteria, consumers);
         var result = _fixture.Merge(source, json);
@@ -161,6 +162,8 @@ public sealed partial class Feature012FormulaTests
     [InlineData("Report!$A$1", 2, 3, false)]
     [InlineData("Report!$A$9:$C$10", 2, 3, false)]
     [InlineData("Report!$E$7", 2, 0, true)]
+    [InlineData("Report!$D$10:$E$10", 3, 0, false)]
+    [InlineData("Report!$E$10:$D$10", 3, 0, false)]
     public void Names_Unsafe_final_images_reject_instead_of_selecting_one_owner_or_filling_gaps(string definition, int rows, int criteria, bool childFirst)
     {
         var source = EditNamesWorkbook(CrossSheetTemplate("1", childFirst), workbook =>
@@ -177,6 +180,7 @@ public sealed partial class Feature012FormulaTests
         Assert.Contains("defined name 'UnsafeTarget'", issue.Location);
         Assert.Contains(definition, issue.Message);
         Assert.Contains("retained contiguous A1 range", issue.Message);
+        Assert.Equal(source, input.ToArray());
     }
 
     [Theory]

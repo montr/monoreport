@@ -115,7 +115,17 @@ public sealed partial class Feature012FormulaTests
         Assert.Equal(Enumerable.Range(0, count).Select(index => new XlsxAddress(index * 2 + 1, 1)), instances.Select(cell => cell.Output));
         Assert.Equal(count, instances.Select(cell => cell.Id).Distinct().Count());
         Assert.Equal("B3+$D$4+$D3+B$4+SUM(B3:C3)+\"B3\"", sheet.Cells[0].Formula!.Text);
-        AssertSharedInventoryFailure(bytes, "requires shared-formula relocation", "B3", errorCount: 3, json: data.RootElement.GetRawText());
+        if (count == 0)
+        {
+            using var output = SpreadsheetDocument.Open(new MemoryStream(_fixture.Merge(bytes, data.RootElement.GetRawText()).Document), false);
+            Assert.Empty(output.WorkbookPart!.WorksheetParts.Single().Worksheet!.Descendants<CellFormula>());
+        }
+        else
+        {
+            var error = Assert.Throws<TemplateException>(() => _fixture.Merge(bytes, data.RootElement.GetRawText()));
+            Assert.All(error.Errors, issue => Assert.Equal(DiagnosticCodes.XlsxUnsafeFormula, issue.Code));
+            Assert.Contains(error.Errors, issue => issue.Message.Contains("retained contiguous A1 range"));
+        }
     }
 
     [Theory]
@@ -187,7 +197,7 @@ public sealed partial class Feature012FormulaTests
         var follower = plan.Sheets[0].Cells.Single(cell => cell.Source.Id.Address == new XlsxAddress(3, 6));
         Assert.NotNull(follower.Formula);
         Assert.Equal("SUM(E3:$C$3)", follower.Formula.Text);
-        AssertSharedInventoryFailure(bytes, "requires shared-formula relocation", "B3", errorCount: 2);
+        AssertSharedInventoryFailure(bytes, "Reference A3:$C$3", "B3");
     }
 
     private byte[] SharedCopyWorkbook(string formula) => _fixture.Create((_, part) =>

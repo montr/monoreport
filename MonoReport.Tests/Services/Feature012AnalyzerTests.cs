@@ -44,9 +44,16 @@ public sealed class Feature012AnalyzerTests
 
         using var input = new MemoryStream(source);
         var analysis = services.GetRequiredService<TemplateAnalyzer>().Analyze(input);
-        Assert.False(analysis.Valid); // Prepared dependencies do not claim full repeated-template acceptance.
-        Assert.All(analysis.Errors, issue => Assert.Equal(DiagnosticCodes.XlsxUnsupportedFeature, issue.Code));
-        Assert.Contains(analysis.Errors, issue => issue.Message.Contains("M3", StringComparison.Ordinal));
+        Assert.True(analysis.Valid);
+        Assert.Empty(analysis.Errors); Assert.Empty(analysis.Warnings);
+        Assert.Equal(JsonSerializer.Serialize(builder.Requirements), JsonSerializer.Serialize(analysis.Requirements));
+        Assert.Equal(JsonSerializer.Serialize(builder.Occurrences), JsonSerializer.Serialize(analysis.Occurrences));
+        Assert.Equal(source, input.ToArray());
+        var json = JsonSerializer.SerializeToElement(analysis, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        Assert.Equal(new[] { "errors", "occurrences", "requirements", "valid", "warnings" }, json.EnumerateObject().Select(item => item.Name).Order());
+        // Analysis is data-independent; public nested output is still separately gated.
+        Assert.Equal(DiagnosticCodes.XlsxUnsupportedFeature,
+            Assert.Throws<TemplateException>(() => _fixture.Merge(source, "{\"Items\":[]}")).Code);
     }
 
     [Fact]

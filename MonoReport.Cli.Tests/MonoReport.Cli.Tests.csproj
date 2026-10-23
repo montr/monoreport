@@ -19,6 +19,7 @@
     <Compile Include="../MonoReport.Tests/Services/XlsxFixture.cs" Link="Services/XlsxFixture.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="../MonoReport.Tests/Fixtures/feature012/analyzer-scopes.template.xlsx" Link="Fixtures/feature012/analyzer-scopes.template.xlsx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Samples/sample.template.docx" Link="sample.template.docx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Samples/sample.json" Link="sample.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Samples/sample.docx" Link="sample.docx" CopyToOutputDirectory="PreserveNewest" />

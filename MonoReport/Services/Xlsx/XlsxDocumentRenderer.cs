@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using System.Xml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using MonoReport.Models;
 using MonoReport.Models.Xlsx;
 
 namespace MonoReport.Services.Xlsx;
@@ -14,6 +15,17 @@ internal sealed partial class XlsxDocumentRenderer
 
     internal void Render(SpreadsheetDocument document, XlsxWorkbookPlan plan, XlsxOperationContext context)
     {
+        context.ThrowIfErrors();
+        // Validate the entire workbook before writing any worksheet; source follower XML is never a fallback.
+        foreach (var sheet in plan.Sheets)
+            foreach (var cell in sheet.Rows.SelectMany(row => row.Cells))
+            {
+                if (context.LimitReached) break;
+                if (!cell.Suppressed && cell.Source.HasFormula && string.IsNullOrWhiteSpace(cell.Formula))
+                    context.Report(new StructuralDiagnostic(DiagnosticCodes.XlsxUnsafeFormula,
+                        "Formula placement has no finalized text. Finalize every surviving scalar A1 formula before rendering.",
+                        Location: sheet.Geometry.Source.Part + ", sheet '" + sheet.Geometry.Source.Name + "', " + cell.Source.Id.Address).ToException());
+            }
         context.ThrowIfErrors();
         var parts = document.WorkbookPart!.WorksheetParts.ToDictionary(part => part.Uri.ToString(), StringComparer.Ordinal);
         foreach (var sheet in plan.Sheets)

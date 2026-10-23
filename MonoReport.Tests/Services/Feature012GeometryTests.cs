@@ -13,6 +13,24 @@ public sealed class Feature012GeometryTests
     private readonly XlsxFixture _fixture = new();
     private readonly XlsxTwoAxisFixture _twoAxis = new();
 
+    [Fact]
+    public void Projection_Clips_and_coalesces_overlapping_source_spans_independently_of_repeated_output()
+    {
+        var source = _twoAxis.Plan(_twoAxis.Create()).Sheets[0].Source;
+        var geometry = new XlsxSheetGeometry(source, new(new(1, 1), new(8, 6)), 0, 0)
+        {
+            Expanded = true,
+            RowSpans = [new(7, 9, 1), new(8, 12, 4)],
+            ColumnSpans = [new(1, 6, 1)]
+        };
+        using var services = _fixture.Services();
+        var image = services.GetRequiredService<XlsxGeometryPlanner>().ProjectInstances(
+            new(new(8, 2), new(10, 4)), geometry, null, null);
+        Assert.True(image.Complete);
+        Assert.Equal(XlsxRangeImageKind.Rectangle, image.Kind);
+        Assert.Equal(new XlsxRectangle(new(2, 2), new(6, 4)), image.Rectangle);
+    }
+
     [Theory]
     [InlineData("B7")] [InlineData("D8")]
     public void Controls_Header_fields_outside_their_matching_owner_reject_in_analysis_and_generation(string address)

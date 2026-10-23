@@ -65,6 +65,22 @@ public sealed partial class Feature012NestedTests
                 new Dictionary<string, object> { ["$level"] = 80, ["Name"] = "Third child", ["Price"] = 17 } },
             Value = 7
         });
+        if (parents == 0)
+        {
+            NestedRenderResult? rejected = null;
+            var error = Assert.Throws<TemplateException>(() => rejected = RenderNested(source, json));
+            Assert.Null(rejected); Assert.Equal(original, source);
+            Assert.Equal(2, error.Errors.Count);
+            foreach (var (address, operand) in new[] { ("F8", "C9:C17"), ("F22", "C9:C21") })
+            {
+                var issue = Assert.Single(error.Errors, issue => issue.Location!.EndsWith(", " + address, StringComparison.Ordinal));
+                Assert.Equal(DiagnosticCodes.XlsxUnsafeFormula, issue.Code);
+                Assert.Contains("Reference " + operand, issue.Message);
+                Assert.Contains("retained contiguous A1 range", issue.Message);
+            }
+            // Retain the empty-run placement control with explicitly authored surviving operands.
+            source = RegionsWorkbook(retainedTotalsOnly: true); original = source.ToArray();
+        }
         var result = RenderNested(source, json);
         Assert.Equal(original, source); Assert.Empty(result.Context.Errors); Assert.Empty(result.Context.Warnings);
         Assert.Equal(new uint[] { 1, 9, 4 }, result.Template.Sheets.Select(sheet => sheet.Source.Id));
@@ -101,7 +117,7 @@ public sealed partial class Feature012NestedTests
             .Concat(new[] { "H:Other parent", "Other child 1/Other parent", "Other child 2/Other parent", "F:Other parent", "tail" }),
             Enumerable.Range(3, last - 2).Select(row => cells.GetValueOrDefault("A" + row)?.InlineString?.InnerText ?? ""));
         Assert.Equal("SUBTOTAL(9,B3:B" + (runHeight * 2 + 3) + ")", cells[endColumn + "2"].CellFormula!.Text);
-        Assert.Equal("COUNT(B3:B" + (last - 1) + ")", cells[endColumn + last].CellFormula!.Text);
+        Assert.Equal("COUNT(B" + (parents == 0 ? 5 : 3) + ":B" + (last - 1) + ")", cells[endColumn + last].CellFormula!.Text);
         var childRows = parents == 0 ? Array.Empty<int>() : parents == 1 ? new[] { 4, 6 } : new[] { 4, 6, 10 };
         foreach (var offset in new[] { 0, runHeight + 1 })
             for (var index = 0; index < childRows.Length; index++)
@@ -167,7 +183,7 @@ public sealed partial class Feature012NestedTests
         Assert.Null(output); Assert.Equal(original, source);
     }
 
-    private byte[] RegionsWorkbook()
+    private byte[] RegionsWorkbook(bool retainedTotalsOnly = false)
     {
         var source = NestedTupleTemplate();
         using var stream = new MemoryStream(); stream.Write(source); stream.Position = 0;
@@ -175,7 +191,8 @@ public sealed partial class Feature012NestedTests
         {
             var workbook = package.WorkbookPart!; var main = workbook.WorksheetParts.Single().Worksheet!;
             var rows = main.GetFirstChild<SheetData>()!;
-            rows.Elements<Row>().Single(row => row.RowIndex!.Value == 8).Append(new Cell { CellReference = "F8", CellFormula = new CellFormula("SUBTOTAL(9,C9:C17)") });
+            rows.Elements<Row>().Single(row => row.RowIndex!.Value == 8).Append(new Cell { CellReference = "F8",
+                CellFormula = new CellFormula(retainedTotalsOnly ? "SUBTOTAL(9,C13:C13)" : "SUBTOTAL(9,C9:C17)") });
             var repeat = rows.Elements<Row>().Where(row => row.RowIndex!.Value is >= 9 and <= 12).Select(row => (Row)row.CloneNode(true)).ToArray();
             rows.Append(new Row(_fixture.Text("B13", "separator 1")) { RowIndex = 13, Height = 0, CustomHeight = true, Hidden = true });
             foreach (var row in repeat)
@@ -188,7 +205,8 @@ public sealed partial class Feature012NestedTests
                 new Row(_fixture.Text("A19", "$l(5).Other"), _fixture.Text("B19", "H:{Name}")) { RowIndex = 19 },
                 new Row(_fixture.Text("A20", "$l(90).Other"), _fixture.Text("B20", "{Name}/{../Name}")) { RowIndex = 20 },
                 new Row(_fixture.Text("A21", "$l(5).Other"), _fixture.Text("B21", "F:{Name}")) { RowIndex = 21 },
-                new Row(_fixture.Text("B22", "tail"), new Cell { CellReference = "F22", CellFormula = new CellFormula("COUNT(C9:C21)") }) { RowIndex = 22 });
+                new Row(_fixture.Text("B22", "tail"), new Cell { CellReference = "F22",
+                    CellFormula = new CellFormula(retainedTotalsOnly ? "COUNT(C19:C21)" : "COUNT(C9:C21)") }) { RowIndex = 22 });
             main.GetFirstChild<MergeCells>()!.Append(new MergeCell { Reference = "B14:C14" }, new MergeCell { Reference = "B15:B16" }, new MergeCell { Reference = "B17:C17" });
             var staticPart = workbook.AddNewPart<WorksheetPart>();
             staticPart.Worksheet = new Worksheet(new SheetData(new Row(_fixture.Text("C4", "{Value}")) { RowIndex = 4 },

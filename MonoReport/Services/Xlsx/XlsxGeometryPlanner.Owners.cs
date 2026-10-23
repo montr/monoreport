@@ -103,18 +103,23 @@ internal sealed partial class XlsxGeometryPlanner
             remaining = pieces;
         }
         var images = new List<XlsxRectangle>();
+        var complete = geometry.Source.PrintArea.Contains(range.First) && geometry.Source.PrintArea.Contains(range.Last);
         foreach (var piece in remaining)
         {
             var rows = AxisImage(piece.First.Row, piece.Last.Row, geometry.RowSpans.Where(span =>
-                CompatibleVertical(span.Vertical, vertical, descendants)));
-            var columns = AxisImage(piece.First.Column, piece.Last.Column, geometry.ColumnSpans.Where(span => Compatible(span.Horizontal, horizontal)));
+                CompatibleVertical(span.Vertical, vertical, descendants)), out var rowsComplete);
+            var columns = AxisImage(piece.First.Column, piece.Last.Column, geometry.ColumnSpans.Where(span => Compatible(span.Horizontal, horizontal)), out var columnsComplete);
+            complete &= rowsComplete && columnsComplete;
             foreach (var row in rows)
                 foreach (var column in columns) images.Add(new(new(row.First, column.First), new(row.Last, column.Last)));
         }
-        foreach (var owner in affected.Where(owner => Compatible(owner.Horizontal, horizontal) &&
-            CompatibleVertical(owner.Vertical, vertical, descendants)))
-            images.Add(new(owner.Output, owner.Output));
-        var complete = geometry.Source.PrintArea.Contains(range.First) && geometry.Source.PrintArea.Contains(range.Last);
+        foreach (var addressOwners in affected.GroupBy(owner => owner.Source.Address))
+        {
+            var compatible = addressOwners.Where(owner => Compatible(owner.Horizontal, horizontal) &&
+                CompatibleVertical(owner.Vertical, vertical, descendants)).ToArray();
+            complete &= compatible.Length > 0;
+            foreach (var owner in compatible) images.Add(new(owner.Output, owner.Output));
+        }
         if (images.Count == 0) return new(XlsxRangeImageKind.Empty, null, complete);
         var first = new XlsxAddress(images.Min(image => image.First.Row), images.Min(image => image.First.Column));
         var last = new XlsxAddress(images.Max(image => image.Last.Row), images.Max(image => image.Last.Column));

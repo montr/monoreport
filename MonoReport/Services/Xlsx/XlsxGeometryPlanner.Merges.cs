@@ -11,8 +11,9 @@ internal sealed partial class XlsxGeometryPlanner
     {
         var area = geometry.Source.PrintArea;
         var complete = area.Contains(range.First) && area.Contains(range.Last);
-        var rows = AxisImage(range.First.Row, range.Last.Row, geometry.RowSpans.Where(span => CompatibleVertical(span.Vertical, vertical, descendants)));
-        var columns = AxisImage(range.First.Column, range.Last.Column, geometry.ColumnSpans.Where(span => Compatible(span.Horizontal, horizontal)));
+        var rows = AxisImage(range.First.Row, range.Last.Row, geometry.RowSpans.Where(span => CompatibleVertical(span.Vertical, vertical, descendants)), out var rowsComplete);
+        var columns = AxisImage(range.First.Column, range.Last.Column, geometry.ColumnSpans.Where(span => Compatible(span.Horizontal, horizontal)), out var columnsComplete);
+        complete &= rowsComplete && columnsComplete;
         if (rows.Count == 0 || columns.Count == 0) return new(XlsxRangeImageKind.Empty, null, complete);
         if (rows.Count != 1 || columns.Count != 1) return new(XlsxRangeImageKind.Disjoint, null, complete);
         var result = new XlsxRectangle(new(rows[0].First, columns[0].First), new(rows[0].Last, columns[0].Last));
@@ -31,11 +32,22 @@ internal sealed partial class XlsxGeometryPlanner
         return true;
     }
 
-    private static List<(int First, int Last)> AxisImage(int first, int last, IEnumerable<XlsxAxisSpan> spans)
+    private static List<(int First, int Last)> AxisImage(int first, int last, IEnumerable<XlsxAxisSpan> spans, out bool complete)
     {
-        var projected = spans.Where(span => span.First <= last && first <= span.Last)
-            .Select(span => (First: span.OutputFirst + Math.Max(first, span.First) - span.First,
-                Last: span.OutputFirst + Math.Min(last, span.Last) - span.First)).OrderBy(span => span.First);
+        var clipped = spans.Where(span => span.First <= last && first <= span.Last)
+            .Select(span => (First: Math.Max(first, span.First), Last: Math.Min(last, span.Last),
+                Offset: span.OutputFirst - span.First)).ToArray();
+        // Repetitions can cover the same source interval; output contiguity cannot prove source coverage.
+        var next = first;
+        complete = true;
+        foreach (var span in clipped.OrderBy(span => span.First))
+        {
+            if (span.First > next) complete = false;
+            next = Math.Max(next, span.Last + 1);
+        }
+        complete &= next > last;
+        var projected = clipped.Select(span => (First: span.First + span.Offset, Last: span.Last + span.Offset))
+            .OrderBy(span => span.First);
         var result = new List<(int First, int Last)>();
         foreach (var span in projected)
             if (result.Count > 0 && span.First <= result[^1].Last + 1) result[^1] = (result[^1].First, Math.Max(result[^1].Last, span.Last));

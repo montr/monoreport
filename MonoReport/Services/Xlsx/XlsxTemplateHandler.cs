@@ -22,7 +22,7 @@ internal sealed class XlsxTemplateHandler(XlsxPackageReader reader, XlsxTemplate
             using var document = SpreadsheetDocument.Open(package, false);
             var context = new XlsxOperationContext(new MergeOptions()) { SourceBytes = package.Length };
             var plan = _planner.Plan(_reader.Read(document, context), context);
-            var staticGeometry = _geometry.Preflight(plan, context);
+            var staticGeometry = _geometry.Preflight(plan, context, forAnalysis: true);
             _formulas.ValidateStaticReferences(plan, context);
             if (staticGeometry is not null) _formulas.Finalize(plan, staticGeometry, context);
             return new([], requirements: plan.Requirements, occurrences: plan.Occurrences);

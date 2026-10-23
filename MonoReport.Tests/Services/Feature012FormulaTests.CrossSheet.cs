@@ -40,7 +40,8 @@ public sealed partial class Feature012FormulaTests
     [InlineData(3, 0, 2)]
     public void CrossSheet_Static_expanded_and_independent_expanded_sheets_use_final_target_geometry(int rows, int criteria, int consumers)
     {
-        var source = CrossSheetTemplate();
+        // With no child columns, author a range over the retained parent column explicitly.
+        var source = CrossSheetTemplate(bodyLastColumn: criteria == 0 ? "D" : "E");
         var json = CrossSheetData(rows, criteria, consumers);
         var result = _fixture.Merge(source, json);
         using var package = SpreadsheetDocument.Open(new MemoryStream(result.Document), false);
@@ -94,6 +95,8 @@ public sealed partial class Feature012FormulaTests
     [InlineData("Report!A1", 2, 3, false)]
     [InlineData("Report!A9:C10", 2, 3, false)]
     [InlineData("Report!E7", 2, 0, true)]
+    [InlineData("Report!D10:E10", 3, 0, false)]
+    [InlineData("Report!E10:D10", 3, 0, false)]
     public void CrossSheet_Unsafe_target_images_reject_with_source_operand_and_remedy(string operand, int rows, int criteria, bool childFirst)
     {
         var source = CrossSheetTemplate("SUM(" + operand + ")", childFirst);
@@ -160,11 +163,13 @@ public sealed partial class Feature012FormulaTests
     [Fact]
     public void CrossSheet_Retained_merge_anchors_follow_content_owners_when_their_physical_source_columns_disappear()
     {
-        var source = CrossSheetTemplate("SUM(Report!D7:D7)", childFirst: true);
+        var source = CrossSheetTemplate("SUM(Report!D7:D7)", childFirst: true,
+            consumerFormula: "COUNT(Report!$D$7:$D$7)+'O''Brien Summary'!$I8");
         var result = _fixture.Merge(source, CrossSheetData(2, 0, 1));
         using var package = SpreadsheetDocument.Open(new MemoryStream(result.Document), false);
         Assert.Empty(new OpenXmlValidator().Validate(package));
         Assert.Equal("SUM(Report!C1:D1)", CrossSheetCells(package, "O'Brien Summary")["A2"].CellFormula!.Text);
+        Assert.Equal("COUNT(Report!$C$1:$D$1)+'O''Brien Summary'!$B1", CrossSheetCells(package, "Consumers")["B2"].CellFormula!.Text);
         Assert.Equal("Alpha", CrossSheetCells(package, "Report")["C1"].InlineString!.InnerText);
         Assert.Equal("Beta", CrossSheetCells(package, "Report")["D1"].InlineString!.InnerText);
     }
@@ -245,7 +250,8 @@ public sealed partial class Feature012FormulaTests
         Assert.Equal(DiagnosticCodes.XlsxUnsupportedFeature, error.Code); // Public nested guard stays in force.
     }
 
-    private byte[] CrossSheetTemplate(string? summaryFormula = null, bool childFirst = false, string? consumerFormula = null, string? leafFormula = null) =>
+    private byte[] CrossSheetTemplate(string? summaryFormula = null, bool childFirst = false, string? consumerFormula = null,
+        string? leafFormula = null, string bodyLastColumn = "E") =>
         new XlsxTwoAxisFixture().Create((workbook, report) =>
         {
             var rows = report.Worksheet!.Descendants<Row>().ToDictionary(row => row.RowIndex!.Value);
@@ -264,15 +270,15 @@ public sealed partial class Feature012FormulaTests
             consumers.Worksheet = new Worksheet(new SheetData(
                 new Row(_fixture.Text("D4", "consumer top")) { RowIndex = 4 },
                 new Row(_fixture.Text("C5", "$l(70).Consumers"), _fixture.Text("D5", "{Name}"),
-                    GroupFormula("E5", consumerFormula ?? "COUNT(Report!$D$10:$E$10)+'O''Brien Summary'!$I8"), GroupFormula("F5", "Report!F12+Report!C9")) { RowIndex = 5 },
+                    GroupFormula("E5", consumerFormula ?? $"COUNT(Report!$D$10:${bodyLastColumn}$10)+'O''Brien Summary'!$I8"), GroupFormula("F5", "Report!F12+Report!C9")) { RowIndex = 5 },
                 new Row(_fixture.Text("D6", "separator")) { RowIndex = 6 },
                 new Row(_fixture.Text("C7", "$l(90).Later"), _fixture.Text("D7", "{Name}")) { RowIndex = 7 },
                 new Row(_fixture.Text("D8", "consumer tail")) { RowIndex = 8 }));
             var summary = workbook.AddNewPart<WorksheetPart>();
             summary.Worksheet = new Worksheet(new SheetData(
                 new Row(new Cell { CellReference = "H8", CellValue = new CellValue("7") }, new Cell { CellReference = "I8", CellValue = new CellValue("11") }) { RowIndex = 8 },
-                new Row(GroupFormula("H9", summaryFormula ?? "SUM(Report!$D10:E$10)+Report!$F$12+LEN(\"Report!D10\")+1E10"),
-                    GroupFormula("I9", summaryFormula is null ? "SUBTOTAL(9,Report!D10:E10)" : "1"), GroupFormula("J9", "'O''Brien Summary'!$I$8")) { RowIndex = 9 }));
+                new Row(GroupFormula("H9", summaryFormula ?? $"SUM(Report!$D10:{bodyLastColumn}$10)+Report!$F$12+LEN(\"Report!D10\")+1E10"),
+                    GroupFormula("I9", summaryFormula is null ? $"SUBTOTAL(9,Report!D10:{bodyLastColumn}10)" : "1"), GroupFormula("J9", "'O''Brien Summary'!$I$8")) { RowIndex = 9 }));
             workbook.Workbook!.Sheets!.RemoveAllChildren();
             workbook.Workbook.Sheets.Append(new Sheet { Name = "O'Brien Summary", SheetId = 90, Id = workbook.GetIdOfPart(summary) },
                 new Sheet { Name = "Consumers", SheetId = 7, Id = workbook.GetIdOfPart(consumers) }, new Sheet { Name = "Report", SheetId = 31, Id = workbook.GetIdOfPart(report) });

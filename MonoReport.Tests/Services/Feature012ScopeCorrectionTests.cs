@@ -138,17 +138,19 @@ public sealed class Feature012ScopeCorrectionTests
             services.GetRequiredService<XlsxPackageReader>().Read(package, context), context);
     }
 
-    private TemplateValidationIssue AssertGuarded(byte[] source)
+    private GenerationDiagnostic AssertGuarded(byte[] source)
     {
         using var services = _fixture.Services(); using var input = new MemoryStream(source);
         var analysis = services.GetRequiredService<TemplateAnalyzer>().Analyze(input);
-        Assert.False(analysis.Valid);
-        var issue = Assert.Single(analysis.Errors);
+        Assert.True(analysis.Valid); Assert.Empty(analysis.Errors); Assert.Empty(analysis.Warnings);
+        var issue = Assert.Single(Assert.Throws<TemplateException>(() => _fixture.Merge(source, "{\"Items\":[]}")).Errors);
         Assert.Equal(DiagnosticCodes.XlsxUnsupportedFeature, issue.Code);
         Assert.Equal("/xl/worksheets/sheet1.xml, sheet 'Report', A3", issue.Location);
         foreach (var json in new[] { "{\"Items\":[]}", "{\"Items\":null}", "{\"Items\":[{\"$level\":10,\"Name\":\"parent\"},{\"$level\":40,\"Name\":\"child\"}]}" })
         {
-            var error = Assert.Throws<TemplateException>(() => _fixture.Merge(source, json));
+            MergeResult? result = null;
+            var error = Assert.Throws<TemplateException>(() => result = _fixture.Merge(source, json));
+            Assert.Null(result);
             Assert.Equal(issue.Code, error.Code); Assert.Equal(issue.Message, error.Errors[0].Message);
             Assert.Equal(issue.Location, error.Errors[0].Location); Assert.False(error.LimitReached);
         }

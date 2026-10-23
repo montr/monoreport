@@ -4,6 +4,7 @@ using System.Xml.Linq;
 namespace MonoReport.Models.Xlsx;
 
 internal enum XlsxRangeImageKind { Cell, Rectangle, Empty, Disjoint, Ambiguous }
+// Complete requires PrintArea containment and a compatible image for every requested source address.
 internal sealed record XlsxRangeImage(XlsxRangeImageKind Kind, XlsxRectangle? Rectangle, bool Complete);
 internal sealed record XlsxAxisSpan(int First, int Last, int OutputFirst,
     VerticalInstancePath? Vertical = null, HorizontalInstancePath? Horizontal = null)

@@ -122,10 +122,16 @@ public sealed partial class Feature012NestedTests
     }
 
     [Fact]
-    public void Grammar_Parsed_nested_source_cannot_generate_before_hierarchy_and_placement_support()
+    public void Grammar_Parsed_nested_source_analyzes_but_public_generation_remains_gated()
     {
-        AssertRejected(Create("$l(10).Items", "$l(40).Items", "$l(10).Items"),
-            DiagnosticCodes.XlsxUnsupportedFeature, "A3", "M3");
+        var source = Create("$l(10).Items", "$l(40).Items", "$l(10).Items");
+        using var services = _fixture.Services(); using var input = new MemoryStream(source);
+        Assert.True(services.GetRequiredService<TemplateAnalyzer>().Analyze(input).Valid);
+        MergeResult? result = null;
+        var error = Assert.Throws<TemplateException>(() => result = _fixture.Merge(source, "{\"Items\":[]}"));
+        Assert.Null(result); Assert.Equal(DiagnosticCodes.XlsxUnsupportedFeature, error.Code);
+        Assert.Contains("A3", Assert.Single(error.Errors).Location); Assert.Contains("M3", error.Message);
+        Assert.Equal(source, input.ToArray());
     }
 
     private byte[] Create(params string?[] markers) => _fixture.Create((workbook, worksheet) =>

@@ -7,7 +7,7 @@ namespace MonoReport.Services.Xlsx;
 
 internal sealed partial class XlsxGeometryPlanner
 {
-    internal XlsxWorkbookPlan? Preflight(XlsxTemplatePlan template, XlsxOperationContext context)
+    internal XlsxWorkbookPlan? Preflight(XlsxTemplatePlan template, XlsxOperationContext context, bool forAnalysis = false)
     {
         if (template.Sheets.All(sheet => sheet.Controls.IsEmpty))
         {
@@ -19,7 +19,9 @@ internal sealed partial class XlsxGeometryPlanner
             try
             {
                 var nested = sheet.Regions.FirstOrDefault(region => !region.Root.Children.IsEmpty);
-                if (nested is not null)
+                // Analysis validates the parsed template without scheduling JSON-specific output.
+                // Public generation remains gated independently of analyzer acceptance.
+                if (nested is not null && !forAnalysis)
                     throw new StructuralDiagnostic(DiagnosticCodes.XlsxUnsupportedFeature,
                         "Nested emission and placement are pending in M3.",
                         Location: sheet.Controls.First(marker => marker.Kind == XlsxControlKind.Vertical && marker.Cell.Id.Address.Row == nested.FirstRow).Location,

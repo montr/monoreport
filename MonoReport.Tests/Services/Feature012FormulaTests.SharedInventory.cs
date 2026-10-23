@@ -168,16 +168,16 @@ public sealed partial class Feature012FormulaTests
         Assert.Equal(2, group.Members.Length);
         Assert.Equal(0u, Assert.Single(plan.Sheets[0].Cells).SharedFormulaIndex);
         Assert.Equal(masterOutside ? "SUM(B4:$B$3)" : "SUM(B3:$B$3)", Assert.Single(plan.Sheets[0].Cells).Formula!.Text);
-        AssertSharedInventoryFailure(bytes, "requires shared-formula relocation", "B3");
+        // This is a source-normalization probe containing self references, not a calculation/output fixture.
         var invalid = _fixture.RewritePart(bytes, "xl/worksheets/sheet1.xml", xml => xml.Replace("B2:B3", "B3", StringComparison.Ordinal));
         AssertSharedInventoryFailure(invalid, "outside its master ref", "B2");
     }
 
     [Fact]
-    public void SharedInventory_Valid_retained_groups_are_guarded_in_preflight_and_direct_formula_finalization()
+    public void SharedInventory_Normalized_groups_keep_operand_crop_rejection_in_preflight_and_direct_finalization()
     {
         var bytes = SharedInventoryWorkbook();
-        AssertSharedInventoryFailure(bytes, "requires shared-formula relocation", "B3", errorCount: 3);
+        AssertSharedInventoryFailure(bytes, "Reference D3:E3", "D3", errorCount: 2);
         using var services = _fixture.Services();
         using var package = SpreadsheetDocument.Open(new MemoryStream(bytes), false);
         var context = new XlsxOperationContext(new MergeOptions());
@@ -185,8 +185,9 @@ public sealed partial class Feature012FormulaTests
         var output = services.GetRequiredService<XlsxGeometryPlanner>().Plan(plan, ImmutableDictionary<SourceCellId, XlsxPreparedValue>.Empty, context);
         var error = Assert.Throws<TemplateException>(() => services.GetRequiredService<XlsxFormulaPlanner>().Finalize(plan, output, context));
         Assert.Equal(DiagnosticCodes.XlsxUnsafeFormula, error.Code);
-        Assert.All(error.Errors, issue => Assert.Contains("ordinary per-cell scalar A1", issue.Message));
-        Assert.Equal(3, error.Errors.Count);
+        Assert.All(error.Errors, issue => Assert.Contains("retained contiguous A1 range", issue.Message));
+        Assert.Equal(new[] { "D3", "D4" }, error.Errors.Select(issue => issue.Location!.Split(", ").Last()));
+        Assert.Equal(2, error.Errors.Count);
     }
 
     [Fact]
@@ -210,15 +211,16 @@ public sealed partial class Feature012FormulaTests
 
     [Theory]
     [InlineData(0)] [InlineData(1)] [InlineData(3)]
-    public void SharedInventory_Repeated_groups_reject_before_data_counts_can_mask_unnormalized_formulas(int count)
+    public void SharedInventory_Repeated_groups_reject_unsafe_source_copy_before_data_counts_can_mask_it(int count)
     {
         var bytes = SharedInventoryWorkbook((_, part) =>
         {
             foreach (var row in part.Worksheet!.Descendants<Row>())
                 row.PrependChild(_fixture.Text("A" + row.RowIndex!.Value, "$l(10).Items"));
+            part.Worksheet.Descendants<CellFormula>().Single(formula => formula.Reference is not null).Text = "A1";
         });
         var json = "{\"Items\":[" + string.Join(',', Enumerable.Repeat("{\"$level\":10}", count)) + "]}";
-        AssertSharedInventoryFailure(bytes, "requires shared-formula relocation", "B3", errorCount: 3, json: json);
+        AssertSharedInventoryFailure(bytes, "inside Excel worksheet dimensions", "B3", errorCount: 2, json: json);
     }
 
     [Fact]

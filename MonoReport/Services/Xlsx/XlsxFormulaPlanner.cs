@@ -11,7 +11,7 @@ internal sealed class XlsxFormulaPlanner(XlsxFormulaReferences references, XlsxG
 
     internal void ValidateStaticReferences(XlsxTemplatePlan template, XlsxOperationContext context)
     {
-        RequireScalarFormulas(template, context);
+        RequireNormalizedSharedFormulas(template, context);
         var sheets = template.Sheets.ToDictionary(sheet => sheet.Source.Id);
         foreach (var name in template.DefinedNames)
         {
@@ -47,7 +47,7 @@ internal sealed class XlsxFormulaPlanner(XlsxFormulaReferences references, XlsxG
 
     internal XlsxWorkbookPlan Finalize(XlsxTemplatePlan template, XlsxWorkbookPlan workbook, XlsxOperationContext context)
     {
-        RequireScalarFormulas(template, context);
+        RequireNormalizedSharedFormulas(template, context);
         var parsed = template.Sheets.SelectMany(sheet => sheet.Cells).Where(cell => cell.Formula is not null).ToDictionary(cell => cell.Source.Id, cell => cell.Formula!);
         var geometries = workbook.Sheets.ToDictionary(sheet => sheet.Geometry.Source.Id, sheet => sheet.Geometry);
         var names = workbook.Names.Select(name => new System.Xml.Linq.XElement(name)).ToArray();
@@ -71,7 +71,13 @@ internal sealed class XlsxFormulaPlanner(XlsxFormulaReferences references, XlsxG
                 .ThenBy(cell => cell.Source.Id.Address.Column).ThenBy(cell => cell.Output.Row).ThenBy(cell => cell.Output.Column))
             {
                 if (context.LimitReached) break;
-                if (cell.Suppressed || !parsed.TryGetValue(cell.Source.Id, out var formula)) continue;
+                if (cell.Suppressed || !cell.Source.HasFormula) continue;
+                if (!parsed.TryGetValue(cell.Source.Id, out var formula) || string.IsNullOrWhiteSpace(formula.Text))
+                {
+                    context.Report(Unsafe(sheet.Geometry.Source.Part + ", sheet '" + sheet.Geometry.Source.Name + "', " + cell.Source.Id.Address,
+                        "Formula placement has no normalized parsed formula. Rebuild the template plan from valid scalar A1 formulas before finalization."));
+                    continue;
+                }
                 try { formulas.Add(cell.Id, BindFormula(formula, cell, sheet.Geometry,
                     groups.Any(block => block.FirstRow <= cell.Source.Id.Address.Row && cell.Source.Id.Address.Row <= block.LastRow), geometries)); }
                 catch (TemplateException error) { context.Report(error); }
@@ -83,13 +89,14 @@ internal sealed class XlsxFormulaPlanner(XlsxFormulaReferences references, XlsxG
         context.ThrowIfErrors(); return workbook with { Sheets = sheets.ToImmutable(), Names = names.ToImmutableArray() };
     }
 
-    private static void RequireScalarFormulas(XlsxTemplatePlan template, XlsxOperationContext context)
+    private static void RequireNormalizedSharedFormulas(XlsxTemplatePlan template, XlsxOperationContext context)
     {
         foreach (var cell in template.Sheets.SelectMany(sheet => sheet.Cells).Where(cell => cell.SharedFormulaIndex is not null))
         {
             if (context.LimitReached) break;
-            context.Report(Unsafe(cell.Location, "Shared formula group " + cell.SharedFormulaIndex +
-                " requires shared-formula relocation before scalar output. Re-save the group as ordinary per-cell scalar A1 formulas."));
+            if (cell.Formula is null || string.IsNullOrWhiteSpace(cell.Formula.Text))
+                context.Report(Unsafe(cell.Location, "Shared formula group " + cell.SharedFormulaIndex +
+                    " has no normalized parsed formula. Rebuild the template plan from a valid shared master and explicit scalar A1 members."));
         }
         context.ThrowIfErrors();
     }
@@ -141,6 +148,7 @@ internal sealed class XlsxFormulaPlanner(XlsxFormulaReferences references, XlsxG
             var range = new XlsxRectangle(new(Math.Min(first.Row, last.Row), Math.Min(first.Column, last.Column)),
                 new(Math.Max(first.Row, last.Row), Math.Max(first.Column, last.Column)));
             var image = _geometry.ProjectReference(range, target, vertical, horizontal, descendants);
+            if (!image.Complete) throw UnsafeImage(location, formula, reference);
             if (target.Expanded && reference.IsRange &&
                 (reference.First.RowAbsolute != reference.Last.RowAbsolute && ownerVertical is not null ||
                  reference.First.ColumnAbsolute != reference.Last.ColumnAbsolute && ownerHorizontal is not null))
@@ -148,10 +156,11 @@ internal sealed class XlsxFormulaPlanner(XlsxFormulaReferences references, XlsxG
                 var scoped = _geometry.ProjectReference(range, target,
                     reference.First.RowAbsolute != reference.Last.RowAbsolute ? ownerVertical : vertical,
                     reference.First.ColumnAbsolute != reference.Last.ColumnAbsolute ? ownerHorizontal : horizontal, descendants);
+                if (!scoped.Complete) throw UnsafeImage(location, formula, reference);
                 if (scoped.Kind != image.Kind || scoped.Rectangle != image.Rectangle)
                     throw Unsafe(location, "Mixed endpoint copy flags select incompatible repeated owners. Re-author the A1 range with consistent flags or uniquely retained endpoints.");
             }
-            if (!image.Complete || image.Kind is XlsxRangeImageKind.Empty or XlsxRangeImageKind.Disjoint or XlsxRangeImageKind.Ambiguous ||
+            if (image.Kind is XlsxRangeImageKind.Empty or XlsxRangeImageKind.Disjoint or XlsxRangeImageKind.Ambiguous ||
                 !reference.IsRange && image.Kind != XlsxRangeImageKind.Cell)
                 throw UnsafeImage(location, formula, reference);
             var result = image.Rectangle!.Value;

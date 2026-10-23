@@ -5,13 +5,39 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using MonoReport.Models;
+using MonoReport.Services;
 
 namespace MonoReport.Tests.Services;
 
 public sealed class Feature012HttpTests
 {
     private readonly XlsxFixture _fixture = new();
+
+    [Fact]
+    public async Task Analyzer_Nested_scope_fixture_matches_core_and_keeps_generation_guard()
+    {
+        var source = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures/feature012/analyzer-scopes.template.xlsx"));
+        using var services = _fixture.Services(); using var input = new MemoryStream(source);
+        var expected = services.GetRequiredService<TemplateAnalyzer>().Analyze(input); Assert.True(expected.Valid);
+        using var factory = new WebApplicationFactory<Program>(); using var client = factory.CreateClient();
+        using var form = Form(source, null, true);
+        using var response = await client.PostAsync("/api/documents/analyze", form); response.EnsureSuccessStatusCode();
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.True(JsonElement.DeepEquals(JsonSerializer.SerializeToElement(expected,
+            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }), json.RootElement));
+        Assert.Equal(new[] { "Bids", "Criteria", "Items", "Title" }, json.RootElement.GetProperty("requirements").EnumerateArray().Select(item => item.GetProperty("name").GetString()));
+        using var generation = Form(source, "{\"Items\":[]}", true);
+        using var rejected = await client.PostAsync("/api/documents/generate", generation);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, rejected.StatusCode);
+        Assert.Equal("application/problem+json", rejected.Content.Headers.ContentType!.MediaType);
+        Assert.Null(rejected.Content.Headers.ContentDisposition); Assert.False(rejected.Headers.Contains("X-MonoReport-Warning-Count"));
+        using var error = JsonDocument.Parse(await rejected.Content.ReadAsStringAsync());
+        Assert.Equal(DiagnosticCodes.XlsxUnsupportedFeature, error.RootElement.GetProperty("code").GetString());
+        Assert.Contains("A5", error.RootElement.GetProperty("errors")[0].GetProperty("location").GetString());
+        Assert.Equal(source, input.ToArray());
+    }
 
     [Fact]
     public async Task Repeated_Existing_routes_generate_native_rows_and_formulas_and_reject_bad_cardinality_before_output()

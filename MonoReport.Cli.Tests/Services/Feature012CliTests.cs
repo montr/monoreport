@@ -14,6 +14,28 @@ public sealed class Feature012CliTests
     private readonly XlsxFixture _fixture = new();
 
     [Fact]
+    public void Analyzer_Nested_scope_fixture_matches_core_and_keeps_generation_guard()
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "Fixtures/feature012/analyzer-scopes.template.xlsx");
+        var source = File.ReadAllBytes(path);
+        using var services = _fixture.Services(); using var input = new MemoryStream(source);
+        var analyzer = services.GetRequiredService<TemplateAnalyzer>();
+        var expected = analyzer.Analyze(input); Assert.True(expected.Valid);
+        var app = new CliApplication(new CliOptionsParser(), services.GetRequiredService<MergeEngine>(), analyzer);
+        using var output = new MemoryStream(); using var errors = new StringWriter();
+        Assert.Equal(0, app.Run(["--analyze", "--template", path], Stream.Null, output, errors));
+        Assert.Empty(errors.ToString());
+        using var json = JsonDocument.Parse(output.ToArray());
+        Assert.True(JsonElement.DeepEquals(JsonSerializer.SerializeToElement(expected,
+            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }), json.RootElement));
+        Assert.Equal(new[] { "Bids", "Criteria", "Items", "Title" }, json.RootElement.GetProperty("requirements").EnumerateArray().Select(item => item.GetProperty("name").GetString()));
+        using var rejected = new MemoryStream();
+        Assert.Equal(1, app.Run(["--template", path, "--json", "{\"Items\":[]}"], Stream.Null, rejected, errors));
+        Assert.Empty(rejected.ToArray()); Assert.Contains(DiagnosticCodes.XlsxUnsupportedFeature, errors.ToString());
+        Assert.Equal(source, File.ReadAllBytes(path));
+    }
+
+    [Fact]
     public void Repeated_Existing_cli_switches_render_scoped_native_rows_and_transformed_formulas()
     {
         var path = Path.Combine(Path.GetTempPath(), "feature012-m2-" + Guid.NewGuid().ToString("N") + ".xlsx");
