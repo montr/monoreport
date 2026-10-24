@@ -61,6 +61,30 @@ public sealed class Feature012HttpTests
     }
 
     [Fact]
+    public async Task Activated_deep_branching_multirow_layout_generates_through_http_contract()
+    {
+        var fixture = new XlsxNestedFixture(); var source = fixture.CreateActivated();
+        using var factory = new WebApplicationFactory<Program>(); using var client = factory.CreateClient();
+        using var form = Form(source, XlsxNestedFixture.ActivatedData(), true);
+        using var response = await client.PostAsync("/api/documents/generate", form);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", response.Content.Headers.ContentType!.MediaType);
+        Assert.Contains("document.xlsx", response.Content.Headers.ContentDisposition!.ToString());
+        Assert.False(response.Headers.Contains("X-MonoReport-Warning-Count"));
+        XlsxNestedFixture.AssertActivated(await response.Content.ReadAsByteArrayAsync());
+
+        using var invalid = Form(source, "{\"Bids\":[{}],\"Criteria\":[{},{}],\"Third\":[{}],\"Items\":[{\"$level\":10,\"$path\":\"p\"}]}", true);
+        using var rejected = await client.PostAsync("/api/documents/generate", invalid);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, rejected.StatusCode);
+        Assert.Equal("application/problem+json", rejected.Content.Headers.ContentType!.MediaType);
+        Assert.Null(rejected.Content.Headers.ContentDisposition);
+        using var problem = JsonDocument.Parse(await rejected.Content.ReadAsStringAsync());
+        Assert.Equal(DiagnosticCodes.XlsxUnsafeFormula, problem.RootElement.GetProperty("code").GetString());
+        Assert.Contains("formula", problem.RootElement.GetProperty("detail").GetString(), StringComparison.OrdinalIgnoreCase);
+        Assert.NotEmpty(problem.RootElement.GetProperty("errors")[0].GetProperty("location").GetString()!);
+    }
+
+    [Fact]
     public async Task Repeated_Existing_routes_generate_native_rows_and_formulas_and_reject_bad_cardinality_before_output()
     {
         var source = _fixture.CreateRepeated();

@@ -18,9 +18,6 @@ internal sealed partial class XlsxGeometryPlanner
             if (context.LimitReached) break;
             try
             {
-                var nested = sheet.Regions.FirstOrDefault(region => !region.Root.Children.IsEmpty);
-                if (nested is not null && !forAnalysis)
-                    ValidateNestedEligibility(sheet);
                 ValidateFeatures(template.Source, sheet.Source);
                 var area = sheet.Source.PrintArea;
                 var identity = new XlsxSheetGeometry(sheet.Source, new(new(1, 1), new(area.Height, area.Width)), 1 - area.First.Row, 1 - area.First.Column)
@@ -37,21 +34,6 @@ internal sealed partial class XlsxGeometryPlanner
         }
         context.ThrowIfErrors();
         return null;
-    }
-
-    private static void ValidateNestedEligibility(XlsxSheetTemplate sheet)
-    {
-        var depth = 0;
-        for (var node = sheet.Horizontal; node is not null; node = node.Children.SingleOrDefault())
-        {
-            if (++depth > 2 || node.Children.Length > 1)
-                throw Unsupported(sheet.Source, "Nested vertical reports support at most two horizontal levels with one authored block per level. Simplify the horizontal controls or move that layout to a worksheet without nested vertical regions.");
-        }
-        var repeatedHeader = sheet.Controls.Where(marker => marker.Kind == XlsxControlKind.Header)
-            .GroupBy(marker => marker.Level).FirstOrDefault(group => group.Count() > 1);
-        if (repeatedHeader is not null)
-            throw Unsupported(sheet.Source, "Nested vertical reports support one physical horizontal header row per level. Consolidate the repeated header rows or move that layout to a worksheet without nested vertical regions.",
-                repeatedHeader.First().Cell.Id.Address.ToString());
     }
 
     internal XlsxWorkbookPlan PlanReports(XlsxTemplatePlan template, ImmutableArray<XlsxBoundSheet> data,

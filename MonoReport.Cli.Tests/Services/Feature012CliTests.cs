@@ -67,6 +67,24 @@ public sealed class Feature012CliTests
     }
 
     [Fact]
+    public void Activated_deep_branching_multirow_layout_generates_through_cli()
+    {
+        var fixture = new XlsxNestedFixture();
+        var path = Path.Combine(Path.GetTempPath(), "feature012-activated-" + Guid.NewGuid().ToString("N") + ".xlsx");
+        File.WriteAllBytes(path, fixture.CreateActivated());
+        try
+        {
+            using var services = _fixture.Services();
+            var app = new CliApplication(new CliOptionsParser(), services.GetRequiredService<MergeEngine>(), services.GetRequiredService<TemplateAnalyzer>());
+            using var output = new MemoryStream(); using var errors = new StringWriter();
+            Assert.Equal(0, app.Run(["--template", path, "--json", XlsxNestedFixture.ActivatedData()], Stream.Null, output, errors));
+            Assert.Empty(errors.ToString());
+            XlsxNestedFixture.AssertActivated(output.ToArray());
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
     public void Repeated_Existing_cli_switches_render_scoped_native_rows_and_transformed_formulas()
     {
         var path = Path.Combine(Path.GetTempPath(), "feature012-m2-" + Guid.NewGuid().ToString("N") + ".xlsx");

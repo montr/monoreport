@@ -14,20 +14,40 @@ public sealed partial class Feature012NestedTests
     [InlineData("depth", false)] [InlineData("depth", true)]
     [InlineData("children", false)] [InlineData("children", true)]
     [InlineData("header-rows", false)] [InlineData("header-rows", true)]
-    public void Activation_Deferred_horizontal_shapes_reject_before_binding_but_keep_source_analysis(string shape, bool empty)
+    public void Activation_Public_nested_generation_accepts_deep_branching_and_multirow_headers(string shape, bool empty)
     {
         var source = ActivationTemplate(shape); var original = source.ToArray();
         using var services = _fixture.Services(); using var input = new MemoryStream(source);
         Assert.True(services.GetRequiredService<TemplateAnalyzer>().Analyze(input).Valid);
-        MergeResult? result = null;
-        var error = Assert.Throws<TemplateException>(() => result = _fixture.Merge(source, ActivationData(empty)));
-        Assert.Null(result); Assert.Equal(DiagnosticCodes.XlsxUnsupportedFeature, error.Code);
-        Assert.Contains(shape == "header-rows" ? "one physical horizontal header row" : "at most two horizontal levels", error.Message);
-        Assert.Contains("move that layout", error.Message);
-        Assert.Contains("Report", Assert.Single(error.Errors).Location);
+        var result = _fixture.Merge(source, ActivationData(empty));
+        using var package = SpreadsheetDocument.Open(new MemoryStream(result.Document), false);
+        Assert.Empty(new OpenXmlValidator().Validate(package));
+        Assert.DoesNotContain(package.WorkbookPart!.WorksheetParts.Single().Worksheet!.Descendants<Cell>(), cell =>
+            cell.InlineString?.InnerText.StartsWith("$h(", StringComparison.Ordinal) == true || cell.InlineString?.InnerText.StartsWith("$l(", StringComparison.Ordinal) == true);
         Assert.Equal(original, source); Assert.Equal(original, input.ToArray());
-        // Null collections cannot bypass the source eligibility boundary either.
-        Assert.Equal(error.Message, Assert.Throws<TemplateException>(() => _fixture.Merge(source, "{\"Items\":null}")).Message);
+        var nullItems = _fixture.Merge(source, "{\"Bids\":[{\"Name\":\"bid\"}],\"Criteria\":[{\"Name\":\"criterion\"}],\"Third\":[{\"Name\":\"third\"}],\"Items\":null}");
+        using var nullPackage = SpreadsheetDocument.Open(new MemoryStream(nullItems.Document), false);
+        Assert.Empty(new OpenXmlValidator().Validate(nullPackage));
+    }
+
+    [Fact]
+    public void Activation_Public_combined_three_level_branching_multirow_template_preserves_geometry_values_formulas_and_merges()
+    {
+        var source = new XlsxNestedFixture().CreateActivated();
+        var original = source.ToArray();
+        var result = _fixture.Merge(source, XlsxNestedFixture.ActivatedData());
+
+        using var package = SpreadsheetDocument.Open(new MemoryStream(result.Document), false);
+        Assert.Empty(new OpenXmlValidator().Validate(package));
+        var worksheet = package.WorkbookPart!.WorksheetParts.Single().Worksheet!;
+        var cells = worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+        Assert.Equal("A1:F10", worksheet.GetFirstChild<SheetDimension>()!.Reference!.Value);
+        Assert.Equal(new[] { "bid", "criterion", "third" }, new[] { "C1", "C4", "C6" }.Select(address => _fixture.ReadCellText(result.Document, address)));
+        Assert.Equal(new[] { "criterion", "criterion", "third", "third" }, new[] { "C3", "E3", "C5", "E5" }.Select(address => _fixture.ReadCellText(result.Document, address)));
+        Assert.Equal("child/parent", _fixture.ReadCellText(result.Document, "A9"));
+        Assert.Equal("SUM(B8:B9)", cells["B10"].CellFormula!.Text);
+        Assert.Equal("A1:B1", Assert.Single(worksheet.Descendants<MergeCell>()).Reference!.Value);
+        Assert.Equal(original, source);
     }
 
     [Theory]
@@ -44,7 +64,7 @@ public sealed partial class Feature012NestedTests
     }
 
     [Theory]
-    [InlineData("rich-field")] [InlineData("pane")] [InlineData("break")]
+    [InlineData("rich-field")] [InlineData("pane")] [InlineData("break")] [InlineData("autofilter")]
     [InlineData("unsupported-formula")] [InlineData("partial-merge")]
     public void Activation_Public_nested_generation_preserves_format_geometry_and_formula_rejection(string scenario)
     {
@@ -54,6 +74,7 @@ public sealed partial class Feature012NestedTests
             if (scenario == "rich-field") cells["B10"].InlineString = new InlineString(new Run(new Text("{Name}")));
             else if (scenario == "pane") part.Worksheet.PrependChild(new SheetViews(new SheetView(new Pane { TopLeftCell = "B7", State = PaneStateValues.Frozen, VerticalSplit = 1 }) { WorkbookViewId = 0 }));
             else if (scenario == "break") part.Worksheet.Append(new RowBreaks(new Break { Id = 10, Min = 0, Max = 16383, ManualPageBreak = true }) { Count = 1, ManualBreakCount = 1 });
+            else if (scenario == "autofilter") part.Worksheet.InsertAfter(new AutoFilter { Reference = "B7:F10" }, part.Worksheet.GetFirstChild<SheetData>());
             else if (scenario == "unsupported-formula") cells["E13"].CellFormula!.Text = "INDIRECT(\"E10\")";
             else part.Worksheet.GetFirstChild<MergeCells>()!.Append(new MergeCell { Reference = "F15:G15" });
         });
@@ -65,13 +86,16 @@ public sealed partial class Feature012NestedTests
         Assert.Contains(scenario switch
         {
             "rich-field" => "Rich-text field substitution", "pane" => "pane", "break" => "manual page breaks",
-            "unsupported-formula" => "INDIRECT/OFFSET", _ => "partial merge"
+            "autofilter" => "unsupported worksheet structure", "unsupported-formula" => "INDIRECT/OFFSET", _ => "partial merge"
         }, error.Message);
+        var repeated = Assert.Throws<TemplateException>(() => _fixture.Merge(source, FullNestedData(3)));
+        Assert.Equal(error.Code, repeated.Code); Assert.Equal(error.Message, repeated.Message);
+        Assert.Equal(original, source);
     }
 
     [Theory]
     [InlineData(false)] [InlineData(true)]
-    public void Activation_Eligibility_is_worksheet_local_and_a_later_ineligible_sheet_returns_no_workbook(bool ineligible)
+    public void Activation_Deep_horizontal_shapes_generate_on_each_worksheet(bool ineligible)
     {
         var first = ActivationTemplate("depth", nested: false);
         var second = ineligible ? ActivationTemplate("depth") : Create("$l(10).Items", "$l(20).Items", "$l(10).Items");
@@ -88,21 +112,11 @@ public sealed partial class Feature012NestedTests
                 { Name = "_xlnm.Print_Area", LocalSheetId = 1 });
         });
         var original = source.ToArray();
-        if (ineligible)
-        {
-            MergeResult? result = null;
-            var error = Assert.Throws<TemplateException>(() => result = _fixture.Merge(source, ActivationData(false)));
-            Assert.Null(result); Assert.Equal(DiagnosticCodes.XlsxUnsupportedFeature, error.Code);
-            Assert.Contains("Other", Assert.Single(error.Errors).Location);
-        }
-        else
-        {
-            var result = _fixture.Merge(source, ActivationData(false));
-            using var package = SpreadsheetDocument.Open(new MemoryStream(result.Document), false);
-            Assert.Equal(2, package.WorkbookPart!.WorksheetParts.Count());
-            Assert.Empty(new OpenXmlValidator().Validate(package));
-            Assert.All(package.WorkbookPart.WorksheetParts, part => Assert.NotEmpty(part.Worksheet!.Descendants<Cell>()));
-        }
+        var result = _fixture.Merge(source, ActivationData(false));
+        using var package = SpreadsheetDocument.Open(new MemoryStream(result.Document), false);
+        Assert.Equal(2, package.WorkbookPart!.WorksheetParts.Count());
+        Assert.Empty(new OpenXmlValidator().Validate(package));
+        Assert.All(package.WorkbookPart.WorksheetParts, part => Assert.NotEmpty(part.Worksheet!.Descendants<Cell>()));
         Assert.Equal(original, source);
     }
 
@@ -158,4 +172,5 @@ public sealed partial class Feature012NestedTests
         part.Worksheet = new Worksheet(rows);
         workbook.Workbook!.DefinedNames!.Elements<DefinedName>().Single().Text = "'Report'!$B$7:$G$12";
     });
+
 }

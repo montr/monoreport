@@ -8,6 +8,51 @@ internal sealed class XlsxNestedFixture
 {
     private readonly XlsxFixture _fixture = new();
 
+    internal byte[] CreateActivated() => _fixture.Create((workbook, part) =>
+    {
+        workbook.Workbook!.DefinedNames!.Elements<DefinedName>().Single().Text = "'Report'!$B$7:$G$16";
+        part.Worksheet = new Worksheet(new SheetData(
+            new Row(_fixture.Text("D1", "$h(1)"), _fixture.Text("E1", "$h(1)"), _fixture.Text("F1", "$h(1)")) { RowIndex = 1 },
+            new Row(_fixture.Text("D2", "$h(2)"), _fixture.Text("F2", "$h(2)")) { RowIndex = 2 },
+            new Row(_fixture.Text("D3", "$h(3)"), _fixture.Text("F3", "$h(3)")) { RowIndex = 3 },
+            new Row(_fixture.Text("A7", "$h(1).Bids"), _fixture.Text("D7", "{Name}")) { RowIndex = 7 },
+            new Row(_fixture.Text("A8", "$h(1).Bids"), _fixture.Text("D8", "{Name}")) { RowIndex = 8 },
+            new Row(_fixture.Text("A9", "$h(2).Criteria"), _fixture.Text("D9", "{Name}"), _fixture.Text("F9", "{Name}")) { RowIndex = 9 },
+            new Row(_fixture.Text("A10", "$h(2).Criteria"), _fixture.Text("D10", "{Name}"), _fixture.Text("F10", "{Name}")) { RowIndex = 10 },
+            new Row(_fixture.Text("A11", "$h(3).Third"), _fixture.Text("D11", "{Name}"), _fixture.Text("F11", "{Name}")) { RowIndex = 11 },
+            new Row(_fixture.Text("A12", "$h(3).Third"), _fixture.Text("D12", "{Name}"), _fixture.Text("F12", "{Name}")) { RowIndex = 12 },
+            new Row(_fixture.Text("A14", "$l(10).Items"), _fixture.Text("B14", "{Name}"), _fixture.Text("C14", "{Value}")) { RowIndex = 14 },
+            new Row(_fixture.Text("A15", "$l(20).Items"), _fixture.Text("B15", "{Name}/{../Name}"), _fixture.Text("C15", "{Value}")) { RowIndex = 15 },
+            new Row(_fixture.Text("A16", "$l(10).Items"), _fixture.Text("B16", "Total"), new Cell { CellReference = "C16", CellFormula = new CellFormula("SUM(C14:C15)") }) { RowIndex = 16 }),
+            new MergeCells(new MergeCell { Reference = "B7:C7" }));
+    });
+
+    internal static string ActivatedData() => JsonSerializer.Serialize(new
+    {
+        Bids = new[] { new { Name = "bid" } }, Criteria = new[] { new { Name = "criterion" } },
+        Third = new[] { new { Name = "third" } },
+        Items = new[]
+        {
+            new Dictionary<string, object> { ["$level"] = 10, ["$path"] = "parent", ["Name"] = "parent", ["Value"] = 4 },
+            new Dictionary<string, object> { ["$level"] = 20, ["$path"] = "child", ["Name"] = "child", ["Value"] = 5 }
+        }
+    });
+
+    internal static void AssertActivated(byte[] bytes)
+    {
+        using var package = SpreadsheetDocument.Open(new MemoryStream(bytes), false);
+        Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(package));
+        var worksheet = package.WorkbookPart!.WorksheetParts.Single().Worksheet!;
+        var cells = worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+        Assert.Equal("A1:F10", worksheet.GetFirstChild<SheetDimension>()!.Reference!.Value);
+        Assert.Equal("bid", cells["C1"].InlineString!.InnerText);
+        Assert.Equal("criterion", cells["C4"].InlineString!.InnerText);
+        Assert.Equal("third", cells["C6"].InlineString!.InnerText);
+        Assert.Equal("child/parent", cells["A9"].InlineString!.InnerText);
+        Assert.Equal("SUM(B8:B9)", cells["B10"].CellFormula!.Text);
+        Assert.Equal("A1:B1", Assert.Single(worksheet.Descendants<MergeCell>()).Reference!.Value);
+    }
+
     internal byte[] Create(bool shared, Action<WorkbookPart, WorksheetPart>? customize = null) => _fixture.Create((workbook, part) =>
     {
         workbook.AddNewPart<WorkbookStylesPart>().Stylesheet = new Stylesheet(new Fonts(new Font()),
