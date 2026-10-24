@@ -18,11 +18,16 @@
   <ItemGroup>
     <ProjectReference Include="../MonoReport.Api/MonoReport.Api.csproj" />
     <Compile Include="../MonoReport.Tests/Services/Docx.cs" Link="Services/Docx.cs" />
+    <Compile Include="../MonoReport.Tests/Services/TenderSampleFixture.cs" Link="Services/TenderSampleFixture.cs" />
+    <Compile Include="../MonoReport.Tests/Services/TransportFixture.cs" Link="Services/TransportFixture.cs" />
     <Compile Include="../MonoReport.Tests/Services/XlsxFixture.cs" Link="Services/XlsxFixture.cs" />
     <Compile Include="../MonoReport.Tests/Services/XlsxNestedFixture.cs" Link="Services/XlsxNestedFixture.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="../MonoReport.Tests/Fixtures/feature012/analyzer-scopes.template.xlsx" Link="Fixtures/feature012/analyzer-scopes.template.xlsx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../MonoReport.Tests/Fixtures/review-reproductions/*.template.docx;../MonoReport.Tests/Fixtures/review-reproductions/*.json" Link="Fixtures/review-reproductions/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="../Samples/xlsx-tender.*" Link="Samples/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

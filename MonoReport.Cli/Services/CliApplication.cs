@@ -25,8 +25,8 @@ namespace MonoReport.Cli.Services
             -h, --help       Show this help.
 
             Exit codes: 0 success, 1 input/render/output error, 2 invalid arguments.
-            Errors are written to stderr; document output on stdout is binary.
-            XLSX supports static fields, nested vertical groups, multirow blocks and safe scalar formulas over finite A1 operands, including supported sheet/name/shared references, with physical PrintArea crop. Worksheets with nested vertical regions allow no horizontal expansion or at most two horizontal levels, one authored block and one physical header row per level. See docs/xlsx-template-compatibility.md for current limits.
+            Errors and successful generation warnings are written to stderr; document output on stdout is binary. Success with warnings exits 0.
+            XLSX supports static fields, nested vertical groups, multirow blocks, recursive horizontal expansion with branching siblings and multirow headers, and safe scalar formulas over finite A1 operands, including supported sheet/name/shared references, with physical PrintArea crop. See docs/xlsx-template-compatibility.md for current limits.
             Analysis writes JSON to stdout: 0 valid, 1 invalid/execution failure, 2 invalid arguments.
             """;
 
@@ -88,6 +88,19 @@ namespace MonoReport.Cli.Services
                     File.WriteAllBytes(options.OutputPath, result.Document);
                 }
 
+                foreach (var warning in result.Warnings)
+                {
+                    var context = new[]
+                    {
+                        warning.Field is null ? null : $"field={warning.Field}",
+                        warning.FieldCode is null ? null : $"fieldCode={warning.FieldCode}",
+                        warning.Part is null ? null : $"part={warning.Part}",
+                        warning.Location is null ? null : $"location={warning.Location}",
+                        warning.DataPath is null ? null : $"dataPath={warning.DataPath}"
+                    }.Where(value => value is not null);
+                    var suffix = string.Join(", ", context);
+                    diagnostics.WriteLine($"Warning: {(warning.Code is null ? string.Empty : warning.Code + ": ")}{warning.Message}{(suffix.Length == 0 ? string.Empty : $" ({suffix})")}");
+                }
                 return 0;
             }
             catch (TemplateException error)

@@ -34,4 +34,7 @@
     <None Include="../MonoReport.UI/public/examples.json" Link="examples.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="../Samples/xlsx-tender.*" Link="Samples/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

@@ -58,19 +58,66 @@ public sealed class ApiOperationTransformer : IOpenApiOperationTransformer
         };
         operation.Summary = generation ? "Generate a Word or XLSX document" : "Analyze a Word or XLSX template";
         operation.Description = generation
-            ? "Returns raw DOCX or XLSX bytes after one operation. XLSX supports static fields, nested vertical groups, multirow blocks and safe scalar formulas over finite A1 operands including supported sheet/name/shared references, with physical PrintArea crop; it requires JSON object data. Worksheets containing nested vertical regions allow no horizontal expansion or at most two horizontal levels with one authored block and one physical header row per level. Deeper horizontal trees, multiple child blocks and multirow horizontal headers on those worksheets reject before binding. Template structure and values are validated before output is produced."
-            : "Returns diagnostics, an ordered recursive dependency tree, and source occurrences without JSON input or generation. Invalid nonempty package content returns 200 with valid=false. XLSX source analysis supports nested templates and supported scalar formula references; generation additionally checks horizontal eligibility, matrix cardinalities, ancestor availability and final reference images.";
+            ? "Returns raw DOCX or XLSX bytes by default after one operation. Explicit Accept: multipart/mixed opts into document and diagnostics.json attachments. Wildcards alone never opt in; q=0 excludes multipart. Among explicit supported document types and multipart, higher quality wins and binary wins ties. Other Accept values fall back to binary. Vary: Accept is always set. All generation and diagnostic preparation completes before success publication. XLSX supports static fields, nested vertical groups, multirow blocks and safe scalar formulas over finite A1 operands including supported sheet/name/shared references, with physical PrintArea crop; it requires JSON object data. Recursive horizontal expansion supports branching sibling blocks and multirow headers, with at most one horizontal region per worksheet. Template structure and values are validated before output is produced."
+            : "Returns diagnostics, an ordered recursive dependency tree, and source occurrences without JSON input or generation. Invalid nonempty package content returns 200 with valid=false. XLSX source analysis supports nested templates and supported scalar formula references; generation additionally checks matrix cardinalities, ancestor availability and final reference images.";
         if (generation)
         {
+            operation.Parameters ??= [];
+            operation.Parameters.Add(new OpenApiParameter
+            {
+                Name = "Accept", In = ParameterLocation.Header, Required = false,
+                Description = "Explicit multipart/mixed opts in to two attachments. Quality zero excludes multipart; higher explicit quality wins, binary wins ties. Wildcards alone and unsupported values retain binary fallback.",
+                Schema = new OpenApiSchema { Type = JsonSchemaType.String }
+            });
             var success = (OpenApiResponse)operation.Responses!["200"];
+            var warningProperties = new Dictionary<string, IOpenApiSchema>();
+            foreach (var name in new[] { "message", "field", "fieldCode", "part", "location", "dataPath", "code" })
+                warningProperties[name] = new OpenApiSchema
+                {
+                    Type = name is "message" or "field" ? JsonSchemaType.String : JsonSchemaType.String | JsonSchemaType.Null,
+                    Description = name == "code" ? "Optional stable XLSX diagnostic code; omitted when unset. DOCX warnings need no code." : null
+                };
+            success.Description = "Generated document; warnings do not make generation fail. Multipart has two attachments from the same merge, without base64 encoding.";
             success.Content = new Dictionary<string, OpenApiMediaType>
             {
                 ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"] = new() { Schema = new OpenApiSchema { Type = JsonSchemaType.String, Format = "binary" } },
-                ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"] = new() { Schema = new OpenApiSchema { Type = JsonSchemaType.String, Format = "binary" } }
+                ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"] = new() { Schema = new OpenApiSchema { Type = JsonSchemaType.String, Format = "binary" } },
+                ["multipart/mixed"] = new()
+                {
+                    Encoding = new Dictionary<string, OpenApiEncoding>
+                    {
+                        ["document"] = new() { ContentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+                        ["diagnostics"] = new() { ContentType = "application/json" }
+                    },
+                    Schema = new OpenApiSchema
+                    {
+                        Type = JsonSchemaType.Object, Required = new HashSet<string> { "document", "diagnostics" },
+                        Properties = new Dictionary<string, IOpenApiSchema>
+                        {
+                            ["document"] = new OpenApiSchema { Type = JsonSchemaType.String, Format = "binary", Description = "Attachment document.docx or document.xlsx with the corresponding binary MIME type." },
+                            ["diagnostics"] = new OpenApiSchema
+                            {
+                                Type = JsonSchemaType.Object, Description = "application/json attachment named diagnostics.json.",
+                                Required = new HashSet<string> { "format", "fileName", "warnings" },
+                                Properties = new Dictionary<string, IOpenApiSchema>
+                                {
+                                    ["format"] = new OpenApiSchema { Type = JsonSchemaType.String, Description = "docx or xlsx" },
+                                    ["fileName"] = new OpenApiSchema { Type = JsonSchemaType.String, Description = "document.docx or document.xlsx" },
+                                    ["warnings"] = new OpenApiSchema
+                                    {
+                                        Type = JsonSchemaType.Array, Description = "Original ordered MergeResult.Warnings, including an explicit empty array.",
+                                        Items = new OpenApiSchema { Type = JsonSchemaType.Object, Required = new HashSet<string> { "message", "field", "fieldCode", "part", "location", "dataPath" }, Properties = warningProperties }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             };
             success.Headers = new Dictionary<string, IOpenApiHeader>
             {
-                ["Content-Disposition"] = new OpenApiHeader { Description = "Attachment with deterministic document.docx or document.xlsx filename selected from actual package content.", Schema = new OpenApiSchema { Type = JsonSchemaType.String } },
+                ["Content-Disposition"] = new OpenApiHeader { Description = "Binary response only: attachment with deterministic document.docx or document.xlsx filename selected from actual package content.", Schema = new OpenApiSchema { Type = JsonSchemaType.String } },
+                ["Vary"] = new OpenApiHeader { Description = "Accept", Schema = new OpenApiSchema { Type = JsonSchemaType.String } },
                 ["X-MonoReport-Warning-Count"] = new OpenApiHeader { Description = "Present only when generation warnings exist.", Schema = new OpenApiSchema { Type = JsonSchemaType.Integer } }
             };
         }

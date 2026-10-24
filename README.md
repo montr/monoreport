@@ -130,21 +130,24 @@ For the support, preservation, and rejection policy for Microsoft Word features,
      --analyze --template Samples/sample.template.docx
    ```
 
-3. JSON may instead come from `--json` or `--stdin`. Omit `--output` or use `-` for binary stdout. Diagnostics go to stderr.
+3. JSON may instead come from `--json` or `--stdin`. Omit `--output` or use `-` for binary stdout. Errors and successful DOCX/XLSX warnings go to stderr in Core order with available diagnostic context. Successful generation with warnings exits 0; stdout remains binary.
 
 ## HTTP API and playground
 
 1. `POST /api/documents/generate` accepts multipart fields `template`, `data`, and optional `culture`; success returns raw DOCX or XLSX bytes with format-specific MIME and deterministic filename. Actual package content selects the format, independently of the upload name/MIME. XLSX requires JSON object data.
-2. `POST /api/documents/analyze` accepts only multipart file field `template`; success returns the Analyzer contract even when `valid` is false.
-3. Swagger UI is available at `/docs` and OpenAPI at `/openapi/v1.json` when documentation is enabled.
-4. The browser playground loads the authoritative assets from `Samples`, can analyze a template to propose dependency-based JSON, and does not persist user data.
+2. Generation supports explicit `Accept: multipart/mixed` for either format. The two attachments are `document.docx` or `document.xlsx` with its document MIME type, and `diagnostics.json` with `application/json`. JSON contains `format` (`docx` or `xlsx`), `fileName`, and the original ordered `warnings`, including an empty array. Entries retain `message`, `field`, `fieldCode`, `part`, `location`, `dataPath`, and optional XLSX `code`; DOCX warnings need no code.
+3. Missing Accept or wildcards alone keep binary output. An explicit multipart quality of zero never opts in. Higher quality among explicit supported document types and multipart wins; binary wins a tie. Other Accept values retain binary fallback. Generation responses set `Vary: Accept`; `X-MonoReport-Warning-Count` is present only when warnings exist in either representation. Generation and diagnostics are prepared before success publication; preparation failures return existing Problem Details without a document. Cancellation after transmission starts cannot retract bytes already sent.
+4. `POST /api/documents/analyze` accepts only multipart file field `template`; success returns the Analyzer contract even when `valid` is false.
+5. Swagger UI is available at `/docs` and OpenAPI at `/openapi/v1.json` when documentation is enabled.
+6. The browser playground loads the authoritative assets from `Samples`, can analyze a template to propose dependency-based JSON, and does not persist user data.
 
 ## Sample and migration
 
-1. `Samples/sample.template.docx` and `Samples/sample.json` are the authoritative template and data pair. `Samples/sample.docx` is their generated output.
-2. Feature 010 removed legacy Word `MERGEFIELD`, `TableStart:`, `TableEnd:`, Word switch formatting, and programmatic formatter bindings from MonoReport interpretation. Existing Word fields remain untouched as ordinary opaque document content.
-3. Feature 011 changes control closes to `{/For}` and `{/If}`. The former spellings `EndFor` and `EndIf` are ordinary case-sensitive scalar property names, not aliases or migration controls.
-4. Convert legacy scalar fields to `{Path}`, collection markers to `{For:Path}` and `{/For}`, conditional closes to `{/If}`, and Word formatting switches to the built-in formatter syntax shown above. Remove comments, bookmarks, and internal links from repeated or conditional bodies, or move complete ranges outside the operation. Use Raw only for literal, structurally bounded Word content.
+1. The maintained XLSX tender pair is `Samples/xlsx-tender.template.xlsx` and `Samples/xlsx-tender.json`. Follow the [authoring walkthrough](docs/xlsx-tender-walkthrough.md) for PrintArea, markers, positional data ordering, scopes and limitations.
+2. `Samples/sample.template.docx` and `Samples/sample.json` are the authoritative template and data pair. `Samples/sample.docx` is their generated output.
+3. Feature 010 removed legacy Word `MERGEFIELD`, `TableStart:`, `TableEnd:`, Word switch formatting, and programmatic formatter bindings from MonoReport interpretation. Existing Word fields remain untouched as ordinary opaque document content.
+4. Feature 011 changes control closes to `{/For}` and `{/If}`. The former spellings `EndFor` and `EndIf` are ordinary case-sensitive scalar property names, not aliases or migration controls.
+5. Convert legacy scalar fields to `{Path}`, collection markers to `{For:Path}` and `{/For}`, conditional closes to `{/If}`, and Word formatting switches to the built-in formatter syntax shown above. Remove comments, bookmarks, and internal links from repeated or conditional bodies, or move complete ranges outside the operation. Use Raw only for literal, structurally bounded Word content.
 
 ## Production hosting
 

@@ -109,12 +109,26 @@ public sealed class OpenApiContractTests
         Assert.Equal(new[] { "/api/documents/analyze", "/api/documents/generate" }, paths.EnumerateObject().Select(item => item.Name).Order());
         var operation = paths.GetProperty("/api/documents/generate").GetProperty("post");
         var content = operation.GetProperty("responses").GetProperty("200").GetProperty("content");
-        Assert.Equal(new[] { "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
+        Assert.Equal(new[] { "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "multipart/mixed" },
             content.EnumerateObject().Select(item => item.Name).Order());
         Assert.Contains("static", operation.GetProperty("description").GetString());
         Assert.Contains("scalar formulas", operation.GetProperty("description").GetString());
-        Assert.Contains("at most two horizontal levels", operation.GetProperty("description").GetString());
-        Assert.Contains("one physical header row per level", operation.GetProperty("description").GetString());
+        var description = operation.GetProperty("description").GetString();
+        foreach (var phrase in new[] { "branching sibling blocks", "multirow headers", "q=0", "binary wins ties", "fall back to binary", "Vary: Accept" })
+            Assert.Contains(phrase, description);
+        Assert.DoesNotContain("at most two horizontal levels", description);
+        var success = operation.GetProperty("responses").GetProperty("200");
+        Assert.True(success.GetProperty("headers").TryGetProperty("Vary", out _));
+        Assert.Contains("only when", success.GetProperty("headers").GetProperty("X-MonoReport-Warning-Count").GetProperty("description").GetString());
+        var diagnostics = content.GetProperty("multipart/mixed").GetProperty("schema").GetProperty("properties").GetProperty("diagnostics");
+        Assert.Contains(operation.GetProperty("parameters").EnumerateArray(), parameter => parameter.GetProperty("name").GetString() == "Accept" && parameter.GetProperty("in").GetString() == "header");
+        Assert.Equal("application/json", content.GetProperty("multipart/mixed").GetProperty("encoding").GetProperty("diagnostics").GetProperty("contentType").GetString());
+        Assert.Equal(new[] { "fileName", "format", "warnings" }, diagnostics.GetProperty("required").EnumerateArray().Select(p => p.GetString()).Order());
+        var warnings = diagnostics.GetProperty("properties").GetProperty("warnings");
+        Assert.Contains("empty array", warnings.GetProperty("description").GetString());
+        Assert.Equal(new[] { "code", "dataPath", "field", "fieldCode", "location", "message", "part" },
+            warnings.GetProperty("items").GetProperty("properties").EnumerateObject().Select(p => p.Name).Order());
+        Assert.DoesNotContain("code", warnings.GetProperty("items").GetProperty("required").EnumerateArray().Select(p => p.GetString()));
         Assert.Contains(DiagnosticCodes.XlsxUnsafeFormula, operation.GetProperty("responses").GetProperty("422").GetProperty("description").GetString());
     }
 }

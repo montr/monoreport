@@ -1,0 +1,82 @@
+{
+  "Title": "Office equipment",
+  "Bids": [
+    {
+      "Company": "Alpha"
+    },
+    {
+      "Company": "Beta"
+    }
+  ],
+  "Criteria": [
+    {
+      "Name": "Unit price"
+    },
+    {
+      "Name": "Lead days"
+    }
+  ],
+  "Items": [
+    {
+      "$level": 10,
+      "$path": "lot",
+      "Name": "IT equipment"
+    },
+    {
+      "$level": 10,
+      "$path": "lot"
+    },
+    {
+      "$level": 10,
+      "$path": "lot"
+    },
+    {
+      "$level": 10,
+      "$path": "lot"
+    },
+    {
+      "$level": 20,
+      "$path": "laptop",
+      "Name": "Laptop",
+      "Quantity": 2,
+      "Value": 1200
+    },
+    {
+      "$level": 20,
+      "$path": "laptop",
+      "Value": 10
+    },
+    {
+      "$level": 20,
+      "$path": "laptop",
+      "Value": 1150
+    },
+    {
+      "$level": 20,
+      "$path": "laptop",
+      "Value": 12
+    },
+    {
+      "$level": 20,
+      "$path": "dock",
+      "Name": "Dock",
+      "Quantity": 3,
+      "Value": 80
+    },
+    {
+      "$level": 20,
+      "$path": "dock",
+      "Value": 5
+    },
+    {
+      "$level": 20,
+      "$path": "dock",
+      "Value": 75
+    },
+    {
+      "$level": 20,
+      "$path": "dock",
+      "Value": 7
+    }
+  ]
+}
