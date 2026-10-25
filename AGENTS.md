@@ -18,6 +18,7 @@
 2. Implement services as instances with externally supplied dependencies. Prefer a single primary constructor. Avoid static service methods and constructing dependencies internally.
 3. Separate feature-specific logic from shared functionality. Introduce abstractions only when justified by actual requirements.
 4. Prefer built-in platform, framework, and established library capabilities over custom implementations. Introduce custom infrastructure only when justified by concrete requirements or clear technical benefits.
+5. Prefer the simplest solution that fully satisfies the approved requirements. Before adding code, abstractions, dependencies, tests, or infrastructure, consider whether they are actually necessary. Avoid work that provides no meaningful value, without compromising correctness, security, or maintainability.
 
 ## Test Quality
 

@@ -1,0 +1,2231 @@
+{
+  "date": "2026-10-25",
+  "browser": "156.0.8078.47",
+  "viewport": {
+    "width": 1780,
+    "height": 1220
+  },
+  "method": "Temporary local comparison. Current DOCX used the repository normalizer and renderAsync options; candidate used original bytes. No Word/Excel application reference or large-workbook benchmark. Supplemental fixtures are research copies, not original samples.",
+  "candidate": {
+    "version": "0.89.4",
+    "resolved": "https://registry.npmjs.org/@silurus/ooxml/-/ooxml-0.89.4.tgz",
+    "integrity": "sha512-vjYC5M5GNBlb6sidVVMawqNViEjDTdIYEBUkCihyX48mI9UKyBioO4hz2XpycMZmV/vW5/qPr6tnPJLAzH2aMQ==",
+    "license": "MIT"
+  },
+  "docx": [
+    {
+      "name": "sample",
+      "kind": "template",
+      "url": "/samples/sample.template.docx",
+      "currentMs": 8.199999988079071,
+      "candidateMs": 141.5,
+      "currentPages": 1,
+      "candidatePages": 1,
+      "errors": []
+    },
+    {
+      "name": "sample",
+      "kind": "output",
+      "url": "/outputs/sample.docx",
+      "currentMs": 4.100000023841858,
+      "candidateMs": 99.30000001192093,
+      "currentPages": 1,
+      "candidatePages": 1,
+      "errors": []
+    },
+    {
+      "name": "orders-report",
+      "kind": "template",
+      "url": "/samples/orders-report.template.docx",
+      "currentMs": 40,
+      "candidateMs": 98.5,
+      "currentPages": 1,
+      "candidatePages": 1,
+      "errors": []
+    },
+    {
+      "name": "orders-report",
+      "kind": "output",
+      "url": "/outputs/orders-report.docx",
+      "currentMs": 130.39999997615814,
+      "candidateMs": 476.30000001192093,
+      "currentPages": 1,
+      "candidatePages": 9,
+      "errors": []
+    },
+    {
+      "name": "project-costs",
+      "kind": "template",
+      "url": "/samples/project-costs.template.docx",
+      "currentMs": 36.10000002384186,
+      "candidateMs": 82.89999997615814,
+      "currentPages": 1,
+      "candidatePages": 1,
+      "errors": []
+    },
+    {
+      "name": "project-costs",
+      "kind": "output",
+      "url": "/outputs/project-costs.docx",
+      "currentMs": 46,
+      "candidateMs": 107.59999996423721,
+      "currentPages": 1,
+      "candidatePages": 1,
+      "errors": []
+    },
+    {
+      "name": "syntax-showcase",
+      "kind": "template",
+      "url": "/samples/syntax-showcase.template.docx",
+      "currentMs": 40.299999952316284,
+      "candidateMs": 143.69999998807907,
+      "currentPages": 1,
+      "candidatePages": 3,
+      "errors": []
+    },
+    {
+      "name": "syntax-showcase",
+      "kind": "output",
+      "url": "/outputs/syntax-showcase.docx",
+      "currentMs": 39.69999998807907,
+      "candidateMs": 128.5,
+      "currentPages": 1,
+      "candidatePages": 2,
+      "errors": []
+    },
+    {
+      "name": "repeated-image",
+      "kind": "template",
+      "url": "/samples/repeated-image.template.docx",
+      "currentMs": 32,
+      "candidateMs": 81.89999997615814,
+      "currentPages": 1,
+      "candidatePages": 1,
+      "errors": []
+    },
+    {
+      "name": "repeated-image",
+      "kind": "output",
+      "url": "/outputs/repeated-image.docx",
+      "currentMs": 32.10000002384186,
+      "candidateMs": 88,
+      "currentPages": 1,
+      "candidatePages": 2,
+      "errors": []
+    }
+  ],
+  "docx_field_checks": [
+    {
+      "url": "/fixtures/cached-fields.template.docx",
+      "baseline_simple_cache_visible": true,
+      "candidate_simple_cache_painted": true,
+      "baseline_complex_cache_visible": true,
+      "candidate_complex_cache_painted": true,
+      "errors": []
+    },
+    {
+      "url": "/outputs/cached-fields.docx",
+      "baseline_simple_cache_visible": true,
+      "candidate_simple_cache_painted": true,
+      "baseline_complex_cache_visible": true,
+      "candidate_complex_cache_painted": true,
+      "errors": []
+    }
+  ],
+  "xlsx": [
+    {
+      "url": "/samples/xlsx-tender.template.xlsx",
+      "mode": "main",
+      "loadMs": 48.5,
+      "sheets": [
+        "Tender"
+      ],
+      "contexts": [
+        {
+          "format": "xlsx",
+          "kind": "range",
+          "sheetIndex": 0,
+          "sheetName": "Tender",
+          "selection": {
+            "areas": [
+              {
+                "kind": "cells",
+                "top": 1,
+                "left": 1,
+                "bottom": 12,
+                "right": 10
+              }
+            ],
+            "activeAreaIndex": 0,
+            "activeCell": {
+              "row": 1,
+              "col": 1
+            },
+            "extensionAnchor": {
+              "row": 1,
+              "col": 1
+            }
+          },
+          "coordinateCountUpperBound": 120,
+          "cells": [
+            {
+              "address": {
+                "row": 1,
+                "col": 4
+              },
+              "displayText": "$h(1)",
+              "valueType": "text",
+              "value": "$h(1)"
+            },
+            {
+              "address": {
+                "row": 1,
+                "col": 5
+              },
+              "displayText": "$h(1)",
+              "valueType": "text",
+              "value": "$h(1)"
+            },
+            {
+              "address": {
+                "row": 2,
+                "col": 5
+              },
+              "displayText": "$h(2)",
+              "valueType": "text",
+              "value": "$h(2)"
+            },
+            {
+              "address": {
+                "row": 3,
+                "col": 2
+              },
+              "displayText": "Tender: {$.Title}",
+              "valueType": "text",
+              "value": "Tender: {$.Title}"
+            },
+            {
+              "address": {
+                "row": 5,
+                "col": 1
+              },
+              "displayText": "$header(1).Bids",
+              "valueType": "text",
+              "value": "$header(1).Bids"
+            },
+            {
+              "address": {
+                "row": 5,
+                "col": 4
+              },
+              "displayText": "{Company}",
+              "valueType": "text",
+              "value": "{Company}"
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 1
+              },
+              "displayText": "$header(2).Criteria",
+              "valueType": "text",
+              "value": "$header(2).Criteria"
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 2
+              },
+              "displayText": "Item",
+              "valueType": "text",
+              "value": "Item"
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 3
+              },
+              "displayText": "Quantity",
+              "valueType": "text",
+              "value": "Quantity"
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 5
+              },
+              "displayText": "{Name}",
+              "valueType": "text",
+              "value": "{Name}"
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 1
+              },
+              "displayText": "$level(10).Items",
+              "valueType": "text",
+              "value": "$level(10).Items"
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 2
+              },
+              "displayText": "{Name}",
+              "valueType": "text",
+              "value": "{Name}"
+            },
+            {
+              "address": {
+                "row": 8,
+                "col": 1
+              },
+              "displayText": "$l(20).Items",
+              "valueType": "text",
+              "value": "$l(20).Items"
+            },
+            {
+              "address": {
+                "row": 8,
+                "col": 2
+              },
+              "displayText": "{Name} / {../Name}",
+              "valueType": "text",
+              "value": "{Name} / {../Name}"
+            },
+            {
+              "address": {
+                "row": 8,
+                "col": 3
+              },
+              "displayText": "{Quantity}",
+              "valueType": "text",
+              "value": "{Quantity}"
+            },
+            {
+              "address": {
+                "row": 8,
+                "col": 4
+              },
+              "displayText": "{Name}",
+              "valueType": "text",
+              "value": "{Name}"
+            },
+            {
+              "address": {
+                "row": 8,
+                "col": 5
+              },
+              "displayText": "{Value}",
+              "valueType": "text",
+              "value": "{Value}"
+            },
+            {
+              "address": {
+                "row": 9,
+                "col": 1
+              },
+              "displayText": "$l(10).Items",
+              "valueType": "text",
+              "value": "$l(10).Items"
+            },
+            {
+              "address": {
+                "row": 9,
+                "col": 2
+              },
+              "displayText": "Lot total: {Name}",
+              "valueType": "text",
+              "value": "Lot total: {Name}"
+            },
+            {
+              "address": {
+                "row": 9,
+                "col": 5
+              },
+              "displayText": "",
+              "valueType": "empty",
+              "value": null,
+              "formula": "SUM(E8:E8)"
+            },
+            {
+              "address": {
+                "row": 10,
+                "col": 2
+              },
+              "displayText": "Compare unit price and lead days in separate columns.",
+              "valueType": "text",
+              "value": "Compare unit price and lead days in separate columns."
+            }
+          ],
+          "truncated": false,
+          "truncationReasons": [],
+          "maxCells": 150,
+          "textCharacters": 510,
+          "maxTextCharacters": 1048576
+        }
+      ],
+      "errors": []
+    },
+    {
+      "url": "/outputs/xlsx-tender.xlsx",
+      "mode": "main",
+      "loadMs": 38.09999996423721,
+      "sheets": [
+        "Tender"
+      ],
+      "contexts": [
+        {
+          "format": "xlsx",
+          "kind": "range",
+          "sheetIndex": 0,
+          "sheetName": "Tender",
+          "selection": {
+            "areas": [
+              {
+                "kind": "cells",
+                "top": 1,
+                "left": 1,
+                "bottom": 12,
+                "right": 10
+              }
+            ],
+            "activeAreaIndex": 0,
+            "activeCell": {
+              "row": 1,
+              "col": 1
+            },
+            "extensionAnchor": {
+              "row": 1,
+              "col": 1
+            }
+          },
+          "coordinateCountUpperBound": 120,
+          "cells": [
+            {
+              "address": {
+                "row": 1,
+                "col": 1
+              },
+              "displayText": "Tender: Office equipment",
+              "valueType": "text",
+              "value": "Tender: Office equipment"
+            },
+            {
+              "address": {
+                "row": 3,
+                "col": 3
+              },
+              "displayText": "Alpha",
+              "valueType": "text",
+              "value": "Alpha"
+            },
+            {
+              "address": {
+                "row": 3,
+                "col": 6
+              },
+              "displayText": "Beta",
+              "valueType": "text",
+              "value": "Beta"
+            },
+            {
+              "address": {
+                "row": 4,
+                "col": 1
+              },
+              "displayText": "Item",
+              "valueType": "text",
+              "value": "Item"
+            },
+            {
+              "address": {
+                "row": 4,
+                "col": 2
+              },
+              "displayText": "Quantity",
+              "valueType": "text",
+              "value": "Quantity"
+            },
+            {
+              "address": {
+                "row": 4,
+                "col": 4
+              },
+              "displayText": "Unit price",
+              "valueType": "text",
+              "value": "Unit price"
+            },
+            {
+              "address": {
+                "row": 4,
+                "col": 5
+              },
+              "displayText": "Lead days",
+              "valueType": "text",
+              "value": "Lead days"
+            },
+            {
+              "address": {
+                "row": 4,
+                "col": 7
+              },
+              "displayText": "Unit price",
+              "valueType": "text",
+              "value": "Unit price"
+            },
+            {
+              "address": {
+                "row": 4,
+                "col": 8
+              },
+              "displayText": "Lead days",
+              "valueType": "text",
+              "value": "Lead days"
+            },
+            {
+              "address": {
+                "row": 5,
+                "col": 1
+              },
+              "displayText": "IT equipment",
+              "valueType": "text",
+              "value": "IT equipment"
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 1
+              },
+              "displayText": "Laptop / IT equipment",
+              "valueType": "text",
+              "value": "Laptop / IT equipment"
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 2
+              },
+              "displayText": "2",
+              "valueType": "number",
+              "value": 2
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 3
+              },
+              "displayText": "Laptop",
+              "valueType": "text",
+              "value": "Laptop"
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 4
+              },
+              "displayText": "1,200.00",
+              "valueType": "number",
+              "value": 1200
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 5
+              },
+              "displayText": "10.00",
+              "valueType": "number",
+              "value": 10
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 6
+              },
+              "displayText": "Laptop",
+              "valueType": "text",
+              "value": "Laptop"
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 7
+              },
+              "displayText": "1,150.00",
+              "valueType": "number",
+              "value": 1150
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 8
+              },
+              "displayText": "12.00",
+              "valueType": "number",
+              "value": 12
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 1
+              },
+              "displayText": "Dock / IT equipment",
+              "valueType": "text",
+              "value": "Dock / IT equipment"
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 2
+              },
+              "displayText": "3",
+              "valueType": "number",
+              "value": 3
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 3
+              },
+              "displayText": "Dock",
+              "valueType": "text",
+              "value": "Dock"
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 4
+              },
+              "displayText": "80.00",
+              "valueType": "number",
+              "value": 80
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 5
+              },
+              "displayText": "5.00",
+              "valueType": "number",
+              "value": 5
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 6
+              },
+              "displayText": "Dock",
+              "valueType": "text",
+              "value": "Dock"
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 7
+              },
+              "displayText": "75.00",
+              "valueType": "number",
+              "value": 75
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 8
+              },
+              "displayText": "7.00",
+              "valueType": "number",
+              "value": 7
+            },
+            {
+              "address": {
+                "row": 8,
+                "col": 1
+              },
+              "displayText": "Lot total: IT equipment",
+              "valueType": "text",
+              "value": "Lot total: IT equipment"
+            },
+            {
+              "address": {
+                "row": 8,
+                "col": 4
+              },
+              "displayText": "",
+              "valueType": "empty",
+              "value": null,
+              "formula": "SUM(D6:D7)"
+            },
+            {
+              "address": {
+                "row": 8,
+                "col": 5
+              },
+              "displayText": "",
+              "valueType": "empty",
+              "value": null,
+              "formula": "SUM(E6:E7)"
+            },
+            {
+              "address": {
+                "row": 8,
+                "col": 7
+              },
+              "displayText": "",
+              "valueType": "empty",
+              "value": null,
+              "formula": "SUM(G6:G7)"
+            },
+            {
+              "address": {
+                "row": 8,
+                "col": 8
+              },
+              "displayText": "",
+              "valueType": "empty",
+              "value": null,
+              "formula": "SUM(H6:H7)"
+            },
+            {
+              "address": {
+                "row": 9,
+                "col": 1
+              },
+              "displayText": "Compare unit price and lead days in separate columns.",
+              "valueType": "text",
+              "value": "Compare unit price and lead days in separate columns."
+            }
+          ],
+          "truncated": false,
+          "truncationReasons": [],
+          "maxCells": 150,
+          "textCharacters": 548,
+          "maxTextCharacters": 1048576
+        }
+      ],
+      "errors": []
+    },
+    {
+      "url": "/fixtures/explicit-caches.xlsx",
+      "mode": "main",
+      "loadMs": 37,
+      "sheets": [
+        "Tender"
+      ],
+      "contexts": [
+        {
+          "format": "xlsx",
+          "kind": "range",
+          "sheetIndex": 0,
+          "sheetName": "Tender",
+          "selection": {
+            "areas": [
+              {
+                "kind": "cells",
+                "top": 1,
+                "left": 1,
+                "bottom": 12,
+                "right": 10
+              }
+            ],
+            "activeAreaIndex": 0,
+            "activeCell": {
+              "row": 1,
+              "col": 1
+            },
+            "extensionAnchor": {
+              "row": 1,
+              "col": 1
+            }
+          },
+          "coordinateCountUpperBound": 120,
+          "cells": [
+            {
+              "address": {
+                "row": 1,
+                "col": 1
+              },
+              "displayText": "Tender: Office equipment",
+              "valueType": "text",
+              "value": "Tender: Office equipment"
+            },
+            {
+              "address": {
+                "row": 3,
+                "col": 3
+              },
+              "displayText": "Alpha",
+              "valueType": "text",
+              "value": "Alpha"
+            },
+            {
+              "address": {
+                "row": 3,
+                "col": 6
+              },
+              "displayText": "Beta",
+              "valueType": "text",
+              "value": "Beta"
+            },
+            {
+              "address": {
+                "row": 4,
+                "col": 1
+              },
+              "displayText": "Item",
+              "valueType": "text",
+              "value": "Item"
+            },
+            {
+              "address": {
+                "row": 4,
+                "col": 2
+              },
+              "displayText": "Quantity",
+              "valueType": "text",
+              "value": "Quantity"
+            },
+            {
+              "address": {
+                "row": 4,
+                "col": 4
+              },
+              "displayText": "Unit price",
+              "valueType": "text",
+              "value": "Unit price"
+            },
+            {
+              "address": {
+                "row": 4,
+                "col": 5
+              },
+              "displayText": "Lead days",
+              "valueType": "text",
+              "value": "Lead days"
+            },
+            {
+              "address": {
+                "row": 4,
+                "col": 7
+              },
+              "displayText": "Unit price",
+              "valueType": "text",
+              "value": "Unit price"
+            },
+            {
+              "address": {
+                "row": 4,
+                "col": 8
+              },
+              "displayText": "Lead days",
+              "valueType": "text",
+              "value": "Lead days"
+            },
+            {
+              "address": {
+                "row": 5,
+                "col": 1
+              },
+              "displayText": "IT equipment",
+              "valueType": "text",
+              "value": "IT equipment"
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 1
+              },
+              "displayText": "Laptop / IT equipment",
+              "valueType": "text",
+              "value": "Laptop / IT equipment"
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 2
+              },
+              "displayText": "2",
+              "valueType": "number",
+              "value": 2
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 3
+              },
+              "displayText": "Laptop",
+              "valueType": "text",
+              "value": "Laptop"
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 4
+              },
+              "displayText": "1,200.00",
+              "valueType": "number",
+              "value": 1200
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 5
+              },
+              "displayText": "10.00",
+              "valueType": "number",
+              "value": 10
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 6
+              },
+              "displayText": "Laptop",
+              "valueType": "text",
+              "value": "Laptop"
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 7
+              },
+              "displayText": "1,150.00",
+              "valueType": "number",
+              "value": 1150
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 8
+              },
+              "displayText": "12.00",
+              "valueType": "number",
+              "value": 12
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 1
+              },
+              "displayText": "Dock / IT equipment",
+              "valueType": "text",
+              "value": "Dock / IT equipment"
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 2
+              },
+              "displayText": "3",
+              "valueType": "number",
+              "value": 3
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 3
+              },
+              "displayText": "Dock",
+              "valueType": "text",
+              "value": "Dock"
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 4
+              },
+              "displayText": "80.00",
+              "valueType": "number",
+              "value": 80
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 5
+              },
+              "displayText": "5.00",
+              "valueType": "number",
+              "value": 5
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 6
+              },
+              "displayText": "Dock",
+              "valueType": "text",
+              "value": "Dock"
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 7
+              },
+              "displayText": "75.00",
+              "valueType": "number",
+              "value": 75
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 8
+              },
+              "displayText": "7.00",
+              "valueType": "number",
+              "value": 7
+            },
+            {
+              "address": {
+                "row": 8,
+                "col": 1
+              },
+              "displayText": "Lot total: IT equipment",
+              "valueType": "text",
+              "value": "Lot total: IT equipment"
+            },
+            {
+              "address": {
+                "row": 8,
+                "col": 4
+              },
+              "displayText": "1,280.00",
+              "valueType": "number",
+              "value": 1280,
+              "formula": "SUM(D6:D7)"
+            },
+            {
+              "address": {
+                "row": 8,
+                "col": 5
+              },
+              "displayText": "15.00",
+              "valueType": "number",
+              "value": 15,
+              "formula": "SUM(E6:E7)"
+            },
+            {
+              "address": {
+                "row": 8,
+                "col": 7
+              },
+              "displayText": "1,225.00",
+              "valueType": "number",
+              "value": 1225,
+              "formula": "SUM(G6:G7)"
+            },
+            {
+              "address": {
+                "row": 8,
+                "col": 8
+              },
+              "displayText": "19.00",
+              "valueType": "number",
+              "value": 19,
+              "formula": "SUM(H6:H7)"
+            },
+            {
+              "address": {
+                "row": 9,
+                "col": 1
+              },
+              "displayText": "Compare unit price and lead days in separate columns.",
+              "valueType": "text",
+              "value": "Compare unit price and lead days in separate columns."
+            }
+          ],
+          "truncated": false,
+          "truncationReasons": [],
+          "maxCells": 150,
+          "textCharacters": 574,
+          "maxTextCharacters": 1048576
+        }
+      ],
+      "errors": []
+    },
+    {
+      "url": "/outputs/two-sheets.xlsx",
+      "mode": "main",
+      "loadMs": 34.799999952316284,
+      "sheets": [
+        "Tender",
+        "Second tender"
+      ],
+      "contexts": [
+        {
+          "format": "xlsx",
+          "kind": "range",
+          "sheetIndex": 0,
+          "sheetName": "Tender",
+          "selection": {
+            "areas": [
+              {
+                "kind": "cells",
+                "top": 1,
+                "left": 1,
+                "bottom": 12,
+                "right": 10
+              }
+            ],
+            "activeAreaIndex": 0,
+            "activeCell": {
+              "row": 1,
+              "col": 1
+            },
+            "extensionAnchor": {
+              "row": 1,
+              "col": 1
+            }
+          },
+          "coordinateCountUpperBound": 120,
+          "cells": [
+            {
+              "address": {
+                "row": 1,
+                "col": 1
+              },
+              "displayText": "Tender: Office equipment",
+              "valueType": "text",
+              "value": "Tender: Office equipment"
+            },
+            {
+              "address": {
+                "row": 3,
+                "col": 3
+              },
+              "displayText": "Alpha",
+              "valueType": "text",
+              "value": "Alpha"
+            },
+            {
+              "address": {
+                "row": 3,
+                "col": 6
+              },
+              "displayText": "Beta",
+              "valueType": "text",
+              "value": "Beta"
+            },
+            {
+              "address": {
+                "row": 4,
+                "col": 1
+              },
+              "displayText": "Item",
+              "valueType": "text",
+              "value": "Item"
+            },
+            {
+              "address": {
+                "row": 4,
+                "col": 2
+              },
+              "displayText": "Quantity",
+              "valueType": "text",
+              "value": "Quantity"
+            },
+            {
+              "address": {
+                "row": 4,
+                "col": 4
+              },
+              "displayText": "Unit price",
+              "valueType": "text",
+              "value": "Unit price"
+            },
+            {
+              "address": {
+                "row": 4,
+                "col": 5
+              },
+              "displayText": "Lead days",
+              "valueType": "text",
+              "value": "Lead days"
+            },
+            {
+              "address": {
+                "row": 4,
+                "col": 7
+              },
+              "displayText": "Unit price",
+              "valueType": "text",
+              "value": "Unit price"
+            },
+            {
+              "address": {
+                "row": 4,
+                "col": 8
+              },
+              "displayText": "Lead days",
+              "valueType": "text",
+              "value": "Lead days"
+            },
+            {
+              "address": {
+                "row": 5,
+                "col": 1
+              },
+              "displayText": "IT equipment",
+              "valueType": "text",
+              "value": "IT equipment"
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 1
+              },
+              "displayText": "Laptop / IT equipment",
+              "valueType": "text",
+              "value": "Laptop / IT equipment"
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 2
+              },
+              "displayText": "2",
+              "valueType": "number",
+              "value": 2
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 3
+              },
+              "displayText": "Laptop",
+              "valueType": "text",
+              "value": "Laptop"
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 4
+              },
+              "displayText": "1,200.00",
+              "valueType": "number",
+              "value": 1200
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 5
+              },
+              "displayText": "10.00",
+              "valueType": "number",
+              "value": 10
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 6
+              },
+              "displayText": "Laptop",
+              "valueType": "text",
+              "value": "Laptop"
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 7
+              },
+              "displayText": "1,150.00",
+              "valueType": "number",
+              "value": 1150
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 8
+              },
+              "displayText": "12.00",
+              "valueType": "number",
+              "value": 12
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 1
+              },
+              "displayText": "Dock / IT equipment",
+              "valueType": "text",
+              "value": "Dock / IT equipment"
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 2
+              },
+              "displayText": "3",
+              "valueType": "number",
+              "value": 3
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 3
+              },
+              "displayText": "Dock",
+              "valueType": "text",
+              "value": "Dock"
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 4
+              },
+              "displayText": "80.00",
+              "valueType": "number",
+              "value": 80
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 5
+              },
+              "displayText": "5.00",
+              "valueType": "number",
+              "value": 5
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 6
+              },
+              "displayText": "Dock",
+              "valueType": "text",
+              "value": "Dock"
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 7
+              },
+              "displayText": "75.00",
+              "valueType": "number",
+              "value": 75
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 8
+              },
+              "displayText": "7.00",
+              "valueType": "number",
+              "value": 7
+            },
+            {
+              "address": {
+                "row": 8,
+                "col": 1
+              },
+              "displayText": "Lot total: IT equipment",
+              "valueType": "text",
+              "value": "Lot total: IT equipment"
+            },
+            {
+              "address": {
+                "row": 8,
+                "col": 4
+              },
+              "displayText": "",
+              "valueType": "empty",
+              "value": null,
+              "formula": "SUM(D6:D7)"
+            },
+            {
+              "address": {
+                "row": 8,
+                "col": 5
+              },
+              "displayText": "",
+              "valueType": "empty",
+              "value": null,
+              "formula": "SUM(E6:E7)"
+            },
+            {
+              "address": {
+                "row": 8,
+                "col": 7
+              },
+              "displayText": "",
+              "valueType": "empty",
+              "value": null,
+              "formula": "SUM(G6:G7)"
+            },
+            {
+              "address": {
+                "row": 8,
+                "col": 8
+              },
+              "displayText": "",
+              "valueType": "empty",
+              "value": null,
+              "formula": "SUM(H6:H7)"
+            },
+            {
+              "address": {
+                "row": 9,
+                "col": 1
+              },
+              "displayText": "Compare unit price and lead days in separate columns.",
+              "valueType": "text",
+              "value": "Compare unit price and lead days in separate columns."
+            }
+          ],
+          "truncated": false,
+          "truncationReasons": [],
+          "maxCells": 150,
+          "textCharacters": 548,
+          "maxTextCharacters": 1048576
+        },
+        {
+          "format": "xlsx",
+          "kind": "range",
+          "sheetIndex": 1,
+          "sheetName": "Second tender",
+          "selection": {
+            "areas": [
+              {
+                "kind": "cells",
+                "top": 1,
+                "left": 1,
+                "bottom": 12,
+                "right": 10
+              }
+            ],
+            "activeAreaIndex": 0,
+            "activeCell": {
+              "row": 1,
+              "col": 1
+            },
+            "extensionAnchor": {
+              "row": 1,
+              "col": 1
+            }
+          },
+          "coordinateCountUpperBound": 120,
+          "cells": [
+            {
+              "address": {
+                "row": 1,
+                "col": 1
+              },
+              "displayText": "Tender: Office equipment",
+              "valueType": "text",
+              "value": "Tender: Office equipment"
+            },
+            {
+              "address": {
+                "row": 3,
+                "col": 3
+              },
+              "displayText": "Alpha",
+              "valueType": "text",
+              "value": "Alpha"
+            },
+            {
+              "address": {
+                "row": 3,
+                "col": 6
+              },
+              "displayText": "Beta",
+              "valueType": "text",
+              "value": "Beta"
+            },
+            {
+              "address": {
+                "row": 4,
+                "col": 1
+              },
+              "displayText": "Item",
+              "valueType": "text",
+              "value": "Item"
+            },
+            {
+              "address": {
+                "row": 4,
+                "col": 2
+              },
+              "displayText": "Quantity",
+              "valueType": "text",
+              "value": "Quantity"
+            },
+            {
+              "address": {
+                "row": 4,
+                "col": 4
+              },
+              "displayText": "Unit price",
+              "valueType": "text",
+              "value": "Unit price"
+            },
+            {
+              "address": {
+                "row": 4,
+                "col": 5
+              },
+              "displayText": "Lead days",
+              "valueType": "text",
+              "value": "Lead days"
+            },
+            {
+              "address": {
+                "row": 4,
+                "col": 7
+              },
+              "displayText": "Unit price",
+              "valueType": "text",
+              "value": "Unit price"
+            },
+            {
+              "address": {
+                "row": 4,
+                "col": 8
+              },
+              "displayText": "Lead days",
+              "valueType": "text",
+              "value": "Lead days"
+            },
+            {
+              "address": {
+                "row": 5,
+                "col": 1
+              },
+              "displayText": "IT equipment",
+              "valueType": "text",
+              "value": "IT equipment"
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 1
+              },
+              "displayText": "Laptop / IT equipment",
+              "valueType": "text",
+              "value": "Laptop / IT equipment"
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 2
+              },
+              "displayText": "2",
+              "valueType": "number",
+              "value": 2
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 3
+              },
+              "displayText": "Laptop",
+              "valueType": "text",
+              "value": "Laptop"
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 4
+              },
+              "displayText": "1,200.00",
+              "valueType": "number",
+              "value": 1200
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 5
+              },
+              "displayText": "10.00",
+              "valueType": "number",
+              "value": 10
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 6
+              },
+              "displayText": "Laptop",
+              "valueType": "text",
+              "value": "Laptop"
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 7
+              },
+              "displayText": "1,150.00",
+              "valueType": "number",
+              "value": 1150
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 8
+              },
+              "displayText": "12.00",
+              "valueType": "number",
+              "value": 12
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 1
+              },
+              "displayText": "Dock / IT equipment",
+              "valueType": "text",
+              "value": "Dock / IT equipment"
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 2
+              },
+              "displayText": "3",
+              "valueType": "number",
+              "value": 3
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 3
+              },
+              "displayText": "Dock",
+              "valueType": "text",
+              "value": "Dock"
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 4
+              },
+              "displayText": "80.00",
+              "valueType": "number",
+              "value": 80
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 5
+              },
+              "displayText": "5.00",
+              "valueType": "number",
+              "value": 5
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 6
+              },
+              "displayText": "Dock",
+              "valueType": "text",
+              "value": "Dock"
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 7
+              },
+              "displayText": "75.00",
+              "valueType": "number",
+              "value": 75
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 8
+              },
+              "displayText": "7.00",
+              "valueType": "number",
+              "value": 7
+            },
+            {
+              "address": {
+                "row": 8,
+                "col": 1
+              },
+              "displayText": "Lot total: IT equipment",
+              "valueType": "text",
+              "value": "Lot total: IT equipment"
+            },
+            {
+              "address": {
+                "row": 8,
+                "col": 4
+              },
+              "displayText": "",
+              "valueType": "empty",
+              "value": null,
+              "formula": "SUM(D6:D7)"
+            },
+            {
+              "address": {
+                "row": 8,
+                "col": 5
+              },
+              "displayText": "",
+              "valueType": "empty",
+              "value": null,
+              "formula": "SUM(E6:E7)"
+            },
+            {
+              "address": {
+                "row": 8,
+                "col": 7
+              },
+              "displayText": "",
+              "valueType": "empty",
+              "value": null,
+              "formula": "SUM(G6:G7)"
+            },
+            {
+              "address": {
+                "row": 8,
+                "col": 8
+              },
+              "displayText": "",
+              "valueType": "empty",
+              "value": null,
+              "formula": "SUM(H6:H7)"
+            },
+            {
+              "address": {
+                "row": 9,
+                "col": 1
+              },
+              "displayText": "Compare unit price and lead days in separate columns.",
+              "valueType": "text",
+              "value": "Compare unit price and lead days in separate columns."
+            }
+          ],
+          "truncated": false,
+          "truncationReasons": [],
+          "maxCells": 150,
+          "textCharacters": 548,
+          "maxTextCharacters": 1048576
+        }
+      ],
+      "errors": []
+    },
+    {
+      "url": "/outputs/xlsx-tender.xlsx",
+      "mode": "worker",
+      "loadMs": 76.5,
+      "sheets": [
+        "Tender"
+      ],
+      "contexts": [
+        {
+          "format": "xlsx",
+          "kind": "range",
+          "sheetIndex": 0,
+          "sheetName": "Tender",
+          "selection": {
+            "areas": [
+              {
+                "kind": "cells",
+                "top": 1,
+                "left": 1,
+                "bottom": 12,
+                "right": 10
+              }
+            ],
+            "activeAreaIndex": 0,
+            "activeCell": {
+              "row": 1,
+              "col": 1
+            },
+            "extensionAnchor": {
+              "row": 1,
+              "col": 1
+            }
+          },
+          "coordinateCountUpperBound": 120,
+          "cells": [
+            {
+              "address": {
+                "row": 1,
+                "col": 1
+              },
+              "displayText": "Tender: Office equipment",
+              "valueType": "text",
+              "value": "Tender: Office equipment"
+            },
+            {
+              "address": {
+                "row": 3,
+                "col": 3
+              },
+              "displayText": "Alpha",
+              "valueType": "text",
+              "value": "Alpha"
+            },
+            {
+              "address": {
+                "row": 3,
+                "col": 6
+              },
+              "displayText": "Beta",
+              "valueType": "text",
+              "value": "Beta"
+            },
+            {
+              "address": {
+                "row": 4,
+                "col": 1
+              },
+              "displayText": "Item",
+              "valueType": "text",
+              "value": "Item"
+            },
+            {
+              "address": {
+                "row": 4,
+                "col": 2
+              },
+              "displayText": "Quantity",
+              "valueType": "text",
+              "value": "Quantity"
+            },
+            {
+              "address": {
+                "row": 4,
+                "col": 4
+              },
+              "displayText": "Unit price",
+              "valueType": "text",
+              "value": "Unit price"
+            },
+            {
+              "address": {
+                "row": 4,
+                "col": 5
+              },
+              "displayText": "Lead days",
+              "valueType": "text",
+              "value": "Lead days"
+            },
+            {
+              "address": {
+                "row": 4,
+                "col": 7
+              },
+              "displayText": "Unit price",
+              "valueType": "text",
+              "value": "Unit price"
+            },
+            {
+              "address": {
+                "row": 4,
+                "col": 8
+              },
+              "displayText": "Lead days",
+              "valueType": "text",
+              "value": "Lead days"
+            },
+            {
+              "address": {
+                "row": 5,
+                "col": 1
+              },
+              "displayText": "IT equipment",
+              "valueType": "text",
+              "value": "IT equipment"
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 1
+              },
+              "displayText": "Laptop / IT equipment",
+              "valueType": "text",
+              "value": "Laptop / IT equipment"
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 2
+              },
+              "displayText": "2",
+              "valueType": "number",
+              "value": 2
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 3
+              },
+              "displayText": "Laptop",
+              "valueType": "text",
+              "value": "Laptop"
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 4
+              },
+              "displayText": "1,200.00",
+              "valueType": "number",
+              "value": 1200
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 5
+              },
+              "displayText": "10.00",
+              "valueType": "number",
+              "value": 10
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 6
+              },
+              "displayText": "Laptop",
+              "valueType": "text",
+              "value": "Laptop"
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 7
+              },
+              "displayText": "1,150.00",
+              "valueType": "number",
+              "value": 1150
+            },
+            {
+              "address": {
+                "row": 6,
+                "col": 8
+              },
+              "displayText": "12.00",
+              "valueType": "number",
+              "value": 12
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 1
+              },
+              "displayText": "Dock / IT equipment",
+              "valueType": "text",
+              "value": "Dock / IT equipment"
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 2
+              },
+              "displayText": "3",
+              "valueType": "number",
+              "value": 3
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 3
+              },
+              "displayText": "Dock",
+              "valueType": "text",
+              "value": "Dock"
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 4
+              },
+              "displayText": "80.00",
+              "valueType": "number",
+              "value": 80
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 5
+              },
+              "displayText": "5.00",
+              "valueType": "number",
+              "value": 5
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 6
+              },
+              "displayText": "Dock",
+              "valueType": "text",
+              "value": "Dock"
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 7
+              },
+              "displayText": "75.00",
+              "valueType": "number",
+              "value": 75
+            },
+            {
+              "address": {
+                "row": 7,
+                "col": 8
+              },
+              "displayText": "7.00",
+              "valueType": "number",
+              "value": 7
+            },
+            {
+              "address": {
+                "row": 8,
+                "col": 1
+              },
+              "displayText": "Lot total: IT equipment",
+              "valueType": "text",
+              "value": "Lot total: IT equipment"
+            },
+            {
+              "address": {
+                "row": 8,
+                "col": 4
+              },
+              "displayText": "",
+              "valueType": "empty",
+              "value": null,
+              "formula": "SUM(D6:D7)"
+            },
+            {
+              "address": {
+                "row": 8,
+                "col": 5
+              },
+              "displayText": "",
+              "valueType": "empty",
+              "value": null,
+              "formula": "SUM(E6:E7)"
+            },
+            {
+              "address": {
+                "row": 8,
+                "col": 7
+              },
+              "displayText": "",
+              "valueType": "empty",
+              "value": null,
+              "formula": "SUM(G6:G7)"
+            },
+            {
+              "address": {
+                "row": 8,
+                "col": 8
+              },
+              "displayText": "",
+              "valueType": "empty",
+              "value": null,
+              "formula": "SUM(H6:H7)"
+            },
+            {
+              "address": {
+                "row": 9,
+                "col": 1
+              },
+              "displayText": "Compare unit price and lead days in separate columns.",
+              "valueType": "text",
+              "value": "Compare unit price and lead days in separate columns."
+            }
+          ],
+          "truncated": false,
+          "truncationReasons": [],
+          "maxCells": 150,
+          "textCharacters": 548,
+          "maxTextCharacters": 1048576
+        }
+      ],
+      "errors": []
+    }
+  ],
+  "bundle_navigation": {
+    "browser": "156.0.8078.47",
+    "loadMs": 106.69999998807907,
+    "sheets": [
+      "Tender",
+      "Second tender"
+    ],
+    "context": {
+      "format": "xlsx",
+      "kind": "range",
+      "sheetIndex": 0,
+      "sheetName": "Tender",
+      "selection": {
+        "areas": [
+          {
+            "kind": "cells",
+            "top": 1,
+            "left": 1,
+            "bottom": 1,
+            "right": 1
+          }
+        ],
+        "activeAreaIndex": 0,
+        "activeCell": {
+          "row": 1,
+          "col": 1
+        },
+        "extensionAnchor": {
+          "row": 1,
+          "col": 1
+        }
+      },
+      "coordinateCountUpperBound": 1,
+      "cells": [
+        {
+          "address": {
+            "row": 1,
+            "col": 1
+          },
+          "displayText": "Tender: Office equipment",
+          "valueType": "text",
+          "value": "Tender: Office equipment"
+        }
+      ],
+      "truncated": false,
+      "truncationReasons": [],
+      "maxCells": 1000,
+      "textCharacters": 48,
+      "maxTextCharacters": 1048576
+    },
+    "clickedSheet": "Second tender",
+    "returnedSheet": "Tender",
+    "errors": [],
+    "requests": [
+      "http://127.0.0.1:5133/bundle.html",
+      "http://127.0.0.1:5133/webpack-xlsx/viewer.js",
+      "http://127.0.0.1:5133/outputs/two-sheets.xlsx",
+      "http://127.0.0.1:5133/webpack-xlsx/368.viewer.js",
+      "http://127.0.0.1:5133/webpack-xlsx/44e0ffa7d09f74ade87d.js",
+      "http://127.0.0.1:5133/webpack-xlsx/79b9604b29292b28e254.wasm"
+    ]
+  },
+  "webpack_warnings": [
+    {
+      "moduleName": "../../../../private/tmp/feature013-research/node_modules/@silurus/ooxml/dist/model-source-COXegBNA.js",
+      "message": "Critical dependency: the request of a dependency is an expression"
+    }
+  ],
+  "page_errors": [],
+  "nonlocal_page_requests": [],
+  "hashes": [
+    {
+      "file": "Samples/orders-report.template.docx",
+      "bytes": 28653,
+      "sha256": "a93de007532c38b7aa64f82dda3b54d258a5c66efa7643c07c9c67a2a57e6389"
+    },
+    {
+      "file": "Samples/project-costs.template.docx",
+      "bytes": 25134,
+      "sha256": "6a35a2b0a12e5f17c491df937c07a28178b6c14adb10fc74b126bfaddd7d52e4"
+    },
+    {
+      "file": "Samples/repeated-image.template.docx",
+      "bytes": 40284,
+      "sha256": "ef2db139c0597df08cb07926eddc6bf57c8944469719b787061b7d0161769c72"
+    },
+    {
+      "file": "Samples/sample.template.docx",
+      "bytes": 2554,
+      "sha256": "c7c578d3f76b1df1d2d67a9c668cbd7d522ad82b4b4a354ae6f3552d7d0e56a4"
+    },
+    {
+      "file": "Samples/syntax-showcase.template.docx",
+      "bytes": 30773,
+      "sha256": "d50f30c03ffeecbe72789adf7d085b2ee378f0d367afd0c675af8a99deba8d1d"
+    },
+    {
+      "file": "Samples/xlsx-tender.template.xlsx",
+      "bytes": 2335,
+      "sha256": "45ac22476da58f10f5120523cdc286600a70e218d2c94aa2dc9a9c0849971ef5"
+    },
+    {
+      "file": "outputs/cached-fields.docx",
+      "bytes": 2926,
+      "sha256": "5ab4e4eb3444fbe8697376bbdeffdceb7d17c9962ea49ac6cc63228197137b71"
+    },
+    {
+      "file": "outputs/orders-report.docx",
+      "bytes": 34718,
+      "sha256": "759fb80d4100226ec73d919d42d619ecaa49126c01d73c0fe8ad1fa6672330a7"
+    },
+    {
+      "file": "outputs/project-costs.docx",
+      "bytes": 25428,
+      "sha256": "6ab8b72c52fab5c8d27fd466851a1a8a8731e38f2f5836b8a72a6a7220c76168"
+    },
+    {
+      "file": "outputs/repeated-image.docx",
+      "bytes": 40044,
+      "sha256": "2254c1ed8ddecb91307664c695276a42b52372e5f3d03ac6f1759a001c60f349"
+    },
+    {
+      "file": "outputs/sample.docx",
+      "bytes": 2809,
+      "sha256": "485c90dff3f80d16a3045b811f832035f4b596746ae21b23049837c2ee80c2ed"
+    },
+    {
+      "file": "outputs/syntax-showcase.docx",
+      "bytes": 30053,
+      "sha256": "b44707cc46d3396cc018ac6a24bac748b1c369f5866a8370cfed22e757642f8c"
+    },
+    {
+      "file": "outputs/two-sheets.xlsx",
+      "bytes": 3450,
+      "sha256": "308a0597c159e924b8f281cb839ec961ddc338a8b6cc138eceb9cdb210f2214a"
+    },
+    {
+      "file": "outputs/xlsx-tender.xlsx",
+      "bytes": 2523,
+      "sha256": "740d426db70c10df641c0ee238b51bf9c5fc6b7cf2c4e218f8a58404feb41cf4"
+    },
+    {
+      "file": "fixtures/cached-fields.template.docx",
+      "bytes": 2669,
+      "sha256": "8d8ef58296e7b508ba3c535692828d17166c3a32a66d0899dbce9fea27198b97"
+    },
+    {
+      "file": "fixtures/explicit-caches.xlsx",
+      "bytes": 2529,
+      "sha256": "c90802a540d42d6736892084679968eb64e17ac551bdfaf9a84d415e8e95d6a2"
+    },
+    {
+      "file": "fixtures/two-sheets.template.xlsx",
+      "bytes": 3117,
+      "sha256": "5b8ca47c094b2b24bb51fc056bb9736c2d8aa4f68639fc546ebd1afa1323dfdc"
+    }
+  ],
+  "bundle_assets": [
+    {
+      "name": "viewer.js",
+      "raw_bytes": 1535433,
+      "gzip_bytes": 390605
+    },
+    {
+      "name": "44e0ffa7d09f74ade87d.js",
+      "raw_bytes": 1675426,
+      "gzip_bytes": 450547
+    },
+    {
+      "name": "79b9604b29292b28e254.wasm",
+      "raw_bytes": 1913474,
+      "gzip_bytes": 787518
+    },
+    {
+      "name": "368.viewer.js",
+      "raw_bytes": 261,
+      "gzip_bytes": 223
+    }
+  ],
+  "supplemental_fixture_definitions": {
+    "cached-fields.template.docx": "Copy of Samples/sample.template.docx with two body paragraphs before sectPr: simple MERGEFIELD ResearchSimple with cached text Simple cached value; complex begin/instruction/separate/cache/end MERGEFIELD ResearchComplex with cached text Complex cached value. Generated with Samples/sample.json.",
+    "two-sheets.template.xlsx": "Copy of Samples/xlsx-tender.template.xlsx with duplicate worksheet Second tender, its relationship/content type, and local PrintArea B3:F10; generated with Samples/xlsx-tender.json.",
+    "explicit-caches.xlsx": "Copy of freshly generated tender with explicit numeric caches D8=1280, E8=15, G8=1225, H8=19. Not a formula calculation result produced by the viewer or engine."
+  }
+}
