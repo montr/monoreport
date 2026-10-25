@@ -6,6 +6,7 @@
 2. Obtain Product Owner approval before starting Feature implementation, making significant changes to approved requirements, scope, or architecture, or performing potentially disruptive operations, including browser automation and resource-intensive tests. Resolve routine implementation decisions independently.
 3. Keep the Feature Spec and Implementation Plan consistent with approved decisions and actual implementation. Update them when requirements or implementation approach change.
 4. Do not invoke other agents or delegate work to them without explicit Product Owner authorization.
+5. Do not introduce user-visible features or permanent UI elements beyond the approved Feature Spec without explicit Product Owner approval. Highlight such proposals as separate decisions during planning; merely including them in the Implementation Plan does not constitute explicit approval. Routine layout, styling, and interaction details necessary to implement approved requirements do not need separate approval. If legal, security, or technical obligations require additional UI, explain the need and propose a minimal solution before implementing it.
 
 ## Git Operations
 

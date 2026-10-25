@@ -1,6 +1,6 @@
 # Feature 013 — XLSX Web UI Support
 
-**Status:** Draft — Product Owner review required  
+**Status:** Approved — 2026-10-25
 **Feature directory:** `.docs/features/013-xlsx-web-ui/`  
 **Architecture research:** [architecture-research.md](architecture-research.md)
 
@@ -79,7 +79,7 @@ Extend the existing MonoReport Web Playground to support XLSX templates and gene
 ## 5. Error handling, safety, and nonfunctional requirements
 
 1. Uploaded and generated XLSX files are untrusted inputs to the new XLSX viewer. The XLSX viewer must not execute workbook macros/formulas, activate external links, request external fonts/resources, or render workbook strings as untrusted application HTML. This requirement does not change the existing DOCX preview behavior.
-2. Prevent obsolete preview sessions, workers, or callbacks from changing the UI after replacement, unmounting, or format switches; release associated resources.
+2. Prevent obsolete preview sessions, workers, or callbacks from changing the UI after replacement, unmounting, or format switches. Preserve session invalidation, viewer destruction, and resource cleanup. **Accepted limitation — Product Owner decision, 2026-10-25:** In pinned `@silurus/ooxml` 0.89.4, a pending initial-load parsing worker may survive viewer destruction until loading succeeds, fails, or a worker request times out; completed workbook resources are disposed through existing cleanup. Retain the configured 30-second worker-request timeout, which is not a total-load or post-disposal deadline. Rapid switching can temporarily overlap obsolete parsing work. No permanent leak or demonstrated user-facing failure was established, and a maintained dependency patch is not justified at this time. Do not patch or replace the dependency for this limitation; preserve stale-operation protections.
 3. Treat preview memory/resource limits as independent of the existing API request-size limit. Failure to preview an oversized or unsupported workbook must be recoverable and must not prevent download of an already generated result.
 4. Ensure XLSX viewer JavaScript, WASM, and worker assets load from the deployed application origin, including production builds; do not depend on third-party hosted services at runtime.
 5. Keep preview read-only. No spreadsheet editing, formula recalculation, chart/advanced-feature fidelity promise, or Excel print-layout parity is required.

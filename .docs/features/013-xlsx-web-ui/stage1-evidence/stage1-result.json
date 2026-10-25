@@ -1,0 +1,69 @@
+{
+  "browser": "156.0.8078.47",
+  "tenderTabs": [
+    "Tender"
+  ],
+  "tabs": [
+    "Tender",
+    "Second tender"
+  ],
+  "hiddenTabs": [
+    "Tender"
+  ],
+  "secondSelected": "600",
+  "narrow": {
+    "x": 0,
+    "y": 550,
+    "width": 540,
+    "height": 267
+  },
+  "retained": true,
+  "generateEnabled": true,
+  "errors": [],
+  "initialRequests": [
+    "http://127.0.0.1:3000/",
+    "http://127.0.0.1:3000/assets/main.c165e09e7525d38b8645.js",
+    "http://127.0.0.1:3000/assets/vendors-node_modules_monaco-editor_esm_external_vscode-languageserver-types_lib_esm_main_js.b54e745a694ec93f6a5c.js",
+    "http://127.0.0.1:3000/assets/vendors-node_modules_monaco-editor_esm_vs_internal_common_workers_js-node_modules_monaco-edit-9681ee.c63cf9dfcaa423c32430.js",
+    "http://127.0.0.1:3000/assets/vendors-node_modules_monaco-editor_esm_external_jsonc-parser_lib_esm_main_js.83a9b4034d92bde24d28.js",
+    "http://127.0.0.1:3000/assets/vendors-node_modules_monaco-editor_esm_vs_languages_features_json_jsonMode_js.45d34adfd177848d0f84.js",
+    "http://127.0.0.1:3000/examples.json",
+    "http://127.0.0.1:3000/examples.json",
+    "http://127.0.0.1:3000/json.worker.js",
+    "http://127.0.0.1:3000/examples/syntax-showcase.template.docx",
+    "http://127.0.0.1:3000/examples/syntax-showcase.json"
+  ],
+  "requests": [
+    "http://127.0.0.1:3000/",
+    "http://127.0.0.1:3000/assets/main.c165e09e7525d38b8645.js",
+    "http://127.0.0.1:3000/assets/vendors-node_modules_monaco-editor_esm_external_vscode-languageserver-types_lib_esm_main_js.b54e745a694ec93f6a5c.js",
+    "http://127.0.0.1:3000/assets/vendors-node_modules_monaco-editor_esm_vs_internal_common_workers_js-node_modules_monaco-edit-9681ee.c63cf9dfcaa423c32430.js",
+    "http://127.0.0.1:3000/assets/vendors-node_modules_monaco-editor_esm_external_jsonc-parser_lib_esm_main_js.83a9b4034d92bde24d28.js",
+    "http://127.0.0.1:3000/assets/vendors-node_modules_monaco-editor_esm_vs_languages_features_json_jsonMode_js.45d34adfd177848d0f84.js",
+    "http://127.0.0.1:3000/examples.json",
+    "http://127.0.0.1:3000/examples.json",
+    "http://127.0.0.1:3000/json.worker.js",
+    "http://127.0.0.1:3000/examples/syntax-showcase.template.docx",
+    "http://127.0.0.1:3000/examples/syntax-showcase.json",
+    "blob:http://127.0.0.1:3000/3df50fdf-01ad-48af-a6f2-cd5fcf958271",
+    "http://127.0.0.1:3000/editor.worker.js",
+    "http://127.0.0.1:3000/assets/vendors-node_modules_silurus_ooxml_dist_xlsx_mjs.0cf2ee6cbba6c79acc74.js",
+    "http://127.0.0.1:3000/assets/node_modules_silurus_ooxml_dist_render-worker-host-BR7n4xKy_js.732eb483ee863242cd67.js",
+    "http://127.0.0.1:3000/59272af00b7028e9c06b.js",
+    "http://127.0.0.1:3000/79b9604b29292b28e254.wasm",
+    "http://127.0.0.1:3000/b5576db5d289588c1912.ttf",
+    "http://127.0.0.1:3000/59272af00b7028e9c06b.js",
+    "http://127.0.0.1:3000/79b9604b29292b28e254.wasm",
+    "http://127.0.0.1:3000/59272af00b7028e9c06b.js",
+    "http://127.0.0.1:3000/79b9604b29292b28e254.wasm",
+    "http://127.0.0.1:3000/59272af00b7028e9c06b.js",
+    "http://127.0.0.1:3000/79b9604b29292b28e254.wasm",
+    "http://127.0.0.1:3000/59272af00b7028e9c06b.js",
+    "http://127.0.0.1:3000/79b9604b29292b28e254.wasm",
+    "http://127.0.0.1:3000/59272af00b7028e9c06b.js",
+    "http://127.0.0.1:3000/79b9604b29292b28e254.wasm",
+    "http://127.0.0.1:3000/59272af00b7028e9c06b.js",
+    "http://127.0.0.1:3000/79b9604b29292b28e254.wasm"
+  ],
+  "apiRequests": []
+}

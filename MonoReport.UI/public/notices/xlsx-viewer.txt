@@ -1,0 +1,6 @@
+MonoReport XLSX preview distribution inventory
+
+1. @silurus/ooxml 0.89.4 is distributed under MIT. Its copyright and permission notice is in ooxml/LICENSE. The complete upstream bundled-code/data inventory and license texts are in ooxml/THIRD_PARTY_NOTICES.md, including Rust/WASM, Unicode data and code embedded in workers.
+2. For dual-licensed bundled components, select MIT or Apache-2.0 where offered, MIT for MIT OR GPL alternatives, and 0BSD for 0BSD OR MIT OR Apache-2.0. Retain all applicable non-alternative terms, Unicode-3.0, Zlib, and upstream attribution/NOTICE material in the accompanying inventory.
+3. MonoReport imports only the XLSX entry. Optional MathJax, region-map, 3-D, TIFF and legacy-format extensions are not enabled. Upstream notices are retained in full, including entries for optional components; inclusion does not mean an extension is active.
+4. Existing DOCX rendering uses docx-preview 0.4.1 (Apache-2.0) and JSZip 3.10.2 (MIT selected from MIT OR GPL-3.0-or-later). Their existing dependencies remain unchanged. The full application distribution inventory is finalized in Feature 013 Stage 4.

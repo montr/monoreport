@@ -13,6 +13,10 @@ class PlaygroundExamplesPlugin {
         () => {
           const files = [
             [path.resolve(__dirname, "public/examples.json"), "examples.json"],
+            ...["LICENSE", "THIRD_PARTY_NOTICES.md"].map(name => [
+              path.resolve(__dirname, "node_modules/@silurus/ooxml", name), `notices/ooxml/${name}`
+            ]),
+            [path.resolve(__dirname, "public/notices/xlsx-viewer.txt"), "notices/xlsx-viewer.txt"],
             ...fs.readdirSync(path.resolve(__dirname, "../Samples"))
               .filter(name => name.endsWith(".template.docx") || name.endsWith(".json"))
               .map(name => [path.resolve(__dirname, "../Samples", name), `examples/${name}`])

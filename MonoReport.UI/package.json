@@ -13,6 +13,7 @@
     "build": "node ./scripts/check-node-version.mjs && webpack --mode production"
   },
   "dependencies": {
+    "@silurus/ooxml": "0.89.4",
     "antd": "6.6.6",
     "docx-preview": "0.4.1",
     "jszip": "3.10.2",

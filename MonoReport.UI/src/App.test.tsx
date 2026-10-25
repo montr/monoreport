@@ -15,6 +15,14 @@ vi.mock("./components/DocxPreview", () => ({
   }
 }));
 
+const xlsxSources: Array<Blob | File> = [];
+vi.mock("./components/XlsxPreview", () => ({
+  XlsxPreview: ({ source, label }: { source: Blob | File; label: string }) => {
+    xlsxSources.push(source);
+    return <div>{label} XLSX preview</div>;
+  }
+}));
+
 const mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 const template = () => new File([new Uint8Array([80, 75, 3, 4])], "sample.template.docx", { type: mime });
 const manifest = {
@@ -47,7 +55,7 @@ async function selectTemplate(user: ReturnType<typeof userEvent.setup>, file = t
 }
 
 describe("MonoReport playground", () => {
-  beforeEach(() => { previewSources.length = 0; mockPlaygroundFetch(); });
+  beforeEach(() => { previewSources.length = 0; xlsxSources.length = 0; mockPlaygroundFetch(); });
 
   it("loads the default example without generation and keeps the approved controls and accessible splitter", async () => {
     render(<App />);
@@ -111,6 +119,38 @@ describe("MonoReport playground", () => {
     expect(screen.getByText("third.docx")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Download result" })).not.toBeInTheDocument();
     expect(editor).toHaveValue('{"kept":true}');
+  });
+
+  it("selects XLSX by extension for picker/drop, preserves JSON, invalidates results, and switches back to DOCX", async () => {
+    const user = userEvent.setup();
+    const { apiMock } = mockPlaygroundFetch(async () => success());
+    render(<App />);
+    await screen.findByText("Template preview");
+    await user.click(screen.getByRole("button", { name: "Generate document" }));
+    await screen.findByText("Result preview");
+    await user.click(screen.getByRole("button", { name: "Template" }));
+    const picker = screen.getByLabelText("Template actions").querySelector("input")!;
+    expect(picker).toHaveAttribute("accept", expect.stringContaining(".xlsx"));
+    const book = new File([new Uint8Array([1])], "tender.XLSX", { type: mime });
+    await selectTemplate(user, book);
+    expect(screen.getByText("Template XLSX preview")).toBeInTheDocument();
+    expect(xlsxSources.at(-1)).toBe(book);
+    expect(previewSources.at(-1)).not.toBe(book);
+    expect(screen.getByRole("button", { name: "Result" })).toBeDisabled();
+    expect(screen.getByLabelText("JSON data")).toHaveValue(sampleData);
+    const dropped = new File([new Uint8Array([2])], "second.xlsx");
+    fireEvent.drop(screen.getByLabelText("Preview").querySelector(".canvas")!, { dataTransfer: { files: [dropped], types: ["Files"] } });
+    expect(xlsxSources.at(-1)).toBe(dropped);
+    expect(screen.getByRole("button", { name: "Download template" })).toBeEnabled();
+    fireEvent.drop(screen.getByLabelText("Preview").querySelector(".canvas")!, { dataTransfer: { files: [new File([], "bad.xls")], types: ["Files"] } });
+    expect(screen.getByText("Select a .docx or .xlsx file.")).toBeInTheDocument();
+    expect(screen.getByText("second.xlsx")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Template" }));
+    await selectTemplate(user);
+    expect(screen.getByText("Template preview")).toBeInTheDocument();
+    expect(screen.queryByText("Template XLSX preview")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("JSON data")).toHaveValue(sampleData);
+    expect(apiMock).toHaveBeenCalledOnce();
   });
 
   it("sends generation only on click, prevents duplicates, previews real response bytes, and downloads them", async () => {

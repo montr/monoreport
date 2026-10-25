@@ -1,5 +1,7 @@
 import { Button, ConfigProvider, Spin } from "antd";
 import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
+import { XlsxPreview } from "./components/XlsxPreview";
+import { templateFormat, templateAccept } from "./services/documentFormat";
 import { DocxPreview } from "./components/DocxPreview";
 import { MonacoJsonEditor } from "./components/MonacoJsonEditor";
 import { Splitter } from "./components/Splitter";
@@ -180,8 +182,8 @@ export default function App() {
   }
 
   function acceptTemplate(file: File) {
-    if (!/\.docx$/i.test(file.name)) {
-      setErrors(diagnostic("Unsupported template format", "Select a .docx file."));
+    if (!templateFormat(file.name)) {
+      setErrors(diagnostic("Unsupported template format", "Select a .docx or .xlsx file."));
       setActive("errors");
       return;
     }
@@ -237,7 +239,7 @@ export default function App() {
   async function generate() {
     if (pending) return;
     if (!template) {
-      setErrors(diagnostic("Template is required", "Select a DOCX file before generating a document."));
+      setErrors(diagnostic("Template is required", "Select a DOCX or XLSX file before generating a document."));
       setActive("errors");
       return;
     }
@@ -331,7 +333,7 @@ export default function App() {
   ) : active === "result" && result ? (
     <DocxPreview source={result.blob} label="Result" />
   ) : template ? (
-    <DocxPreview source={template} label="Template" />
+    templateFormat(template.name) === "xlsx" ? <XlsxPreview source={template} label="Template" /> : <DocxPreview source={template} label="Template" />
   ) : <DocumentEmpty>Select a template</DocumentEmpty>;
 
   return <ConfigProvider theme={{ token: { colorPrimary: "#cf4d48", borderRadius: 6, fontSize: 13 } }}>
@@ -375,14 +377,14 @@ export default function App() {
             <div className="document-actions">
               <Button onClick={() => fileInput.current?.click()}>Upload</Button>
               <Button className="download" aria-label="Download template" disabled={!template} onClick={() => template && downloadBlob(template, template.name)} icon={<DownloadIcon />}>Download</Button>
-              <input ref={fileInput} type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={selected} />
+              <input ref={fileInput} type="file" accept={templateAccept} onChange={selected} />
             </div>
           </div>}
           {active === "result" && <div className="document-toolbar result-toolbar" aria-label="Result actions">
             <Button className="download" aria-label="Download result" disabled={!result} onClick={() => result && downloadBlob(result.blob, result.filename)} icon={<DownloadIcon />}>Download</Button>
           </div>}
           <div
-            className={`canvas ${active === "errors" && errors.length > 0 ? "errors-view" : ""} ${dragging ? "drop-target" : ""}`}
+            className={`canvas ${active === "template" && template && templateFormat(template.name) === "xlsx" ? "xlsx-view" : ""} ${active === "errors" && errors.length > 0 ? "errors-view" : ""} ${dragging ? "drop-target" : ""}`}
             onDragEnter={event => { if (event.dataTransfer.types.includes("Files")) { event.preventDefault(); setDragging(true); } }}
             onDragOver={event => { if (event.dataTransfer.types.includes("Files")) event.preventDefault(); }}
             onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDragging(false); }}
