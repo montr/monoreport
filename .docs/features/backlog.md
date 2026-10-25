@@ -4,11 +4,8 @@ Potential work for MonoReport. Items are not approved Features; scope and priori
 
 ## Product Direction
 
-1. **XLSX support** — Excel templates and generation; preserve formulas, styles, and workbook structure. Reuse DOCX components only where appropriate.
-2. **Conditional rendering** — conditions in templates without arbitrary code execution or business calculations.
-3. **Word Add-in** — visual template authoring with field and collection insertion. Define how data sources and server connections work first.
-4. **Extended formatting** — additional field formats and currency support.
-5. **MCP integration** — revisit when concrete consumers and use cases are identified.
+1. **Extended formatting** — additional field formats and currency support.
+2. **MCP integration** — revisit when concrete consumers and use cases are identified.
 
 ## Engineering Backlog
 
@@ -183,3 +180,39 @@ An equivalent workflow should be supported in Excel, accounting for cell, range,
 **Constraints:** Architecture review only. No implementation, speculative refactoring, or premature unification of DOCX and XLSX engines.
 
 **Priority:** After Feature 012 stabilizes. Not a blocker for XLSX development.
+
+## Documentation Refresh (README-first)
+
+Review and rewrite MonoReport's user-facing documentation as a separate Feature.
+
+1. Keep README as the main, coherent entry point for users. Move large standalone topics (DOCX/XLSX compatibility, architecture, etc.) into separate documents only when justified, with links from README.
+2. Emphasize the data-first approach: explain structured input data and JSON, not just document templates. Clearly illustrate the workflow: template + data → generated document.
+3. Restore and review illustrations, including the template, JSON input, and generated document. Prefer visual examples before detailed API documentation.
+4. Review product positioning, supported capabilities, limitations, getting-started instructions, CLI/API examples, and documentation consistency across DOCX and XLSX.
+5. Remove outdated information, unnecessary dependency/version details, duplication, and implementation-oriented explanations that are not useful to users. Preserve practical examples and working commands.
+
+Start with a documentation audit and an agreed update plan. Do not rewrite documentation incrementally during unrelated Feature implementation.
+
+## XLSX Engine Architecture Review
+
+Review the architecture and implementation decisions of the XLSX Template Engine (Feature 012).
+
+1. Assess the necessity and complexity of existing components, including the Logical Scheduler, Geometry Planner, formula handling, and their interactions.
+2. Review data hierarchy semantics: data defines hierarchy, templates define presentation. Evaluate `MissingValues`, omitted hierarchy levels, repeated collections, and preservation of data identity.
+3. Identify unnecessary abstractions, duplicated logic, implementation limitations that should not become product requirements, and opportunities to simplify the architecture.
+4. Evaluate the use of Open XML SDK and opportunities to rely more on existing platform and library capabilities.
+5. Document the resulting XLSX Engine architecture, significant decisions, trade-offs, and proposed improvements.
+6. Include the deferred Microsoft Excel E1/A14 validation, to be performed after the Web UI becomes available. Record any issues discovered for subsequent correction.
+
+Start with an independent architectural assessment. Do not refactor the engine without a separately approved implementation plan.
+
+## XLSX Performance Benchmark
+
+Create a dedicated, reproducible benchmark project for the XLSX Template Engine.
+
+1. Evaluate workloads from small documents to approximately 1 million rows, varying columns, formulas, styles, and nested collections.
+2. Measure execution time by processing stage, peak memory, allocations, generated file size, and throughput.
+3. Ensure reproducibility through deterministic inputs, warm-up, repeated measurements, and process isolation where appropriate.
+4. Compare performance across implementation versions and identify bottlenecks and scalability limits.
+5. Use the existing `capacity-results.md` as historical reference data. Do not promote the temporary Feature 012 benchmark runner into permanent infrastructure without justification.
+6. Support local benchmark execution; consider periodic CI benchmarking only if justified.
