@@ -97,7 +97,7 @@ Extend the existing MonoReport Web Playground to support XLSX templates and gene
 7. **Recoverable preview failure:** an intentionally unrenderable/over-limit result shows a preview error while its already generated XLSX remains downloadable.
 8. **Generation diagnostics:** a bad template or data error appears in Errors with available context; XLSX analysis is not required before Generate.
 9. **Format switching:** changing between XLSX and DOCX while previews/requests are in flight does not leak the old preview/result into the newly selected file.
-10. **Integration smoke check:** the production build serves the XLSX runtime assets, and a representative generated XLSX download opens as a valid workbook in a desktop spreadsheet application.
+10. **Production asset check:** inspect the Release output for the XLSX example files, lazy JavaScript chunks, workers, and WASM. Container startup is checked through the existing Docker setup. Desktop spreadsheet opening and Docker-hosted browser acceptance are deferred.
 
 ## 7. Explicitly out of scope
 
@@ -113,6 +113,6 @@ Extend the existing MonoReport Web Playground to support XLSX templates and gene
 ## 8. Verification and handoff
 
 1. Developer prepares an Implementation Plan against this approved Feature Spec and the linked architecture research; no implementation starts until Product Owner approval.
-2. Include focused frontend tests for format detection/dispatch, JSON analysis action, generation response handling, diagnostics, preview isolation, and stale operations. Reuse existing test patterns.
-3. Perform a bounded real-browser acceptance pass on representative XLSX and DOCX samples, including a multi-sheet workbook and a generated formula workbook. Check production asset loading and a manual Excel-compatible download/open flow.
-4. If the selected library fails acceptance or licensing checks, return to Product Owner with evidence and a narrower alternative; do not silently substitute another viewer or expand feature scope.
+2. Reuse existing frontend and API verification evidence; the remaining Stage 4 scope adds no tests or browser acceptance matrix.
+3. Build the production UI and Release publish/container using the existing setup. Inspect emitted XLSX examples, JavaScript chunks, workers, and WASM, and confirm the container starts.
+4. Licensing/notice verification, S1-02, Docker-hosted browser acceptance, desktop spreadsheet checks, and additional Preview failure tests are deferred. Existing notice files remain unchanged. S3-01 and S3-02 remain Open and deferred to Feature 014.
