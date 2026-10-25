@@ -328,7 +328,7 @@ export default function App() {
   const modified = selectedExample !== undefined && selectedExample !== "custom" && json !== baselineJson;
 
   const content = active === "errors" ? (
-    errors.length ? <div className="issues"><div className="issues-title"><strong>{errors.length} {errors.length === 1 ? "error" : "errors"}</strong></div>{errors.map((error, index) => <div className="issue" key={`${error.code ?? error.title}-${index}`}><span>{index + 1}.</span><div><strong>{error.title}</strong><p>{[error.code, error.field, error.dataPath, error.location, error.formatter, error.detail].filter(Boolean).join(" · ")}</p></div></div>)}</div> : <DocumentEmpty>No errors</DocumentEmpty>
+    errors.length ? <div className="issues"><div className="issues-title"><strong>{errors.length} {errors.length === 1 ? "error" : "errors"}</strong></div>{errors.map((error, index) => <div className="issue" key={`${error.code ?? error.title}-${index}`}><span>{index + 1}.</span><div><strong>{error.title}</strong><p>{[error.code, error.field, error.dataPath, error.part, error.location, error.formatter, error.detail].filter(Boolean).join(" · ")}</p></div></div>)}</div> : <DocumentEmpty>No errors</DocumentEmpty>
   ) : active === "result" && result ? (
     result.format === "xlsx" ? <XlsxPreview source={result.blob} label="Result" /> : <DocxPreview source={result.blob} label="Result" />
   ) : template ? (
@@ -348,7 +348,7 @@ export default function App() {
           </div>
           <div className="editbar">
             <div className="mode" aria-label="Input mode"><Button disabled>Form</Button><Button className="active" aria-current="true">JSON</Button></div>
-            <div className="edit-actions"><Button size="small" aria-label="Generate JSON" loading={pending === "analyze"} disabled={!template || Boolean(pending)} onClick={() => void generateJson()}>Generate JSON</Button><Button size="small" onClick={() => void copyJson()}>{copyLabel}</Button><Button size="small" onClick={formatJson}>Format</Button></div>
+            <div className="edit-actions"><Button size="small" aria-label="Generate JSON" title="Creates a starting point; edit it because XLSX row counts and other data-dependent requirements are not validated." loading={pending === "analyze"} disabled={!template || Boolean(pending)} onClick={() => void generateJson()}>Generate JSON</Button><Button size="small" onClick={() => void copyJson()}>{copyLabel}</Button><Button size="small" onClick={formatJson}>Format</Button></div>
           </div>
           <MonacoJsonEditor value={json} onChange={changeJson} />
         </section>

@@ -2,13 +2,6 @@
   "defaultExample": "xlsx-tender",
   "examples": [
     {
-      "id": "xlsx-tender",
-      "title": "Tender Report",
-      "format": "xlsx",
-      "templatePath": "/examples/xlsx-tender.template.xlsx",
-      "dataPath": "/examples/xlsx-tender.json"
-    },
-    {
       "id": "orders-report",
       "title": "Sales Orders Report",
       "format": "docx",
@@ -42,6 +35,20 @@
       "format": "docx",
       "templatePath": "/examples/repeated-image.template.docx",
       "dataPath": "/examples/repeated-image.json"
+    },
+    {
+      "id": "xlsx-tender",
+      "title": "Tender Report",
+      "format": "xlsx",
+      "templatePath": "/examples/xlsx-tender.template.xlsx",
+      "dataPath": "/examples/xlsx-tender.json"
+    },
+    {
+      "id": "xlsx-employees",
+      "title": "Employees Report",
+      "format": "xlsx",
+      "templatePath": "/examples/xlsx-employees.template.xlsx",
+      "dataPath": "/examples/xlsx-employees.json"
     }
   ]
 }

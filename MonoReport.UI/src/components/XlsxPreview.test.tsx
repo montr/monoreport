@@ -91,6 +91,22 @@ describe("XLSX preview boundary", () => {
     expect(destroy).toHaveBeenCalledTimes(2);
   });
 
+  it("ignores an obsolete successful load after a replacement source has rendered", async () => {
+    const obsoleteLoad = deferred<void>();
+    load.mockReturnValueOnce(obsoleteLoad.promise).mockResolvedValueOnce(undefined);
+    const view = render(<XlsxPreview source={source()} label="Template" />);
+    await waitFor(() => expect(load).toHaveBeenCalledOnce());
+    view.rerender(<XlsxPreview source={source()} label="Template" />);
+    await waitFor(() => expect(load).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.queryByRole("status")).not.toBeInTheDocument());
+
+    await act(async () => obsoleteLoad.resolve());
+
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(destroy).toHaveBeenCalledOnce();
+    expect(create.mock.calls[1][0].isConnected).toBe(true);
+  });
+
   it("disposes immediately on background/resource errors and recovers after a failed load", async () => {
     load.mockRejectedValueOnce(new Error("resource-limit: private document details"));
     const view = render(<XlsxPreview source={source()} label="Template" />);

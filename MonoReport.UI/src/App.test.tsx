@@ -68,6 +68,7 @@ describe("MonoReport playground", () => {
     expect(screen.getByRole("combobox", { name: "Examples" })).toHaveValue("construction-cost-estimate");
     expect(screen.getByRole("button", { name: "Download template" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Generate JSON" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Generate JSON" })).toHaveAttribute("title", expect.stringContaining("not validated"));
     const repositoryLink = screen.getByRole("link", { name: "MonoReport" });
     expect(repositoryLink).toHaveAttribute("href", "https://github.com/montr/monoreport");
     expect(repositoryLink.querySelector("svg")).not.toBeNull();
@@ -131,6 +132,28 @@ describe("MonoReport playground", () => {
     expect(screen.getByRole("combobox", { name: "Examples" })).toHaveValue("custom");
     expect(screen.getByLabelText("JSON data")).toHaveValue(sampleData);
     expect(xlsxSources.at(-1)).toBe(custom);
+  });
+
+  it("does not let a pending DOCX example replace a custom XLSX selection", async () => {
+    let resolveTemplate!: (response: Response) => void;
+    let resolveData!: (response: Response) => void;
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/examples.json") return Promise.resolve(new Response(JSON.stringify(manifest), { status: 200 }));
+      if (url === "/examples/sample.template.docx") return new Promise<Response>(resolve => { resolveTemplate = resolve; });
+      if (url === "/examples/sample.json") return new Promise<Response>(resolve => { resolveData = resolve; });
+      return Promise.reject(new Error(`Unexpected request: ${url}`));
+    }));
+    const user = userEvent.setup();
+    render(<App />);
+    await waitFor(() => expect(resolveTemplate).toBeTypeOf("function"));
+    await selectTemplate(user, new File([new Uint8Array([80, 75])], "custom.xlsx", { type: xlsxMime }));
+    resolveTemplate(new Response(new Uint8Array([80, 75, 3, 4]), { status: 200, headers: { "Content-Type": mime } }));
+    resolveData(new Response(sampleData, { status: 200 }));
+
+    await waitFor(() => expect(screen.getByText("custom.xlsx")).toBeInTheDocument());
+    expect(screen.getByLabelText("JSON data")).toHaveValue("{}");
+    expect(screen.getByText("Template XLSX preview")).toBeInTheDocument();
   });
 
   it("formats and copies valid JSON while invalid JSON remains unchanged and never requests", async () => {
@@ -266,14 +289,15 @@ describe("MonoReport playground", () => {
 
   it("renders real API diagnostics and multiple issues without mock content", async () => {
     const user = userEvent.setup();
-    mockPlaygroundFetch(async () => new Response(JSON.stringify({ errors: [{ code: "first", message: "First issue", dataPath: "Items[3].Amount", location: "/word/document.xml, paragraph 2" }, { code: "second", detail: "Second issue" }] }), { status: 422, headers: { "Content-Type": "application/problem+json" } }));
+    mockPlaygroundFetch(async () => new Response(JSON.stringify({ errors: [{ code: "first", message: "First issue", field: "Amount", dataPath: "Items[3].Amount", part: "/xl/worksheets/sheet2.xml", location: "C14" }, { code: "second", detail: "Second issue" }] }), { status: 422, headers: { "Content-Type": "application/problem+json" } }));
     render(<App />);
-    await selectTemplate(user);
+    await selectTemplate(user, new File([new Uint8Array([80, 75])], "source.xlsx", { type: xlsxMime }));
     await user.click(screen.getByRole("button", { name: "Generate document" }));
     expect(await screen.findByText("2 errors")).toBeInTheDocument();
     expect(screen.getByText(/First issue/)).toBeInTheDocument();
     expect(screen.getByText(/Second issue/)).toBeInTheDocument();
     expect(screen.getByText(/Items\[3\]\.Amount/)).toBeInTheDocument();
+    expect(screen.getByText(/\/xl\/worksheets\/sheet2\.xml · C14/)).toBeInTheDocument();
     expect(screen.queryByText("Unmatched collection region")).not.toBeInTheDocument();
   });
 
@@ -307,6 +331,64 @@ describe("MonoReport playground", () => {
     expect(screen.queryByRole("button", { name: "Download result" })).not.toBeInTheDocument();
   });
 
+  it("keeps the newer XLSX generation when an older request resolves afterward", async () => {
+    const user = userEvent.setup();
+    const older = success(new Uint8Array([1]), xlsxMime, "older.xlsx");
+    const newer = success(new Uint8Array([2]), xlsxMime, "newer.xlsx");
+    const resolvers: Array<(response: Response) => void> = [];
+    const { apiMock } = mockPlaygroundFetch(() => new Promise<Response>(resolve => resolvers.push(resolve)));
+    render(<App />);
+    await screen.findByText("Template preview");
+    await selectTemplate(user, new File([new Uint8Array([80, 75])], "source.xlsx", { type: xlsxMime }));
+    await user.click(screen.getByRole("button", { name: "Generate document" }));
+    fireEvent.change(screen.getByLabelText("JSON data"), { target: { value: '{"revision":2}' } });
+    await user.click(screen.getByRole("button", { name: "Generate document" }));
+    expect(apiMock).toHaveBeenCalledTimes(2);
+
+    resolvers[1](newer);
+    expect(await screen.findByText("Result XLSX preview")).toBeInTheDocument();
+    resolvers[0](older);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Download result" })).toBeEnabled());
+    expect(xlsxSources.at(-1)).toBe(await newer.blob());
+    expect(screen.getByRole("button", { name: "Download result" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Result" })).toBeEnabled();
+  });
+
+  it("ignores a pending DOCX generation after switching to an XLSX template", async () => {
+    const user = userEvent.setup();
+    let resolveGeneration!: (response: Response) => void;
+    mockPlaygroundFetch(() => new Promise<Response>(resolve => { resolveGeneration = resolve; }));
+    render(<App />);
+    await screen.findByText("Template preview");
+    await selectTemplate(user);
+    await user.click(screen.getByRole("button", { name: "Generate document" }));
+    const xlsx = new File([new Uint8Array([80, 75])], "replacement.xlsx", { type: xlsxMime });
+    fireEvent.drop(screen.getByLabelText("Preview").querySelector(".canvas")!, { dataTransfer: { files: [xlsx], types: ["Files"] } });
+    resolveGeneration(success());
+
+    await waitFor(() => expect(screen.getByText("replacement.xlsx")).toBeInTheDocument());
+    expect(screen.getByText("Template XLSX preview")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Result" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Download result" })).not.toBeInTheDocument();
+  });
+
+  it("ignores an analysis response after the template is cleared", async () => {
+    const user = userEvent.setup();
+    let resolveAnalysis!: (response: Response) => void;
+    mockPlaygroundFetch(() => new Promise<Response>(resolve => { resolveAnalysis = resolve; }));
+    render(<App />);
+    await screen.findByText("Template preview");
+    await selectTemplate(user, new File([new Uint8Array([80, 75])], "source.xlsx", { type: xlsxMime }));
+    const editor = screen.getByLabelText("JSON data");
+    await user.click(screen.getByRole("button", { name: "Generate JSON" }));
+    await user.click(screen.getByRole("button", { name: "Remove template" }));
+    resolveAnalysis(analysis([{ name: "Stale", type: "value" }]));
+
+    await waitFor(() => expect(screen.getByText("No file selected")).toBeInTheDocument());
+    expect(editor).toHaveValue(sampleData);
+    expect(screen.getByRole("button", { name: "Generate JSON" })).toBeDisabled();
+  });
+
   it("analyzes only on explicit action, confirms replacement, and invalidates an existing Result", async () => {
     const user = userEvent.setup();
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
@@ -328,6 +410,33 @@ describe("MonoReport playground", () => {
     expect(screen.getByRole("button", { name: "Result" })).toBeDisabled();
     const [, analysisInit] = apiMock.mock.calls[1] as [string, RequestInit];
     expect(((analysisInit.body as FormData).get("template") as File).name).toBe("sample.template.docx");
+  });
+
+  it("generates an editable JSON scaffold from the original XLSX and nested requirements", async () => {
+    const user = userEvent.setup();
+    const xlsx = new File([new Uint8Array([80, 75])], "source.xlsx", { type: xlsxMime });
+    const payload = analysis([
+      { name: "Report", type: "object", fields: [
+        { name: "Title", type: "value" },
+        { name: "Active", type: "boolean" },
+        { name: "Rows", type: "array", fields: [{ name: "Amount", type: "value" }] }
+      ] },
+      { name: "Footer", type: "value" }
+    ]);
+    const { apiMock } = mockPlaygroundFetch(async () => payload);
+    render(<App />);
+    await screen.findByText("Template preview");
+    await selectTemplate(user, xlsx);
+    const editor = screen.getByLabelText("JSON data");
+    fireEvent.change(editor, { target: { value: "" } });
+    await user.click(screen.getByRole("button", { name: "Generate JSON" }));
+
+    await waitFor(() => expect(editor).toHaveValue(JSON.stringify({ Report: { Title: "", Active: false, Rows: [{ Amount: "" }] }, Footer: "" }, null, 2)));
+    expect(apiMock).toHaveBeenCalledOnce();
+    const [url, init] = apiMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/documents/analyze");
+    expect((init.body as FormData).get("template")).toBe(xlsx);
+    expect((init.body as FormData).has("data")).toBe(false);
   });
 
   it("does not confirm for empty JSON and leaves nonempty JSON unchanged when replacement is cancelled", async () => {
@@ -368,17 +477,53 @@ describe("MonoReport playground", () => {
     expect(editor).toHaveValue("edited during analysis");
   });
 
+  it("ignores an in-flight XLSX analysis after switching to a DOCX template", async () => {
+    const user = userEvent.setup();
+    let resolveAnalysis!: (response: Response) => void;
+    mockPlaygroundFetch(() => new Promise<Response>(resolve => { resolveAnalysis = resolve; }));
+    render(<App />);
+    await screen.findByText("Template preview");
+    await selectTemplate(user, new File([new Uint8Array([80, 75])], "source.xlsx", { type: xlsxMime }));
+    const editor = screen.getByLabelText("JSON data");
+    await user.click(screen.getByRole("button", { name: "Generate JSON" }));
+    const docx = template();
+    fireEvent.drop(screen.getByLabelText("Preview").querySelector(".canvas")!, { dataTransfer: { files: [docx], types: ["Files"] } });
+    resolveAnalysis(analysis([{ name: "Stale XLSX", type: "value" }]));
+
+    await waitFor(() => expect(screen.getByText(docx.name)).toBeInTheDocument());
+    expect(editor).toHaveValue(sampleData);
+    expect(screen.getByText("Template preview")).toBeInTheDocument();
+  });
+
+  it("ignores an in-flight DOCX analysis after switching to an XLSX template", async () => {
+    const user = userEvent.setup();
+    let resolveAnalysis!: (response: Response) => void;
+    mockPlaygroundFetch(() => new Promise<Response>(resolve => { resolveAnalysis = resolve; }));
+    render(<App />);
+    await screen.findByText("Template preview");
+    await selectTemplate(user);
+    const editor = screen.getByLabelText("JSON data");
+    await user.click(screen.getByRole("button", { name: "Generate JSON" }));
+    const xlsx = new File([new Uint8Array([80, 75])], "replacement.xlsx", { type: xlsxMime });
+    fireEvent.drop(screen.getByLabelText("Preview").querySelector(".canvas")!, { dataTransfer: { files: [xlsx], types: ["Files"] } });
+    resolveAnalysis(analysis([{ name: "Stale DOCX", type: "value" }]));
+
+    await waitFor(() => expect(screen.getByText(xlsx.name)).toBeInTheDocument());
+    expect(editor).toHaveValue(sampleData);
+    expect(screen.getByText("Template XLSX preview")).toBeInTheDocument();
+  });
+
   it("shows analysis failures without replacing JSON", async () => {
     const user = userEvent.setup();
     mockPlaygroundFetch(async () => new Response(JSON.stringify({ valid: false,
-      errors: [{ code: "template.unmatched_brace", field: "{Name", location: "/word/document.xml, paragraph 40",
+      errors: [{ code: "template.unmatched_brace", field: "{Name", part: "/xl/worksheets/sheet1.xml", location: "B12", dataPath: "Invoice.Name",
         message: "Template braces are not balanced or escaped correctly. Token: «{Name». Nearby source text: «Invoice reference: {Name»." }],
       warnings: [], requirements: [], occurrences: [] }), { status: 200 }));
     render(<App />);
-    await selectTemplate(user);
+    await selectTemplate(user, new File([new Uint8Array([80, 75])], "source.xlsx", { type: xlsxMime }));
     await user.click(screen.getByRole("button", { name: "Generate JSON" }));
     expect(await screen.findByText("template.unmatched_brace", { selector: "strong" })).toBeInTheDocument();
-    expect(screen.getByText(/Invoice reference: \{Name/, { selector: ".issue p" })).toHaveTextContent("/word/document.xml, paragraph 40");
+    expect(screen.getByText(/Invoice reference: \{Name/, { selector: ".issue p" })).toHaveTextContent("Invoice.Name · /xl/worksheets/sheet1.xml · B12");
     expect(screen.getByLabelText("JSON data")).toHaveValue(sampleData);
   });
 

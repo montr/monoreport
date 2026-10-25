@@ -6,6 +6,7 @@ Potential work for MonoReport. Items are not approved Features; scope and priori
 
 1. **Extended formatting** — additional field formats and currency support.
 2. **MCP integration** — revisit when concrete consumers and use cases are identified.
+3. **AI-Powered Template Generation** - Automatically convert an existing DOCX/XLSX report into a fully functional MonoReport template and JSON containing the original data, with AI generating all fields, loops, and conditions while preserving the original document’s structure, layout, and formatting.
 
 ## Engineering Backlog
 

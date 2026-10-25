@@ -1,0 +1,544 @@
+{
+  "Employees": [
+    {
+      "$level": 10,
+      "Department": "Engineering"
+    },
+    {
+      "$level": 40,
+      "Name": "Avery Chen",
+      "Position": "Software Engineer"
+    },
+    {
+      "$level": 40,
+      "Name": "Jordan Patel",
+      "Position": "QA Engineer"
+    },
+    {
+      "$level": 40,
+      "Name": "Morgan Reyes",
+      "Position": "DevOps Engineer"
+    },
+    {
+      "$level": 40,
+      "Name": "Casey Nguyen",
+      "Position": "Software Engineer"
+    },
+    {
+      "$level": 40,
+      "Name": "Taylor Garcia",
+      "Position": "QA Engineer"
+    },
+    {
+      "$level": 40,
+      "Name": "Riley Kim",
+      "Position": "DevOps Engineer"
+    },
+    {
+      "$level": 40,
+      "Name": "Quinn Brooks",
+      "Position": "Software Engineer"
+    },
+    {
+      "$level": 40,
+      "Name": "Cameron Singh",
+      "Position": "QA Engineer"
+    },
+    {
+      "$level": 40,
+      "Name": "Sydney Martin",
+      "Position": "DevOps Engineer"
+    },
+    {
+      "$level": 40,
+      "Name": "Parker Zhao",
+      "Position": "Software Engineer"
+    },
+    {
+      "$level": 10,
+      "Department": "Human Resources"
+    },
+    {
+      "$level": 40,
+      "Name": "Avery Patel",
+      "Position": "Recruiter"
+    },
+    {
+      "$level": 40,
+      "Name": "Jordan Reyes",
+      "Position": "HR Specialist"
+    },
+    {
+      "$level": 40,
+      "Name": "Morgan Nguyen",
+      "Position": "People Partner"
+    },
+    {
+      "$level": 40,
+      "Name": "Casey Garcia",
+      "Position": "Recruiter"
+    },
+    {
+      "$level": 40,
+      "Name": "Taylor Kim",
+      "Position": "HR Specialist"
+    },
+    {
+      "$level": 40,
+      "Name": "Riley Brooks",
+      "Position": "People Partner"
+    },
+    {
+      "$level": 40,
+      "Name": "Quinn Singh",
+      "Position": "Recruiter"
+    },
+    {
+      "$level": 40,
+      "Name": "Cameron Martin",
+      "Position": "HR Specialist"
+    },
+    {
+      "$level": 40,
+      "Name": "Sydney Zhao",
+      "Position": "People Partner"
+    },
+    {
+      "$level": 40,
+      "Name": "Parker Chen",
+      "Position": "Recruiter"
+    },
+    {
+      "$level": 10,
+      "Department": "Sales"
+    },
+    {
+      "$level": 40,
+      "Name": "Avery Reyes",
+      "Position": "Account Executive"
+    },
+    {
+      "$level": 40,
+      "Name": "Jordan Nguyen",
+      "Position": "Sales Analyst"
+    },
+    {
+      "$level": 40,
+      "Name": "Morgan Garcia",
+      "Position": "Regional Manager"
+    },
+    {
+      "$level": 40,
+      "Name": "Casey Kim",
+      "Position": "Account Executive"
+    },
+    {
+      "$level": 40,
+      "Name": "Taylor Brooks",
+      "Position": "Sales Analyst"
+    },
+    {
+      "$level": 40,
+      "Name": "Riley Singh",
+      "Position": "Regional Manager"
+    },
+    {
+      "$level": 40,
+      "Name": "Quinn Martin",
+      "Position": "Account Executive"
+    },
+    {
+      "$level": 40,
+      "Name": "Cameron Zhao",
+      "Position": "Sales Analyst"
+    },
+    {
+      "$level": 40,
+      "Name": "Sydney Chen",
+      "Position": "Regional Manager"
+    },
+    {
+      "$level": 40,
+      "Name": "Parker Patel",
+      "Position": "Account Executive"
+    },
+    {
+      "$level": 10,
+      "Department": "Finance"
+    },
+    {
+      "$level": 40,
+      "Name": "Avery Nguyen",
+      "Position": "Financial Analyst"
+    },
+    {
+      "$level": 40,
+      "Name": "Jordan Garcia",
+      "Position": "Accountant"
+    },
+    {
+      "$level": 40,
+      "Name": "Morgan Kim",
+      "Position": "Controller"
+    },
+    {
+      "$level": 40,
+      "Name": "Casey Brooks",
+      "Position": "Financial Analyst"
+    },
+    {
+      "$level": 40,
+      "Name": "Taylor Singh",
+      "Position": "Accountant"
+    },
+    {
+      "$level": 40,
+      "Name": "Riley Martin",
+      "Position": "Controller"
+    },
+    {
+      "$level": 40,
+      "Name": "Quinn Zhao",
+      "Position": "Financial Analyst"
+    },
+    {
+      "$level": 40,
+      "Name": "Cameron Chen",
+      "Position": "Accountant"
+    },
+    {
+      "$level": 40,
+      "Name": "Sydney Patel",
+      "Position": "Controller"
+    },
+    {
+      "$level": 40,
+      "Name": "Parker Reyes",
+      "Position": "Financial Analyst"
+    },
+    {
+      "$level": 10,
+      "Department": "Marketing"
+    },
+    {
+      "$level": 40,
+      "Name": "Avery Garcia",
+      "Position": "Content Strategist"
+    },
+    {
+      "$level": 40,
+      "Name": "Jordan Kim",
+      "Position": "Brand Manager"
+    },
+    {
+      "$level": 40,
+      "Name": "Morgan Brooks",
+      "Position": "Marketing Analyst"
+    },
+    {
+      "$level": 40,
+      "Name": "Casey Singh",
+      "Position": "Content Strategist"
+    },
+    {
+      "$level": 40,
+      "Name": "Taylor Martin",
+      "Position": "Brand Manager"
+    },
+    {
+      "$level": 40,
+      "Name": "Riley Zhao",
+      "Position": "Marketing Analyst"
+    },
+    {
+      "$level": 40,
+      "Name": "Quinn Chen",
+      "Position": "Content Strategist"
+    },
+    {
+      "$level": 40,
+      "Name": "Cameron Patel",
+      "Position": "Brand Manager"
+    },
+    {
+      "$level": 40,
+      "Name": "Sydney Reyes",
+      "Position": "Marketing Analyst"
+    },
+    {
+      "$level": 40,
+      "Name": "Parker Nguyen",
+      "Position": "Content Strategist"
+    },
+    {
+      "$level": 10,
+      "Department": "Operations"
+    },
+    {
+      "$level": 40,
+      "Name": "Avery Kim",
+      "Position": "Operations Analyst"
+    },
+    {
+      "$level": 40,
+      "Name": "Jordan Brooks",
+      "Position": "Coordinator"
+    },
+    {
+      "$level": 40,
+      "Name": "Morgan Singh",
+      "Position": "Team Lead"
+    },
+    {
+      "$level": 40,
+      "Name": "Casey Martin",
+      "Position": "Operations Analyst"
+    },
+    {
+      "$level": 40,
+      "Name": "Taylor Zhao",
+      "Position": "Coordinator"
+    },
+    {
+      "$level": 40,
+      "Name": "Riley Chen",
+      "Position": "Team Lead"
+    },
+    {
+      "$level": 40,
+      "Name": "Quinn Patel",
+      "Position": "Operations Analyst"
+    },
+    {
+      "$level": 40,
+      "Name": "Cameron Reyes",
+      "Position": "Coordinator"
+    },
+    {
+      "$level": 40,
+      "Name": "Sydney Nguyen",
+      "Position": "Team Lead"
+    },
+    {
+      "$level": 40,
+      "Name": "Parker Garcia",
+      "Position": "Operations Analyst"
+    },
+    {
+      "$level": 10,
+      "Department": "Customer Support"
+    },
+    {
+      "$level": 40,
+      "Name": "Avery Brooks",
+      "Position": "Support Specialist"
+    },
+    {
+      "$level": 40,
+      "Name": "Jordan Singh",
+      "Position": "Customer Advocate"
+    },
+    {
+      "$level": 40,
+      "Name": "Morgan Martin",
+      "Position": "Support Lead"
+    },
+    {
+      "$level": 40,
+      "Name": "Casey Zhao",
+      "Position": "Support Specialist"
+    },
+    {
+      "$level": 40,
+      "Name": "Taylor Chen",
+      "Position": "Customer Advocate"
+    },
+    {
+      "$level": 40,
+      "Name": "Riley Patel",
+      "Position": "Support Lead"
+    },
+    {
+      "$level": 40,
+      "Name": "Quinn Reyes",
+      "Position": "Support Specialist"
+    },
+    {
+      "$level": 40,
+      "Name": "Cameron Nguyen",
+      "Position": "Customer Advocate"
+    },
+    {
+      "$level": 40,
+      "Name": "Sydney Garcia",
+      "Position": "Support Lead"
+    },
+    {
+      "$level": 40,
+      "Name": "Parker Kim",
+      "Position": "Support Specialist"
+    },
+    {
+      "$level": 10,
+      "Department": "Product"
+    },
+    {
+      "$level": 40,
+      "Name": "Avery Singh",
+      "Position": "Product Manager"
+    },
+    {
+      "$level": 40,
+      "Name": "Jordan Martin",
+      "Position": "UX Researcher"
+    },
+    {
+      "$level": 40,
+      "Name": "Morgan Zhao",
+      "Position": "Product Analyst"
+    },
+    {
+      "$level": 40,
+      "Name": "Casey Chen",
+      "Position": "Product Manager"
+    },
+    {
+      "$level": 40,
+      "Name": "Taylor Patel",
+      "Position": "UX Researcher"
+    },
+    {
+      "$level": 40,
+      "Name": "Riley Reyes",
+      "Position": "Product Analyst"
+    },
+    {
+      "$level": 40,
+      "Name": "Quinn Nguyen",
+      "Position": "Product Manager"
+    },
+    {
+      "$level": 40,
+      "Name": "Cameron Garcia",
+      "Position": "UX Researcher"
+    },
+    {
+      "$level": 40,
+      "Name": "Sydney Kim",
+      "Position": "Product Analyst"
+    },
+    {
+      "$level": 40,
+      "Name": "Parker Brooks",
+      "Position": "Product Manager"
+    },
+    {
+      "$level": 10,
+      "Department": "Legal"
+    },
+    {
+      "$level": 40,
+      "Name": "Avery Martin",
+      "Position": "Legal Counsel"
+    },
+    {
+      "$level": 40,
+      "Name": "Jordan Zhao",
+      "Position": "Paralegal"
+    },
+    {
+      "$level": 40,
+      "Name": "Morgan Chen",
+      "Position": "Compliance Specialist"
+    },
+    {
+      "$level": 40,
+      "Name": "Casey Patel",
+      "Position": "Legal Counsel"
+    },
+    {
+      "$level": 40,
+      "Name": "Taylor Reyes",
+      "Position": "Paralegal"
+    },
+    {
+      "$level": 40,
+      "Name": "Riley Nguyen",
+      "Position": "Compliance Specialist"
+    },
+    {
+      "$level": 40,
+      "Name": "Quinn Garcia",
+      "Position": "Legal Counsel"
+    },
+    {
+      "$level": 40,
+      "Name": "Cameron Kim",
+      "Position": "Paralegal"
+    },
+    {
+      "$level": 40,
+      "Name": "Sydney Brooks",
+      "Position": "Compliance Specialist"
+    },
+    {
+      "$level": 40,
+      "Name": "Parker Singh",
+      "Position": "Legal Counsel"
+    },
+    {
+      "$level": 10,
+      "Department": "Information Technology"
+    },
+    {
+      "$level": 40,
+      "Name": "Avery Zhao",
+      "Position": "Systems Administrator"
+    },
+    {
+      "$level": 40,
+      "Name": "Jordan Chen",
+      "Position": "Security Analyst"
+    },
+    {
+      "$level": 40,
+      "Name": "Morgan Patel",
+      "Position": "IT Support Engineer"
+    },
+    {
+      "$level": 40,
+      "Name": "Casey Reyes",
+      "Position": "Systems Administrator"
+    },
+    {
+      "$level": 40,
+      "Name": "Taylor Nguyen",
+      "Position": "Security Analyst"
+    },
+    {
+      "$level": 40,
+      "Name": "Riley Garcia",
+      "Position": "IT Support Engineer"
+    },
+    {
+      "$level": 40,
+      "Name": "Quinn Kim",
+      "Position": "Systems Administrator"
+    },
+    {
+      "$level": 40,
+      "Name": "Cameron Brooks",
+      "Position": "Security Analyst"
+    },
+    {
+      "$level": 40,
+      "Name": "Sydney Singh",
+      "Position": "IT Support Engineer"
+    },
+    {
+      "$level": 40,
+      "Name": "Parker Martin",
+      "Position": "Systems Administrator"
+    }
+  ]
+}
