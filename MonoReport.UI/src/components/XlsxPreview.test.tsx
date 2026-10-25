@@ -26,6 +26,23 @@ function source(bytes = new ArrayBuffer(3)) {
 describe("XLSX preview boundary", () => {
   beforeEach(() => { create.mockReset(); load.mockReset().mockResolvedValue(undefined); destroy.mockReset(); });
 
+  it("uses neutral styling while loading and error styling only after a preview failure", async () => {
+    const pending = deferred<void>();
+    load.mockReturnValueOnce(pending.promise);
+    render(<XlsxPreview source={source()} label="Template" />);
+
+    const loading = await screen.findByRole("status");
+    expect(loading).toHaveTextContent("Loading template preview…");
+    expect(loading).toHaveClass("preview-loading");
+    expect(loading).not.toHaveClass("preview-warning");
+
+    await act(async () => pending.reject(new Error("render failed")));
+    const failure = await screen.findByRole("status");
+    expect(failure).toHaveTextContent(/Template XLSX preview could not be rendered/);
+    expect(failure).toHaveClass("preview-warning");
+    expect(failure).not.toHaveClass("preview-loading");
+  });
+
   it("loads private source bytes with read-only worker settings and destroys owned resources on unmount", async () => {
     const bytes = new ArrayBuffer(3);
     const blob = source(bytes);

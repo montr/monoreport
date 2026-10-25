@@ -1,11 +1,20 @@
 export type DocumentFormat = "docx" | "xlsx";
 
-const templateMimes: Record<DocumentFormat, string> = {
+export const documentMimes: Record<DocumentFormat, string> = {
   docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 };
 
-export const templateAccept = Object.entries(templateMimes).map(([format, mime]) => `.${format},${mime}`).join(",");
+export function documentFormatFromMime(value: string | null | undefined): DocumentFormat | undefined {
+  const mime = value?.split(";", 1)[0]?.trim().toLowerCase();
+  return Object.entries(documentMimes).find(([, supported]) => supported === mime)?.[0] as DocumentFormat | undefined;
+}
+
+export function documentFallbackFilename(format: DocumentFormat): string {
+  return `document.${format}`;
+}
+
+export const templateAccept = Object.entries(documentMimes).map(([format, mime]) => `.${format},${mime}`).join(",");
 
 // The extension selects a preview; the server validates the document content.
 export function templateFormat(filename: string): DocumentFormat | undefined {

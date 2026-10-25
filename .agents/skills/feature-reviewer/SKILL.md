@@ -23,3 +23,7 @@ description: Independently review Feature implementation plans and implementatio
 
 1. At Feature completion, review the integrated implementation against the Feature Spec, architecture, and unresolved findings. Record new findings and conclusions in a separate `Final Feature Review` section of `implementation-review.md`, without duplicating existing findings.
 2. Assess whether README, examples, or other user-facing documentation need updating. Record concrete recommendations in the `Final Feature Review` section without modifying the documentation.
+
+## Finding IDs
+
+Use sequential, unique, never-reused finding IDs within each Feature: `S<stage>-<sequence>` for implementation reviews (e.g., `S1-01`, `S2-01`) and `F-<sequence>` for final feature reviews (e.g., `F-01`).

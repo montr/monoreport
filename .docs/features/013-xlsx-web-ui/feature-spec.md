@@ -34,6 +34,7 @@ Extend the existing MonoReport Web Playground to support XLSX templates and gene
 4. XLSX preview uses a scrollable spreadsheet viewport suitable for the existing Splitter layout, rather than the DOCX paper-page layout. It remains usable in the current responsive UI.
 5. Preview fidelity is approximate: exact Microsoft Excel visual or printed-page parity is not promised.
 6. If preview fails or refuses a document for resource/safety reasons, the user receives a clear preview-specific message; the file can still be used for generation, subject to server validation.
+7. Normal XLSX preview loading status uses neutral styling; error styling is reserved for actual preview failures.
 
 ### 3.3. JSON input and Generate JSON
 
@@ -65,7 +66,7 @@ Extend the existing MonoReport Web Playground to support XLSX templates and gene
 1. Download returns the original generated document bytes without exporting or serializing from the viewer. Sanitize any response-provided filename and require an extension consistent with the response MIME type; otherwise use a safe, format-matched `.docx` or `.xlsx` filename fallback.
 2. Preserve the current DOCX upload, Generate JSON, generation, preview, error handling, examples, and download behavior.
 3. Retain the existing Template / Result / Errors structure, Monaco editor, upload and drop interactions, and general layout. Do not create a separate XLSX Playground.
-4. If an XLSX example is added to the existing Examples catalog, it must follow the same loading and revision guards; **bundling additional XLSX examples is optional**, not a prerequisite for completing the primary XLSX workflow.
+4. The existing Examples registry and guarded loading workflow support both DOCX and XLSX entries. The approved `xlsx-tender` entry and sample files are included; selection loads its JSON and XLSX template through the existing workflow and dispatches the XLSX preview. Additional XLSX examples remain optional.
 
 ## 4. Agreed architectural boundaries
 

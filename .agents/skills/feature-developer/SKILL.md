@@ -8,6 +8,7 @@ description: Plan and implement approved Features, following architectural decis
 ## Planning
 
 1. Prepare a concise Implementation Plan based on the approved Feature Spec and architectural decisions. Define implementation milestones, dependencies, and verification criteria. Obtain Product Owner approval before implementation.
+2. Number implementation stages sequentially within each Feature (`Stage 1`, `Stage 2`, etc.). Keep stage numbers stable; never renumber or reuse them after implementation begins.
 
 ## Implementation and Verification
 

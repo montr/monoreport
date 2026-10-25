@@ -1,6 +1,5 @@
 import type { Diagnostic, GeneratedDocument } from "../types";
-
-const docxMediaType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+import { documentFallbackFilename, documentFormatFromMime } from "./documentFormat";
 
 export class GenerationFailure extends Error {
   constructor(public readonly diagnostics: Diagnostic[]) {
@@ -63,18 +62,19 @@ async function failureDiagnostics(response: Response): Promise<Diagnostic[]> {
   }
 }
 
-function safeFilename(disposition: string | null): string {
-  if (!disposition) return "document.docx";
+function safeFilename(disposition: string | null, format: GeneratedDocument["format"]): string {
+  const fallback = documentFallbackFilename(format);
+  if (!disposition) return fallback;
   const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
   const quoted = disposition.match(/filename="([^"]+)"/i)?.[1];
   const plain = disposition.match(/filename=([^;]+)/i)?.[1]?.trim();
   let candidate = encoded ?? quoted ?? plain;
   if (encoded) {
-    try { candidate = decodeURIComponent(encoded); } catch { return "document.docx"; }
+    try { candidate = decodeURIComponent(encoded); } catch { return fallback; }
   }
-  if (!candidate || /[\\/\x00-\x1f\x7f]/.test(candidate)) return "document.docx";
+  if (!candidate || /[\\/\x00-\x1f\x7f]/.test(candidate)) return fallback;
   candidate = candidate.trim();
-  return candidate.toLowerCase().endsWith(".docx") && candidate.length <= 180 ? candidate : "document.docx";
+  return candidate.toLowerCase().endsWith(`.${format}`) && candidate.length <= 180 ? candidate : fallback;
 }
 
 export async function generateDocument(file: File, json: string, signal?: AbortSignal): Promise<GeneratedDocument> {
@@ -90,9 +90,10 @@ export async function generateDocument(file: File, json: string, signal?: AbortS
   }
   if (!response.ok) throw new GenerationFailure(await failureDiagnostics(response));
   const blob = await response.blob();
-  const mediaType = blob.type || response.headers.get("Content-Type")?.split(";", 1)[0] || "";
-  if (mediaType !== docxMediaType || blob.size === 0) {
-    throw new GenerationFailure([{ title: "Unexpected response", detail: "The server did not return a DOCX document." }]);
+  const mediaType = response.headers.get("Content-Type") || blob.type;
+  const format = documentFormatFromMime(mediaType);
+  if (!format || blob.size === 0) {
+    throw new GenerationFailure([{ title: "Unexpected response", detail: "The server did not return a supported DOCX or XLSX document." }]);
   }
-  return { blob, filename: safeFilename(response.headers.get("Content-Disposition")) };
+  return { blob, filename: safeFilename(response.headers.get("Content-Disposition"), format), format };
 }

@@ -6,9 +6,11 @@ interface Props {
   label: string;
 }
 
+type PreviewStatus = { kind: "loading" | "error"; message: string };
+
 export function XlsxPreview({ source, label }: Props) {
   const host = useRef<HTMLDivElement>(null);
-  const [status, setStatus] = useState<string>();
+  const [status, setStatus] = useState<PreviewStatus>();
 
   useEffect(() => {
     const container = host.current;
@@ -18,7 +20,7 @@ export function XlsxPreview({ source, label }: Props) {
     const sessionHost = document.createElement("div");
     sessionHost.className = "xlsx-preview-session";
     container.replaceChildren(sessionHost);
-    setStatus(`Loading ${label.toLowerCase()} preview…`);
+    setStatus({ kind: "loading", message: `Loading ${label.toLowerCase()} preview…` });
 
     function dispose() {
       const owned = viewer;
@@ -30,7 +32,7 @@ export function XlsxPreview({ source, label }: Props) {
     function failed() {
       if (!current) return;
       current = false;
-      setStatus(`${label} XLSX preview could not be rendered. The workbook may be unsupported or exceed preview limits. You can still use the original file.`);
+      setStatus({ kind: "error", message: `${label} XLSX preview could not be rendered. The workbook may be unsupported or exceed preview limits. You can still use the original file.` });
       dispose();
     }
 
@@ -61,7 +63,7 @@ export function XlsxPreview({ source, label }: Props) {
   }, [source, label]);
 
   return <div className="xlsx-preview">
-    {status && <div className="preview-warning" role="status">{status}</div>}
+    {status && <div className={status.kind === "error" ? "preview-warning" : "preview-loading"} role="status">{status.message}</div>}
     <div className="xlsx-preview-host" ref={host} data-testid={`${label.toLowerCase()}-xlsx-preview`} />
   </div>;
 }

@@ -1,6 +1,13 @@
 {
-  "defaultExample": "syntax-showcase",
+  "defaultExample": "xlsx-tender",
   "examples": [
+    {
+      "id": "xlsx-tender",
+      "title": "Tender Report",
+      "format": "xlsx",
+      "templatePath": "/examples/xlsx-tender.template.xlsx",
+      "dataPath": "/examples/xlsx-tender.json"
+    },
     {
       "id": "orders-report",
       "title": "Sales Orders Report",

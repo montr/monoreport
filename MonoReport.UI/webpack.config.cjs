@@ -18,7 +18,7 @@ class PlaygroundExamplesPlugin {
             ]),
             [path.resolve(__dirname, "public/notices/xlsx-viewer.txt"), "notices/xlsx-viewer.txt"],
             ...fs.readdirSync(path.resolve(__dirname, "../Samples"))
-              .filter(name => name.endsWith(".template.docx") || name.endsWith(".json"))
+              .filter(name => name.endsWith(".template.docx") || name.endsWith(".template.xlsx") || name.endsWith(".json"))
               .map(name => [path.resolve(__dirname, "../Samples", name), `examples/${name}`])
           ];
           for (const [source, target] of files) compilation.emitAsset(target, new compiler.webpack.sources.RawSource(fs.readFileSync(source)));
@@ -51,9 +51,19 @@ module.exports = {
     new webpack.DefinePlugin({ __APP_VERSION__: JSON.stringify(appVersion) })
   ],
   devServer: {
+    client: {
+      overlay: {
+        errors: true,
+        warnings: false,
+      },
+    },
     port: 3000,
     historyApiFallback: true,
-    proxy: [{ context: ["/api", "/docs", "/openapi"], target: process.env.MONOREPORT_API_URL || "http://127.0.0.1:5080" }]
+    proxy: [
+      {
+        context: ["/api", "/docs", "/openapi"],
+        target: process.env.MONOREPORT_API_URL || "http://127.0.0.1:5080"
+      }]
   },
   performance: { hints: false }
 };

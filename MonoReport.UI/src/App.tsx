@@ -1,7 +1,7 @@
 import { Button, ConfigProvider, Spin } from "antd";
 import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
 import { XlsxPreview } from "./components/XlsxPreview";
-import { templateFormat, templateAccept } from "./services/documentFormat";
+import { documentMimes, templateFormat, templateAccept } from "./services/documentFormat";
 import { DocxPreview } from "./components/DocxPreview";
 import { MonacoJsonEditor } from "./components/MonacoJsonEditor";
 import { Splitter } from "./components/Splitter";
@@ -9,6 +9,7 @@ import { analyzeTemplate, AnalysisFailure } from "./services/analysis";
 import { generateDocument, GenerationFailure } from "./services/generation";
 import { requirementsToSampleJson } from "./services/sampleJson";
 import type { Diagnostic, GeneratedDocument } from "./types";
+import type { DocumentFormat } from "./services/documentFormat";
 import "./styles.css";
 import "./mobile.css";
 import "./examples.css";
@@ -20,7 +21,7 @@ type ExampleSelection = string | "custom";
 interface ExampleDefinition {
   id: string;
   title: string;
-  format: "docx";
+  format: DocumentFormat;
   templatePath: string;
   dataPath: string;
 }
@@ -31,8 +32,6 @@ interface ExampleManifest {
 }
 
 const repositoryUrl = "https://github.com/montr/monoreport";
-const docxMime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-
 function diagnostic(title: string, detail: string): Diagnostic[] {
   return [{ title, detail }];
 }
@@ -43,7 +42,7 @@ function validateManifest(value: unknown): ExampleManifest {
   if (typeof candidate.defaultExample !== "string" || !Array.isArray(candidate.examples) || candidate.examples.length === 0) throw new Error("The examples registry is invalid.");
   const ids = new Set<string>();
   for (const example of candidate.examples) {
-    if (!example || typeof example.id !== "string" || !example.id || ids.has(example.id) || typeof example.title !== "string" || !example.title || example.format !== "docx" || typeof example.templatePath !== "string" || !example.templatePath || typeof example.dataPath !== "string" || !example.dataPath) throw new Error("The examples registry is invalid.");
+    if (!example || typeof example.id !== "string" || !example.id || ids.has(example.id) || typeof example.title !== "string" || !example.title || (example.format !== "docx" && example.format !== "xlsx") || typeof example.templatePath !== "string" || !example.templatePath || typeof example.dataPath !== "string" || !example.dataPath) throw new Error("The examples registry is invalid.");
     ids.add(example.id);
   }
   if (!ids.has(candidate.defaultExample)) throw new Error("The default example is missing from the registry.");
@@ -147,7 +146,7 @@ export default function App() {
       const [blob, data] = await Promise.all([templateResponse.blob(), dataResponse.text()]);
       JSON.parse(data);
       if (exampleLoadId.current !== loadId || contentRevision.current !== expectedRevision) return;
-      const file = new File([blob], filenameFromPath(example.templatePath), { type: blob.type || docxMime });
+      const file = new File([blob], filenameFromPath(example.templatePath), { type: documentMimes[example.format] });
       contentRevision.current += 1;
       invalidateOperation("template");
       currentTemplate.current = file;
@@ -331,7 +330,7 @@ export default function App() {
   const content = active === "errors" ? (
     errors.length ? <div className="issues"><div className="issues-title"><strong>{errors.length} {errors.length === 1 ? "error" : "errors"}</strong></div>{errors.map((error, index) => <div className="issue" key={`${error.code ?? error.title}-${index}`}><span>{index + 1}.</span><div><strong>{error.title}</strong><p>{[error.code, error.field, error.dataPath, error.location, error.formatter, error.detail].filter(Boolean).join(" · ")}</p></div></div>)}</div> : <DocumentEmpty>No errors</DocumentEmpty>
   ) : active === "result" && result ? (
-    <DocxPreview source={result.blob} label="Result" />
+    result.format === "xlsx" ? <XlsxPreview source={result.blob} label="Result" /> : <DocxPreview source={result.blob} label="Result" />
   ) : template ? (
     templateFormat(template.name) === "xlsx" ? <XlsxPreview source={template} label="Template" /> : <DocxPreview source={template} label="Template" />
   ) : <DocumentEmpty>Select a template</DocumentEmpty>;
@@ -384,7 +383,7 @@ export default function App() {
             <Button className="download" aria-label="Download result" disabled={!result} onClick={() => result && downloadBlob(result.blob, result.filename)} icon={<DownloadIcon />}>Download</Button>
           </div>}
           <div
-            className={`canvas ${active === "template" && template && templateFormat(template.name) === "xlsx" ? "xlsx-view" : ""} ${active === "errors" && errors.length > 0 ? "errors-view" : ""} ${dragging ? "drop-target" : ""}`}
+            className={`canvas ${(active === "template" && template && templateFormat(template.name) === "xlsx") || (active === "result" && result?.format === "xlsx") ? "xlsx-view" : ""} ${active === "errors" && errors.length > 0 ? "errors-view" : ""} ${dragging ? "drop-target" : ""}`}
             onDragEnter={event => { if (event.dataTransfer.types.includes("Files")) { event.preventDefault(); setDragging(true); } }}
             onDragOver={event => { if (event.dataTransfer.types.includes("Files")) event.preventDefault(); }}
             onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDragging(false); }}

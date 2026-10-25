@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
+import examplesRegistry from "../public/examples.json";
 
 vi.mock("./components/MonacoJsonEditor", () => ({
   MonacoJsonEditor: ({ value, onChange }: { value: string; onChange(value: string): void }) => <textarea aria-label="JSON data" value={value} onChange={event => onChange(event.target.value)} />
@@ -16,10 +17,11 @@ vi.mock("./components/DocxPreview", () => ({
 }));
 
 const xlsxSources: Array<Blob | File> = [];
+const previewTestState = vi.hoisted(() => ({ failResultPreview: false }));
 vi.mock("./components/XlsxPreview", () => ({
   XlsxPreview: ({ source, label }: { source: Blob | File; label: string }) => {
     xlsxSources.push(source);
-    return <div>{label} XLSX preview</div>;
+    return <div>{previewTestState.failResultPreview && label === "Result" ? "Result XLSX preview failed" : `${label} XLSX preview`}</div>;
   }
 }));
 
@@ -30,9 +32,10 @@ const manifest = {
   examples: [{ id: "construction-cost-estimate", title: "Construction cost estimate", format: "docx", templatePath: "/examples/sample.template.docx", dataPath: "/examples/sample.json" }]
 };
 const sampleData = '{"Project":{"Name":"Riverside"}}';
-const success = (bytes = new Uint8Array([80, 75, 7, 8])) => {
-  const blob = new Blob([bytes], { type: mime });
-  return { ok: true, status: 200, blob: async () => blob, headers: new Headers({ "Content-Type": mime, "Content-Disposition": "attachment; filename=generated.docx" }) } as Response;
+const xlsxMime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+const success = (bytes = new Uint8Array([80, 75, 7, 8]), mediaType = mime, filename = mediaType === xlsxMime ? "generated.xlsx" : "generated.docx") => {
+  const blob = new Blob([bytes], { type: mediaType });
+  return { ok: true, status: 200, blob: async () => blob, headers: new Headers({ "Content-Type": mediaType, "Content-Disposition": `attachment; filename=${filename}` }) } as Response;
 };
 const analysis = (requirements: unknown[] = [{ name: "Company", type: "object", fields: [{ name: "Name", type: "value" }] }], valid = true) =>
   new Response(JSON.stringify({ valid, errors: valid ? [] : [{ code: "template.invalid_structure", message: "Invalid block" }], warnings: [], requirements, occurrences: [] }), { status: 200, headers: { "Content-Type": "application/json" } });
@@ -55,7 +58,7 @@ async function selectTemplate(user: ReturnType<typeof userEvent.setup>, file = t
 }
 
 describe("MonoReport playground", () => {
-  beforeEach(() => { previewSources.length = 0; xlsxSources.length = 0; mockPlaygroundFetch(); });
+  beforeEach(() => { previewSources.length = 0; xlsxSources.length = 0; previewTestState.failResultPreview = false; mockPlaygroundFetch(); });
 
   it("loads the default example without generation and keeps the approved controls and accessible splitter", async () => {
     render(<App />);
@@ -72,6 +75,62 @@ describe("MonoReport playground", () => {
     const splitter = screen.getByRole("separator");
     fireEvent.keyDown(splitter, { key: "ArrowRight" });
     expect(splitter).toHaveAttribute("aria-valuenow", "48");
+  });
+
+  it("loads an XLSX registry example with format-correct file metadata and preview dispatch", async () => {
+    const xlsxExample = examplesRegistry.examples.find(example => example.id === "xlsx-tender")!;
+    expect(xlsxExample.format).toBe("xlsx");
+    const registry = { defaultExample: xlsxExample.id, examples: [xlsxExample] };
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/examples.json") return Promise.resolve(new Response(JSON.stringify(registry), { status: 200 }));
+      if (url === xlsxExample.templatePath) return Promise.resolve(new Response(new Uint8Array([80, 75, 3, 4]), { status: 200, headers: { "Content-Type": "application/octet-stream" } }));
+      if (url === xlsxExample.dataPath) return Promise.resolve(new Response('{"Title":"Office equipment"}', { status: 200 }));
+      return Promise.reject(new Error(`Unexpected request: ${url}`));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+
+    expect(await screen.findByText("Template XLSX preview")).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Examples" })).toHaveValue("xlsx-tender");
+    expect(screen.getByLabelText("JSON data")).toHaveValue('{"Title":"Office equipment"}');
+    expect(xlsxSources.at(-1)).toBeInstanceOf(File);
+    expect(xlsxSources.at(-1)).toMatchObject({ name: "xlsx-tender.template.xlsx", type: xlsxMime });
+    expect(fetchMock).toHaveBeenCalledWith(xlsxExample.templatePath);
+    expect(fetchMock).toHaveBeenCalledWith(xlsxExample.dataPath);
+    expect(fetchMock).not.toHaveBeenCalledWith("/api/documents/analyze", expect.anything());
+  });
+
+  it("ignores a pending XLSX example after a custom template is selected", async () => {
+    const xlsxExample = { id: "xlsx-tender", title: "XLSX tender", format: "xlsx", templatePath: "/examples/xlsx-tender.template.xlsx", dataPath: "/examples/xlsx-tender.json" };
+    const registry = { defaultExample: manifest.defaultExample, examples: [...manifest.examples, xlsxExample] };
+    let resolveXlsxTemplate!: (response: Response) => void;
+    let resolveXlsxData!: (response: Response) => void;
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/examples.json") return Promise.resolve(new Response(JSON.stringify(registry), { status: 200 }));
+      if (url === "/examples/sample.template.docx") return Promise.resolve(new Response(new Uint8Array([80, 75, 3, 4]), { status: 200, headers: { "Content-Type": mime } }));
+      if (url === "/examples/sample.json") return Promise.resolve(new Response(sampleData, { status: 200 }));
+      if (url === xlsxExample.templatePath) return new Promise<Response>(resolve => { resolveXlsxTemplate = resolve; });
+      if (url === xlsxExample.dataPath) return new Promise<Response>(resolve => { resolveXlsxData = resolve; });
+      return Promise.reject(new Error(`Unexpected request: ${url}`));
+    }));
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByText("Template preview");
+    fireEvent.change(screen.getByRole("combobox", { name: "Examples" }), { target: { value: "xlsx-tender" } });
+    await waitFor(() => expect(resolveXlsxTemplate).toBeTypeOf("function"));
+
+    const custom = new File([new Uint8Array([9])], "custom.xlsx", { type: xlsxMime });
+    await selectTemplate(user, custom);
+    resolveXlsxTemplate(new Response(new Uint8Array([80, 75, 3, 4]), { status: 200, headers: { "Content-Type": xlsxMime } }));
+    resolveXlsxData(new Response('{"stale":true}', { status: 200 }));
+
+    await waitFor(() => expect(screen.getByText("custom.xlsx")).toBeInTheDocument());
+    expect(screen.getByRole("combobox", { name: "Examples" })).toHaveValue("custom");
+    expect(screen.getByLabelText("JSON data")).toHaveValue(sampleData);
+    expect(xlsxSources.at(-1)).toBe(custom);
   });
 
   it("formats and copies valid JSON while invalid JSON remains unchanged and never requests", async () => {
@@ -175,6 +234,34 @@ describe("MonoReport playground", () => {
     await user.click(download);
     expect(URL.createObjectURL).toHaveBeenCalledWith(responseBlob);
     expect(click).toHaveBeenCalled();
+  });
+
+  it("manually generates XLSX without analysis, previews the response format, and keeps the original download after preview failure", async () => {
+    const user = userEvent.setup();
+    previewTestState.failResultPreview = true;
+    const resultBlob = new Blob([new Uint8Array([80, 75, 7, 8, 9])], { type: xlsxMime });
+    const { apiMock } = mockPlaygroundFetch(async () => ({ ok: true, status: 200, blob: async () => resultBlob, headers: new Headers({ "Content-Type": `${xlsxMime}; charset=binary`, "Content-Disposition": "attachment; filename=result.xlsx" }) } as Response));
+    render(<App />);
+    const sourceFile = new File([new Uint8Array([1, 2])], "manual.xlsx", { type: xlsxMime });
+    await selectTemplate(user, sourceFile);
+    fireEvent.change(screen.getByLabelText("JSON data"), { target: { value: '{"manual":true}' } });
+    await user.click(screen.getByRole("button", { name: "Generate document" }));
+    expect(await screen.findByText("Result XLSX preview failed")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Download result" })).toBeEnabled();
+    expect(xlsxSources.at(-1)).toBe(resultBlob);
+    expect(previewSources).not.toContain(resultBlob);
+    expect(apiMock).toHaveBeenCalledOnce();
+    expect(String((apiMock.mock.calls[0] as [string])[0])).toBe("/api/documents/generate");
+    const requestBody = (apiMock.mock.calls[0] as [string, RequestInit])[1].body as FormData;
+    expect(requestBody.get("template")).toBe(sourceFile);
+    expect(requestBody.get("data")).toBe('{"manual":true}');
+
+    let downloadedFilename = "";
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) { downloadedFilename = this.download; });
+    await user.click(screen.getByRole("button", { name: "Download result" }));
+    expect(URL.createObjectURL).toHaveBeenCalledWith(resultBlob);
+    expect(click).toHaveBeenCalled();
+    expect(downloadedFilename).toBe("result.xlsx");
   });
 
   it("renders real API diagnostics and multiple issues without mock content", async () => {

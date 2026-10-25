@@ -1,3 +1,5 @@
+import type { DocumentFormat } from "./services/documentFormat";
+
 export interface Diagnostic {
   title: string;
   detail: string;
@@ -12,6 +14,7 @@ export interface Diagnostic {
 export interface GeneratedDocument {
   blob: Blob;
   filename: string;
+  format: DocumentFormat;
 }
 
 export interface TemplateRequirement {
