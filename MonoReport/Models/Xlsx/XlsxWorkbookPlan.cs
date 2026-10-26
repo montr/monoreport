@@ -4,7 +4,7 @@ using System.Xml.Linq;
 namespace MonoReport.Models.Xlsx;
 
 internal enum XlsxRangeImageKind { Cell, Rectangle, Empty, Disjoint, Ambiguous }
-// Complete requires PrintArea containment and a compatible image for every requested source address.
+// Complete requires retention-domain containment and a compatible image for every requested source address.
 internal sealed record XlsxRangeImage(XlsxRangeImageKind Kind, XlsxRectangle? Rectangle, bool Complete);
 internal sealed record XlsxAxisSpan(int First, int Last, int OutputFirst,
     VerticalInstancePath? Vertical = null, HorizontalInstancePath? Horizontal = null)
@@ -31,4 +31,7 @@ internal sealed record XlsxCellPlacement(CellInstanceId Id, XlsxAddress Output, 
 }
 internal sealed record XlsxRowPlan(XElement Properties, int OutputRow, ImmutableArray<XlsxCellPlacement> Cells);
 internal sealed record XlsxSheetOutput(XlsxSheetGeometry Geometry, XElement Settings, ImmutableArray<XlsxRowPlan> Rows);
-internal sealed record XlsxWorkbookPlan(ImmutableArray<XlsxSheetOutput> Sheets, ImmutableArray<XElement> Names);
+internal sealed record XlsxWorkbookPlan(ImmutableArray<XlsxSheetOutput> Sheets, ImmutableArray<XElement> Names)
+{
+    internal ImmutableArray<int> DisposableWorkbookNodes { get; init; } = [];
+}

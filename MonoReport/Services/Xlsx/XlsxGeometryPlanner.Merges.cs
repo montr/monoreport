@@ -9,7 +9,7 @@ internal sealed partial class XlsxGeometryPlanner
     internal XlsxRangeImage ProjectInstances(XlsxRectangle range, XlsxSheetGeometry geometry,
         VerticalInstancePath? vertical, HorizontalInstancePath? horizontal, bool descendants = false)
     {
-        var area = geometry.Source.PrintArea;
+        var area = geometry.Source.RetentionArea;
         var complete = area.Contains(range.First) && area.Contains(range.Last);
         var rows = AxisImage(range.First.Row, range.Last.Row, geometry.RowSpans.Where(span => CompatibleVertical(span.Vertical, vertical, descendants)), out var rowsComplete);
         var columns = AxisImage(range.First.Column, range.Last.Column, geometry.ColumnSpans.Where(span => Compatible(span.Horizontal, horizontal)), out var columnsComplete);
@@ -67,9 +67,9 @@ internal sealed partial class XlsxGeometryPlanner
         foreach (var merge in source)
         {
             var range = ParseRange((string?)merge.Attribute("ref"), output.Geometry);
-            if (range.Last.Row < sheet.Source.PrintArea.First.Row || range.First.Row > sheet.Source.PrintArea.Last.Row ||
-                range.Last.Column < sheet.Source.PrintArea.First.Column || range.First.Column > sheet.Source.PrintArea.Last.Column) continue;
-            if (!sheet.Source.PrintArea.Contains(range.First) || !sheet.Source.PrintArea.Contains(range.Last))
+            if (range.Last.Row < sheet.Source.RetentionArea.First.Row || range.First.Row > sheet.Source.RetentionArea.Last.Row ||
+                range.Last.Column < sheet.Source.RetentionArea.First.Column || range.First.Column > sheet.Source.RetentionArea.Last.Column) continue;
+            if (!sheet.Source.RetentionArea.Contains(range.First) || !sheet.Source.RetentionArea.Contains(range.Last))
                 throw Unsupported(sheet.Source, "Move the merge wholly inside or outside PrintArea; a partial merge cannot survive cropping.", range.ToString());
             if (sheet.Cells.Any(cell => range.Contains(cell.Source.Id.Address) && cell.Source.Id.Address != range.First &&
                 (cell.Source.HasFormula || cell.Source.Text is { Length: > 0 } || cell.Source.Xml.Element(S + "v") is { Value.Length: > 0 })))

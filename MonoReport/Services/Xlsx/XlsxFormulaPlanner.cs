@@ -18,7 +18,7 @@ internal sealed class XlsxFormulaPlanner(XlsxFormulaReferences references, XlsxG
             if (context.LimitReached) break;
             var reference = name.Formula.References[0];
             var target = sheets[reference.TargetSheetId!.Value];
-            if (!target.Source.PrintArea.Contains(reference.First.Address) || !target.Source.PrintArea.Contains(reference.Last.Address))
+            if (!target.Source.RetentionArea.Contains(reference.First.Address) || !target.Source.RetentionArea.Contains(reference.Last.Address))
                 context.Report(UnsafeImage(name.Location, name.Formula, reference));
         }
         context.ThrowIfErrors();
@@ -35,7 +35,7 @@ internal sealed class XlsxFormulaPlanner(XlsxFormulaReferences references, XlsxG
                     if (context.LimitReached) break;
                     if (reference.NameIndex is not null) continue; // Definitions have independent, fixed workbook semantics.
                     var target = sheets[reference.TargetSheetId ?? sheet.Source.Id];
-                    if (!target.Source.PrintArea.Contains(reference.First.Address) || !target.Source.PrintArea.Contains(reference.Last.Address))
+                    if (!target.Source.RetentionArea.Contains(reference.First.Address) || !target.Source.RetentionArea.Contains(reference.Last.Address))
                     {
                         context.Report(UnsafeImage(cell.Location, cell.Formula, reference));
                         break; // As in formula finalization, report one failing operand per source formula.

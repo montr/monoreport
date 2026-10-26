@@ -7,9 +7,9 @@ namespace MonoReport.Tests.Services;
 public sealed class Feature012TransportTests
 {
     [Fact]
-    public void Maintained_tender_sample_generates_through_public_core()
+    public void Test_owned_xlsx_generates_through_public_core()
     {
-        var fixture = new TenderSampleFixture(); var source = fixture.Source;
+        var fixture = new XlsxTransportFixture(); var source = fixture.Source;
         using var services = new XlsxFixture().Services();
         using var input = new MemoryStream(source); using var data = System.Text.Json.JsonDocument.Parse(fixture.Data);
         var engine = services.GetRequiredService<MergeEngine>();

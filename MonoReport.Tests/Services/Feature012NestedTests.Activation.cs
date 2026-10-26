@@ -64,15 +64,14 @@ public sealed partial class Feature012NestedTests
     }
 
     [Theory]
-    [InlineData("rich-field")] [InlineData("pane")] [InlineData("break")] [InlineData("autofilter")]
+    [InlineData("pane")] [InlineData("break")] [InlineData("autofilter")]
     [InlineData("unsupported-formula")] [InlineData("partial-merge")]
     public void Activation_Public_nested_generation_preserves_format_geometry_and_formula_rejection(string scenario)
     {
         var source = FullNestedTemplate(true, (_, part) =>
         {
             var cells = part.Worksheet!.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
-            if (scenario == "rich-field") cells["B10"].InlineString = new InlineString(new Run(new Text("{Name}")));
-            else if (scenario == "pane") part.Worksheet.PrependChild(new SheetViews(new SheetView(new Pane { TopLeftCell = "B7", State = PaneStateValues.Frozen, VerticalSplit = 1 }) { WorkbookViewId = 0 }));
+            if (scenario == "pane") part.Worksheet.PrependChild(new SheetViews(new SheetView(new Pane { TopLeftCell = "B7", State = PaneStateValues.Frozen, VerticalSplit = 1 }) { WorkbookViewId = 0 }));
             else if (scenario == "break") part.Worksheet.Append(new RowBreaks(new Break { Id = 10, Min = 0, Max = 16383, ManualPageBreak = true }) { Count = 1, ManualBreakCount = 1 });
             else if (scenario == "autofilter") part.Worksheet.InsertAfter(new AutoFilter { Reference = "B7:F10" }, part.Worksheet.GetFirstChild<SheetData>());
             else if (scenario == "unsupported-formula") cells["E13"].CellFormula!.Text = "INDIRECT(\"E10\")";
@@ -85,7 +84,7 @@ public sealed partial class Feature012NestedTests
         Assert.Contains("Report", error.Errors[0].Location);
         Assert.Contains(scenario switch
         {
-            "rich-field" => "Rich-text field substitution", "pane" => "pane", "break" => "manual page breaks",
+            "pane" => "pane", "break" => "manual page breaks",
             "autofilter" => "unsupported worksheet structure", "unsupported-formula" => "INDIRECT/OFFSET", _ => "partial merge"
         }, error.Message);
         var repeated = Assert.Throws<TemplateException>(() => _fixture.Merge(source, FullNestedData(3)));

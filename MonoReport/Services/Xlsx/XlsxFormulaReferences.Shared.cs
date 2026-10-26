@@ -18,7 +18,7 @@ internal sealed partial class XlsxFormulaReferences
         {
             if (context.LimitReached) break;
             var sheet = sheets[group.Master.SheetId];
-            var retained = group.Members.Where(member => sheet.PrintArea.Contains(member.Address)).ToArray();
+            var retained = group.Members.Where(member => sheet.RetentionArea.Contains(member.Address)).ToArray();
             if (retained.Length == 0) continue;
             string Location(SourceCellId cell) => sheet.Part + ", sheet '" + sheet.Name + "', " + cell.Address;
             XlsxParsedFormula Parse(string text, string location) => ResolveSheets(Read(text, location,

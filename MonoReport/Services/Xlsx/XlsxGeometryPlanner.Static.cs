@@ -23,7 +23,7 @@ internal sealed partial class XlsxGeometryPlanner
             try
             {
                 ValidateFeatures(template.Source, sheet.Source);
-                var area = sheet.Source.PrintArea;
+                var area = sheet.Source.RetentionArea;
                 var dimensions = Dimensions(area.Height, area.Width, 1, 1);
                 var geometry = new XlsxSheetGeometry(sheet.Source, new(new(1, 1), new(dimensions.Rows, dimensions.Columns)),
                     1 - area.First.Row, 1 - area.First.Column);
@@ -34,10 +34,13 @@ internal sealed partial class XlsxGeometryPlanner
                 CropViews(settings, geometry);
                 CropBreaks(settings, geometry, rows: true);
                 CropBreaks(settings, geometry, rows: false);
-                settings.Element(S + "dimension")?.Remove();
-                var dimension = new XElement(S + "dimension", new XAttribute("ref", geometry.OutputArea));
-                if (settings.Element(S + "sheetPr") is { } properties) properties.AddAfterSelf(dimension);
-                else settings.AddFirst(dimension);
+                if (sheet.Source.PrintArea is not null)
+                {
+                    settings.Element(S + "dimension")?.Remove();
+                    var dimension = new XElement(S + "dimension", new XAttribute("ref", geometry.OutputArea));
+                    if (settings.Element(S + "sheetPr") is { } properties) properties.AddAfterSelf(dimension);
+                    else settings.AddFirst(dimension);
+                }
                 var byRow = sheet.Cells.GroupBy(cell => cell.Source.Id.Address.Row).ToDictionary(group => group.Key, group => group.ToArray());
                 var rows = ImmutableArray.CreateBuilder<XlsxRowPlan>();
                 foreach (var row in sheet.Source.Xml.Root!.Element(S + "sheetData")!.Elements(S + "row"))
@@ -53,20 +56,20 @@ internal sealed partial class XlsxGeometryPlanner
                     }
                     rows.Add(new(propertiesCopy, checked(sourceRow + geometry.RowOffset), cells.ToImmutable()));
                 }
-                names[sheet.Source.PrintAreaNameIndex].Value = SheetPrefix(sheet.Source.Name) + Absolute(geometry.OutputArea);
+                if (sheet.Source.PrintArea is not null) names[sheet.Source.PrintAreaNameIndex].Value = SheetPrefix(sheet.Source.Name) + Absolute(geometry.OutputArea);
                 sheets.Add(new(geometry, settings, rows.ToImmutable()));
             }
             catch (TemplateException error) { context.Report(error); }
         }
         context.ThrowIfErrors();
         context.OutputCells = sheets.Sum(sheet => sheet.Rows.Sum(row => (long)row.Cells.Length));
-        return new(sheets.ToImmutable(), names.ToImmutableArray());
+        return new(sheets.ToImmutable(), names.ToImmutableArray()) { DisposableWorkbookNodes = template.Source.DisposableWorkbookNodes };
     }
 
     internal XlsxRangeImage ProjectRange(XlsxRectangle range, XlsxSheetGeometry geometry)
     {
         if (geometry.Expanded || !geometry.RowSpans.IsEmpty) return ProjectInstances(range, geometry, null, null);
-        var area = geometry.Source.PrintArea;
+        var area = geometry.Source.RetentionArea;
         var first = new XlsxAddress(Math.Max(range.First.Row, area.First.Row), Math.Max(range.First.Column, area.First.Column));
         var last = new XlsxAddress(Math.Min(range.Last.Row, area.Last.Row), Math.Min(range.Last.Column, area.Last.Column));
         if (first.Row > last.Row || first.Column > last.Column) return new(XlsxRangeImageKind.Empty, null, false);
@@ -82,7 +85,9 @@ internal sealed partial class XlsxGeometryPlanner
         foreach (var feature in inventory.WorkbookFeatures)
             if (!safeWorkbook.Contains(feature) && feature is not (Relationships + "worksheet" or Relationships + "styles" or
                 Relationships + "sharedStrings" or Relationships + "theme" or Relationships + "calcChain"))
-                throw Unsupported(sheet, "Remove the unsupported workbook feature or relationship before generation: " + feature.Split('/')[^1]);
+                throw new StructuralDiagnostic(DiagnosticCodes.XlsxUnsupportedFeature,
+                    "Remove the unsupported workbook feature or relationship before generation: " + feature,
+                    Location: inventory.WorkbookPart, Explanation: "Remove or re-author the indicated workbook feature or relationship.").ToException();
         var safeSheet = new HashSet<XName>(new[] { "sheetPr", "dimension", "sheetViews", "sheetFormatPr", "cols", "sheetData", "sheetProtection",
             "mergeCells", "printOptions", "pageMargins", "pageSetup", "headerFooter", "rowBreaks", "colBreaks" }.Select(name => S + name));
         foreach (var element in sheet.Xml.Root!.Elements())
@@ -96,7 +101,7 @@ internal sealed partial class XlsxGeometryPlanner
         foreach (var row in sheet.Xml.Descendants(S + "row"))
             if (row.Elements().Any(element => element.Name != S + "c"))
                 throw Unsupported(sheet, "Remove unsupported row extension metadata.");
-        foreach (var cell in sheet.Cells.Where(cell => sheet.PrintArea.Contains(cell.Id.Address)))
+        foreach (var cell in sheet.Cells.Where(cell => sheet.RetentionArea.Contains(cell.Id.Address)))
         {
             if (cell.Xml.Elements().Any(element => element.Name != S + "v" && element.Name != S + "is" && element.Name != S + "f"))
                 throw Unsupported(sheet, "Remove unsupported cell metadata.", cell.Id.Address.ToString());
@@ -120,8 +125,8 @@ internal sealed partial class XlsxGeometryPlanner
         {
             var min = Integer(column.Attribute("min"), geometry, 1, 16384);
             var max = Integer(column.Attribute("max"), geometry, min, 16384);
-            min = Math.Max(min, geometry.Source.PrintArea.First.Column);
-            max = Math.Min(max, geometry.Source.PrintArea.Last.Column);
+            min = Math.Max(min, geometry.Source.RetentionArea.First.Column);
+            max = Math.Min(max, geometry.Source.RetentionArea.Last.Column);
             if (min > max) { column.Remove(); continue; }
             column.SetAttributeValue("min", checked(min + geometry.ColumnOffset));
             column.SetAttributeValue("max", checked(max + geometry.ColumnOffset));
@@ -171,23 +176,64 @@ internal sealed partial class XlsxGeometryPlanner
         {
             if (view.Element(S + "pane") is { } pane && (geometry.RowOffset != 0 || geometry.ColumnOffset != 0))
                 throw Unsupported(geometry.Source, "Remove the frozen/split pane or move PrintArea to A1 until pane relocation is implemented.");
-            if (view.Attribute("topLeftCell") is { } topLeft) topLeft.Value = MappedCell(topLeft.Value, geometry);
+            if (view.Attribute("topLeftCell") is { } topLeft)
+                topLeft.Value = ViewCell(topLeft.Value, geometry).ToString();
             if (view.Element(S + "pane")?.Attribute("topLeftCell") is { } paneTop) paneTop.Value = MappedCell(paneTop.Value, geometry);
             foreach (var selection in view.Elements(S + "selection"))
             {
                 if (selection.Attribute("pane") is not null && view.Element(S + "pane") is null)
                     throw Unsupported(geometry.Source, "Repair selection pane settings; the referenced pane is missing.");
-                if (selection.Attribute("activeCell") is { } active) active.Value = MappedCell(active.Value, geometry);
-                if (selection.Attribute("sqref") is { } ranges)
-                    ranges.Value = string.Join(' ', ranges.Value.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(value =>
-                    {
-                        var range = ParseRange(value, geometry); var image = ProjectRange(range, geometry);
-                        if (!image.Complete || image.Kind is not (XlsxRangeImageKind.Cell or XlsxRangeImageKind.Rectangle))
-                            throw Unsupported(geometry.Source, "Select one contiguous retained range inside PrintArea or remove the selection setting.");
-                        return image.Kind == XlsxRangeImageKind.Cell ? image.Rectangle!.Value.First.ToString() : image.Rectangle.ToString()!;
-                    }));
+                var source = ((string?)selection.Attribute("sqref") ?? "A1").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(value => ParseRange(value, geometry)).ToArray();
+                if (source.Length == 0) throw Unsupported(geometry.Source, "Repair the empty selection range list.");
+                var active = ParseAddress((string?)selection.Attribute("activeCell") ?? "A1", geometry);
+                var activeId = 0;
+                if (selection.Attribute("activeCellId") is { } id &&
+                    (!int.TryParse(id.Value, NumberStyles.None, CultureInfo.InvariantCulture, out activeId) ||
+                     activeId < 0 || activeId >= source.Length || !source[activeId].Contains(active)))
+                    throw Unsupported(geometry.Source, "Repair activeCellId and activeCell so they identify the same selected range.");
+                var images = new List<(int SourceIndex, XlsxRectangle Range)>();
+                for (var index = 0; index < source.Length; index++)
+                {
+                    var range = source[index];
+                    // A repeated source can have contiguous but multiple images; selection has no instance owner.
+                    if (RepeatedViewRange(range, geometry)) continue;
+                    var image = ProjectRange(range, geometry);
+                    if (image.Kind is XlsxRangeImageKind.Cell or XlsxRangeImageKind.Rectangle) images.Add((index, image.Rectangle!.Value));
+                }
+                if (images.Count == 0) images.Add((-1, new(new(1, 1), new(1, 1))));
+                var mapped = ViewCell(active.ToString(), geometry);
+                var selected = images.FindIndex(image => image.SourceIndex == activeId && image.Range.Contains(mapped));
+                if (selected < 0) selected = images.FindIndex(image => image.Range.Contains(mapped));
+                if (selected < 0) { selected = 0; mapped = images[0].Range.First; }
+                selection.SetAttributeValue("activeCell", mapped);
+                selection.SetAttributeValue("sqref", string.Join(' ', images.Select(image => image.Range.First == image.Range.Last ? image.Range.First.ToString() : image.Range.ToString())));
+                if (selection.Attribute("activeCellId") is not null || selected != 0) selection.SetAttributeValue("activeCellId", selected);
             }
         }
+    }
+
+    private XlsxAddress ViewCell(string text, XlsxSheetGeometry geometry)
+    {
+        var source = ParseAddress(text, geometry);
+        var image = ProjectRange(new(source, source), geometry);
+        return image.Complete && image.Kind == XlsxRangeImageKind.Cell ? image.Rectangle!.Value.First : new(1, 1);
+    }
+
+    private bool RepeatedViewRange(XlsxRectangle range, XlsxSheetGeometry geometry)
+    {
+        bool Repeated(int first, int last, ImmutableArray<XlsxAxisSpan> spans)
+        {
+            var end = 0;
+            foreach (var span in spans.Where(span => span.First <= last && span.Last >= first).OrderBy(span => span.First))
+            {
+                if (span.First <= end) return true;
+                end = span.Last;
+            }
+            return false;
+        }
+        return Repeated(range.First.Row, range.Last.Row, geometry.RowSpans) ||
+            Repeated(range.First.Column, range.Last.Column, geometry.ColumnSpans);
     }
 
     private string MappedCell(string text, XlsxSheetGeometry geometry)
@@ -203,7 +249,7 @@ internal sealed partial class XlsxGeometryPlanner
     {
         var container = settings.Element(S + (rows ? "rowBreaks" : "colBreaks"));
         if (container is null) return;
-        var area = geometry.Source.PrintArea;
+        var area = geometry.Source.RetentionArea;
         foreach (var point in container.Elements().ToArray())
         {
             var id = Integer(point.Attribute("id"), geometry, 0, rows ? 1048576 : 16384);

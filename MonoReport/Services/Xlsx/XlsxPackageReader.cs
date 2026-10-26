@@ -19,9 +19,12 @@ internal sealed partial class XlsxPackageReader
         var workbook = document.WorkbookPart ?? throw Invalid("The XLSX has no workbook part.");
         var xml = Load(workbook, context);
         if (xml.Root?.Name != S + "workbook") throw Invalid("The XLSX workbook XML is invalid.");
+        var disposable = DisposableWorkbookNodes(xml.Root);
+        var effectiveNodes = xml.Root.Elements().Where((_, index) => !disposable.Contains(index)).ToArray();
         var related = ReadRelatedParts(workbook);
         var names = xml.Root.Element(S + "definedNames")?.Elements().Select(name => new XElement(name)).ToImmutableArray() ?? [];
-        var shared = workbook.SharedStringTablePart is { } strings ? Load(strings, context).Root?.Elements(S + "si").ToArray() ?? [] : [];
+        var shared = workbook.SharedStringTablePart is { } strings ? ReadSharedStrings(strings, context) : [];
+        var decodedShared = new Dictionary<int, XlsxRichString>();
         var result = ImmutableArray.CreateBuilder<XlsxSheetSource>();
         var sheetIds = new HashSet<uint>();
         var sheetNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -66,7 +69,7 @@ internal sealed partial class XlsxPackageReader
                         if (address.Row != rowIndex || !addresses.Add(address) || address.Column <= previousColumn)
                             throw Invalid("Use unique increasing cell coordinates matching their row.", location);
                         previousColumn = address.Column;
-                        cells.Add(ReadCell(id, address, cell, shared, location));
+                        cells.Add(ReadCell(id, address, cell, shared, decodedShared, location));
                     }
                 }
                 context.SourceCells = checked(context.SourceCells + cells.Count);
@@ -74,12 +77,15 @@ internal sealed partial class XlsxPackageReader
                 var features = sheetXml.Root.Elements().Where(element => element.Name != S + "sheetData")
                     .Select(element => element.Name.LocalName).Concat(ReadRelatedParts(part).Select(pair => pair.Part.RelationshipType))
                     .Concat(part.ExternalRelationships.Select(item => item.RelationshipType)).ToImmutableArray();
-                result.Add(new(id, name, part.Uri.ToString(), sheetXml, area,
+                result.Add(new(id, name, part.Uri.ToString(), sheetXml, area, area ?? new(new(1, 1), new(1048576, 16384)),
                     cells.OrderBy(cell => cell.Id.Address.Row).ThenBy(cell => cell.Id.Address.Column).ToImmutableArray(), features, nameIndex));
             }
             catch (TemplateException error) { context.Report(error); }
         }
         context.ThrowIfErrors();
+        if (names.Select((name, index) => (name, index)).Any(item => (string?)item.name.Attribute("name") == "_xlnm.Print_Area" &&
+            !result.Any(sheet => sheet.PrintAreaNameIndex == item.index)))
+            throw AreaError(workbook.Uri.ToString());
         var date1904 = (string?)xml.Root.Element(S + "workbookPr")?.Attribute("date1904") switch
         {
             null or "false" or "0" => false,
@@ -87,38 +93,82 @@ internal sealed partial class XlsxPackageReader
             _ => throw Invalid("Repair the workbook date1904 Boolean setting.", workbook.Uri.ToString())
         };
         return new(result.ToImmutable(), date1904,
-            names, xml.Root.Elements().Select(element => element.Name.ToString()).Concat(related.Select(pair => pair.Part.RelationshipType))
+            names, effectiveNodes.Select(element => element.Name.ToString())
+                .Concat(effectiveNodes.SelectMany(element => element.Descendants()).Where(element => element.Name.Namespace != S || element.Name == S + "extLst").Select(element => element.Name.ToString()))
+                .Concat(related.Select(pair => pair.Part.RelationshipType))
                 .Concat(workbook.ExternalRelationships.Select(item => item.RelationshipType)).ToImmutableArray(),
-            workbook.WorkbookStylesPart is { } styles ? Load(styles, context) : null);
+            workbook.WorkbookStylesPart is { } styles ? Load(styles, context) : null)
+        { DisposableWorkbookNodes = disposable, WorkbookPart = workbook.Uri.ToString() };
     }
 
-    private static XlsxCellSource ReadCell(uint id, XlsxAddress address, XElement cell, XElement[] shared, string location)
+    private XElement[] ReadSharedStrings(SharedStringTablePart part, XlsxOperationContext context)
+    {
+        var root = Load(part, context).Root;
+        if (root?.Name != S + "sst" || !OnlyAttributes(root, "count", "uniqueCount") ||
+            !OnlyElementContent(root) || root.Elements().Any(element => element.Name != S + "si"))
+            throw Invalid("Remove unsupported shared-string table structures or extension metadata before conversion to inline strings.", part.Uri.ToString());
+        if (ReadRelatedParts(part).Count != 0 || part.ExternalRelationships.Any() ||
+            part.HyperlinkRelationships.Any() || part.DataPartReferenceRelationships.Any())
+            throw Invalid("Remove unsupported shared-string table relationships before conversion to inline strings.", part.Uri.ToString());
+        return root.Elements(S + "si").ToArray();
+    }
+
+    private static XlsxCellSource ReadCell(uint id, XlsxAddress address, XElement cell, XElement[] shared, Dictionary<int, XlsxRichString> decodedShared, string location)
     {
         var formula = cell.Element(S + "f") is not null;
         var type = (string?)cell.Attribute("t");
         string? text = null;
         XElement? sharedString = null;
         var rich = false;
+        XlsxRichString? richString = null;
         if (!formula && type == "s")
         {
             if (!int.TryParse(cell.Element(S + "v")?.Value, out var index) || index < 0 || index >= shared.Length)
                 throw Invalid("The cell has an invalid shared-string index.", location + ", " + address);
-            text = VisibleText(shared[index]);
+            if (!decodedShared.TryGetValue(index, out richString))
+                decodedShared.Add(index, richString = ReadRichString(shared[index], location + ", " + address));
+            text = richString.Text;
             sharedString = new XElement(shared[index]);
             rich = shared[index].Elements(S + "r").Any() || shared[index].Elements(S + "rPh").Any();
         }
         else if (!formula && type == "inlineStr")
         {
             var inline = cell.Element(S + "is");
-            text = inline is null ? string.Empty : VisibleText(inline);
+            richString = inline is null ? null : ReadRichString(inline, location + ", " + address);
+            text = richString?.Text ?? string.Empty;
             rich = inline?.Elements().Any(item => item.Name == S + "r" || item.Name == S + "rPh") == true;
         }
         else if (!formula && type == "str") text = DecodeString(cell.Element(S + "v")?.Value ?? string.Empty);
-        return new(new(id, address), new XElement(cell), text, type, formula, rich, sharedString);
+        return new(new(id, address), new XElement(cell), text, type, formula, rich, sharedString) { RichString = rich ? richString : null };
     }
 
-    private static string VisibleText(XElement container) => string.Concat(container.Elements().SelectMany(item =>
-        item.Name == S + "t" ? new[] { DecodeString(item.Value) } : item.Name == S + "r" ? item.Elements(S + "t").Select(text => DecodeString(text.Value)) : []));
+    private static XlsxRichString ReadRichString(XElement container, string location)
+    {
+        if (container.Elements().Any(element => element.Name != S + "t" && element.Name != S + "r" &&
+                element.Name != S + "rPh" && element.Name != S + "phoneticPr") ||
+            container.Descendants().Any(element => element.Name.Namespace != S || element.Name == S + "extLst") ||
+            container.Elements(S + "r").Any(run => run.Elements().Any(element => element.Name != S + "t" && element.Name != S + "rPr")))
+            throw Invalid("Remove unsupported rich-string structures or extension metadata.", location);
+        var spans = ImmutableArray.CreateBuilder<XlsxTextSpan>();
+        var length = 0;
+        foreach (var item in container.Elements())
+        {
+            var properties = item.Name == S + "r" ? item.Element(S + "rPr") : null;
+            foreach (var text in item.Name == S + "t" ? new[] { item } : item.Name == S + "r" ? item.Elements(S + "t") : [])
+            {
+                var decoded = DecodeString(text.Value);
+                spans.Add(new(length, decoded, properties is null ? null : new XElement(properties)));
+                length = checked(length + decoded.Length);
+            }
+        }
+        var phonetics = container.Elements(S + "rPh").Select(node => new XElement(node)).ToImmutableArray();
+        foreach (var hint in phonetics)
+            if (!int.TryParse((string?)hint.Attribute("sb"), NumberStyles.None, CultureInfo.InvariantCulture, out var start) ||
+                !int.TryParse((string?)hint.Attribute("eb"), NumberStyles.None, CultureInfo.InvariantCulture, out var end) ||
+                start < 0 || end <= start || end > length)
+                throw Invalid("Repair phonetic annotation positions within the decoded cell text.", location);
+        return new(string.Concat(spans.Select(span => span.Text)), spans.ToImmutable(), phonetics, container.Element(S + "phoneticPr") is { } phoneticProperties ? new XElement(phoneticProperties) : null);
+    }
 
     // Each t element is one ST_Xstring. Decode once before scalar parsing; preserved XML stays untouched.
     private static string DecodeString(string value) => StringEscape().Replace(value,
@@ -137,11 +187,12 @@ internal sealed partial class XlsxPackageReader
         }
     }
 
-    private static (XlsxRectangle Area, int NameIndex) PrintArea(ImmutableArray<XElement> names, int index, string sheet, string location)
+    private static (XlsxRectangle? Area, int NameIndex) PrintArea(ImmutableArray<XElement> names, int index, string sheet, string location)
     {
         var candidates = names.Where(name => (string?)name.Attribute("name") == "_xlnm.Print_Area" &&
             ((string?)name.Attribute("localSheetId") == index.ToString(CultureInfo.InvariantCulture) ||
              name.Attribute("localSheetId") is null && AreaRegex().Match(name.Value) is { Success: true } match && SheetName(match) == sheet)).ToArray();
+        if (candidates.Length == 0) return (null, -1);
         if (candidates.Length != 1) throw AreaError(location);
         var parsed = AreaRegex().Match(candidates[0].Value);
         if (!parsed.Success || SheetName(parsed) != sheet) throw AreaError(location);

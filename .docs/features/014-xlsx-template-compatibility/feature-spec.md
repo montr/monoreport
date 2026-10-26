@@ -1,6 +1,6 @@
 # Feature 014 — XLSX Template Compatibility
 
-**Status:** Draft for Product Owner review, based on the approved scope and decisions. Implementation is not authorized by this document.
+**Status:** Approved by the Product Owner; Stage 1 implementation authorized on 2026-10-26 under the approved Implementation Plan. Manual Excel acceptance remains Pending until actual Excel evidence is recorded.
 
 ## 1. Goal and scope
 

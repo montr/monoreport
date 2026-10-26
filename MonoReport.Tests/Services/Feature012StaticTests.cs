@@ -28,7 +28,9 @@ public sealed class Feature012StaticTests
         var source = _fixture.Create((workbook, worksheet) =>
         {
             AddStyles(workbook);
-            worksheet.Worksheet!.Descendants<Cell>().Single().StyleIndex = 1;
+            var cell = worksheet.Worksheet!.Descendants<Cell>().Single();
+            cell.StyleIndex = 1;
+            cell.InlineString = new InlineString(new Run(new RunProperties(new Bold()), new Text("{Name}")));
         });
         var (output, context) = RenderPrivate(source, "{\"Name\":" + json + "}");
         using var result = SpreadsheetDocument.Open(new MemoryStream(output), false);
@@ -37,6 +39,8 @@ public sealed class Feature012StaticTests
         Assert.Equal(expected, type == "inlineStr" ? cell.InlineString!.InnerText : cell.CellValue?.Text ?? string.Empty);
         Assert.Equal(1U, cell.StyleIndex!.Value);
         Assert.Null(cell.CellFormula);
+        if (type == "inlineStr") Assert.Null(cell.CellValue); else Assert.Null(cell.InlineString);
+        Assert.Equal(2, result.WorkbookPart.WorkbookStylesPart!.Stylesheet!.CellFormats!.Count());
         Assert.Equal(1, context.OutputCells);
         AssertValid(result);
     }
@@ -52,7 +56,7 @@ public sealed class Feature012StaticTests
     [InlineData("-0e999999999999999999999")]
     public void Static_Safe_numeric_digits_exponents_and_zero_are_accepted(string number)
     {
-        var (output, _) = RenderPrivate(_fixture.Create(), "{\"Name\":" + number + "}");
+        var (output, _) = RenderPrivate(_fixture.Create((_, part) => part.Worksheet!.Descendants<Cell>().Single().InlineString = new InlineString(new Run(new Text("{Name}")))), "{\"Name\":" + number + "}");
         using var result = SpreadsheetDocument.Open(new MemoryStream(output), false);
         var cell = result.WorkbookPart!.WorksheetParts.Single().Worksheet!.Descendants<Cell>().Single();
         Assert.Equal(CellValues.Number, cell.DataType!.Value);
@@ -69,7 +73,7 @@ public sealed class Feature012StaticTests
     [InlineData("1e-320")]
     public void Static_Unsafe_numeric_values_fail_with_safe_actionable_diagnostics(string number)
     {
-        var error = Assert.Throws<TemplateException>(() => RenderPrivate(_fixture.Create(), "{\"Name\":" + number + "}"));
+        var error = Assert.Throws<TemplateException>(() => RenderPrivate(_fixture.Create((_, part) => part.Worksheet!.Descendants<Cell>().Single().InlineString = new InlineString(new Run(new Text("{Name}")))), "{\"Name\":" + number + "}"));
         var diagnostic = Assert.Single(error.Errors);
         Assert.Equal(DiagnosticCodes.XlsxUnsafeNumber, diagnostic.Code);
         Assert.Equal("{Name}", diagnostic.Field);

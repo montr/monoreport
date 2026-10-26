@@ -15,7 +15,6 @@ public sealed class Feature012FoundationTests
     private readonly XlsxFixture _fixture = new();
 
     [Theory]
-    [InlineData(null)]
     [InlineData("'Report'!$B$3:$D$5,'Report'!$F$3:$G$4")]
     [InlineData("'Report'!$B:$D")]
     [InlineData("'Other'!$B$3:$D$5")]

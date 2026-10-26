@@ -10,10 +10,15 @@ internal sealed partial class XlsxGeometryPlanner
     {
         if (schedule.SheetId != sheet.Source.Id || !sheet.Regions.Select(region => region.Id).SequenceEqual(schedule.Regions.Select(region => region.RegionId)))
             throw new InvalidOperationException("The vertical schedule must match the sheet and its source regions in order.");
+        if (sheet.Source.PrintArea is null)
+            return new(sheet.Source, sheet.Source.RetentionArea, 0, 0)
+            {
+                RowSpans = [new(1, 1048576, 1)], ColumnSpans = [new(1, 16384, 1)]
+            };
         var rows = ImmutableArray.CreateBuilder<XlsxAxisSpan>();
-        var source = sheet.Source.PrintArea.First.Row;
+        var source = sheet.Source.RetentionArea.First.Row;
         var at = 1;
-        long height = sheet.Source.PrintArea.Height;
+        long height = sheet.Source.RetentionArea.Height;
         for (var index = 0; index < sheet.Regions.Length; index++)
         {
             var region = sheet.Regions[index];
@@ -36,9 +41,9 @@ internal sealed partial class XlsxGeometryPlanner
                 Emit(block.Source.FirstRow, block.Source.LastRow, block.Owner);
             source = region.LastRow + 1;
         }
-        Emit(source, sheet.Source.PrintArea.Last.Row, null);
+        Emit(source, sheet.Source.RetentionArea.Last.Row, null);
         return new(sheet.Source, new(new(1, 1), new(Math.Max(1, at - 1), width)),
-            1 - sheet.Source.PrintArea.First.Row, 1 - sheet.Source.PrintArea.First.Column)
+            1 - sheet.Source.RetentionArea.First.Row, 1 - sheet.Source.RetentionArea.First.Column)
         { Expanded = true, RowSpans = rows.ToImmutable(), ColumnSpans = columns };
     }
 
@@ -75,7 +80,7 @@ internal sealed partial class XlsxGeometryPlanner
                 Emit(source, node.LastColumn, path);
             }
         }
-        var area = sheet.Source.PrintArea;
+        var area = sheet.Source.RetentionArea;
         if (sheet.Horizontal is { } root)
         {
             var width = checked((long)area.Width - (root.LastColumn - root.FirstColumn + 1) + Width(root));

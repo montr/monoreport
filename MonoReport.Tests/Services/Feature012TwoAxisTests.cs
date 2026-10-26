@@ -34,11 +34,13 @@ public sealed class Feature012TwoAxisTests
     }
 
     [Fact]
-    public void Matrix_Disjoint_selection_ranges_reject_with_a_remedy_instead_of_null_geometry()
+    public void Matrix_Repeated_selection_resets_to_a_valid_output_cell()
     {
         var bytes = _twoAxis.Create((_, part) => part.Worksheet!.PrependChild(new SheetViews(new SheetView(new Selection { SequenceOfReferences = new DocumentFormat.OpenXml.ListValue<DocumentFormat.OpenXml.StringValue> { InnerText = "E10:E10" } }) { WorkbookViewId = 0 })));
-        var error = Assert.Throws<TemplateException>(() => _fixture.Merge(bytes, _twoAxis.Data()));
-        Assert.Equal(DiagnosticCodes.XlsxUnsupportedFeature, error.Code); Assert.Contains("selection", error.Errors[0].Message);
+        var result = _fixture.Merge(bytes, _twoAxis.Data());
+        using var document = SpreadsheetDocument.Open(new MemoryStream(result.Document), false);
+        var selection = document.WorkbookPart!.WorksheetParts.Single().Worksheet!.Descendants<Selection>().Single();
+        Assert.Equal("A1", selection.ActiveCell!.Value); Assert.Equal("A1", selection.SequenceOfReferences!.InnerText);
     }
 
     [Fact]

@@ -68,6 +68,8 @@ internal sealed partial class XlsxDocumentRenderer
             new XDocument(root).Save(writer);
         }
         var workbook = document.WorkbookPart!;
+        foreach (var index in plan.DisposableWorkbookNodes.OrderDescending())
+            workbook.Workbook!.ChildElements[index].Remove();
         var definedNames = workbook.Workbook!.DefinedNames;
         if (definedNames is not null)
             foreach (var (name, index) in definedNames.Elements<DefinedName>().Select((name, index) => (name, index))) name.Text = plan.Names[index].Value;
@@ -90,7 +92,17 @@ internal sealed partial class XlsxDocumentRenderer
             cell.Attribute("t")?.Remove();
             return;
         }
-        if (value.Type == "inlineStr") cell.Add(new XElement(S + "is", new XElement(S + "t",
+        if (value.Type == "inlineStr" && value.RichString is { } rich)
+        {
+            var inline = new XElement(S + "is");
+            foreach (var span in rich.Spans)
+                inline.Add(new XElement(S + "r", span.Properties is null ? null : new XElement(span.Properties),
+                    new XElement(S + "t", new XAttribute(XNamespace.Xml + "space", "preserve"), EncodeString(span.Text))));
+            inline.Add(rich.Phonetics.Select(hint => new XElement(hint)));
+            if (rich.PhoneticProperties is not null) inline.Add(new XElement(rich.PhoneticProperties));
+            cell.Add(inline);
+        }
+        else if (value.Type == "inlineStr") cell.Add(new XElement(S + "is", new XElement(S + "t",
             new XAttribute(XNamespace.Xml + "space", "preserve"), EncodeString(value.Value))));
         else cell.Add(new XElement(S + "v", value.Value));
     }

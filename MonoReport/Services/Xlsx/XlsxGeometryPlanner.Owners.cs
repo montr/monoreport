@@ -84,7 +84,7 @@ internal sealed partial class XlsxGeometryPlanner
         if (geometry.DisplacedSources.Any(source => range.Contains(source.Source.Address) && Compatible(source.Horizontal, horizontal) &&
             CompatibleVertical(source.Vertical, vertical, descendants)))
             return new(XlsxRangeImageKind.Ambiguous, null,
-                geometry.Source.PrintArea.Contains(range.First) && geometry.Source.PrintArea.Contains(range.Last));
+                geometry.Source.RetentionArea.Contains(range.First) && geometry.Source.RetentionArea.Contains(range.Last));
         var affected = geometry.ContentOwners.Where(owner => range.Contains(owner.Source.Address)).ToArray();
         if (affected.Length == 0) return geometry.Expanded || !geometry.RowSpans.IsEmpty
             ? ProjectInstances(range, geometry, vertical, horizontal, descendants) : ProjectRange(range, geometry);
@@ -103,7 +103,7 @@ internal sealed partial class XlsxGeometryPlanner
             remaining = pieces;
         }
         var images = new List<XlsxRectangle>();
-        var complete = geometry.Source.PrintArea.Contains(range.First) && geometry.Source.PrintArea.Contains(range.Last);
+        var complete = geometry.Source.RetentionArea.Contains(range.First) && geometry.Source.RetentionArea.Contains(range.Last);
         foreach (var piece in remaining)
         {
             var rows = AxisImage(piece.First.Row, piece.Last.Row, geometry.RowSpans.Where(span =>

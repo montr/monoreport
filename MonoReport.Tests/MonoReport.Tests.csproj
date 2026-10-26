@@ -25,16 +25,15 @@
 
   <ItemGroup>
     <None Update="Fixtures/feature012/*" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="../Samples/sample.template.docx" Link="sample.template.docx" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="../Samples/sample.json" Link="sample.json" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="../Samples/sample.docx" Link="sample.docx" CopyToOutputDirectory="PreserveNewest" />
+    <None Condition="Exists('../Samples/sample.template.docx')" Include="../Samples/sample.template.docx" Link="sample.template.docx" CopyToOutputDirectory="PreserveNewest" />
+    <None Condition="Exists('../Samples/sample.json')" Include="../Samples/sample.json" Link="sample.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Condition="Exists('../Samples/sample.docx')" Include="../Samples/sample.docx" Link="sample.docx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Samples/orders-report.*;../Samples/project-costs.*;../Samples/syntax-showcase.*;../Samples/repeated-image.*" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../MonoReport.Tests/Fixtures/review-reproductions/*.template.docx;../MonoReport.Tests/Fixtures/review-reproductions/*.json" Link="Fixtures/review-reproductions/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../MonoReport.Tests/Fixtures/review-verification/*.template.docx;../MonoReport.Tests/Fixtures/review-verification/*.json" Link="Fixtures/review-verification/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="../MonoReport.UI/public/examples.json" Link="examples.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Condition="Exists('../MonoReport.UI/public/examples.json')" Include="../MonoReport.UI/public/examples.json" Link="examples.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="../Samples/xlsx-tender.*" Link="Samples/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

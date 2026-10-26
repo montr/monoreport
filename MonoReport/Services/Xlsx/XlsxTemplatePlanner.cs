@@ -52,7 +52,7 @@ internal sealed partial class XlsxTemplatePlanner(TemplateLanguageParser languag
                 sheetDependencies.Add(new("for", marker.Collection!, marker.CollectionPath!, "array", sheet.Part,
                     marker.Location, Order(marker.Cell.Id.Address)));
             var cells = ImmutableArray.CreateBuilder<XlsxCellPlan>();
-            foreach (var cell in sheet.Cells.Where(cell => sheet.PrintArea.Contains(cell.Id.Address)))
+            foreach (var cell in sheet.Cells.Where(cell => sheet.RetentionArea.Contains(cell.Id.Address)))
             {
                 var location = Location(sheet, cell.Id.Address);
                 XlsxParsedFormula? formula = sharedCopies.GetValueOrDefault(cell.Id);
@@ -79,11 +79,6 @@ internal sealed partial class XlsxTemplatePlanner(TemplateLanguageParser languag
                 {
                     Report(error with { SourceOrder = Order(cell.Id.Address) + error.SourceOrder });
                 }
-                if (cell.RichText && parsed.Tokens.Count > 0)
-                    Report(new StructuralDiagnostic(DiagnosticCodes.XlsxUnsupportedFeature,
-                        "Rich-text field substitution is not implemented in M1.", Location: location,
-                        Explanation: "Use a plain cell string for fields until rich-run substitution is implemented; unchanged rich text can be retained.",
-                        SourceOrder: Order(cell.Id.Address)));
                 foreach (var token in parsed.Tokens.Where(token => token.Expression is not null))
                 {
                     if (token.Expression!.Kind != TemplateExpressionKind.Field)
@@ -132,6 +127,7 @@ internal sealed partial class XlsxTemplatePlanner(TemplateLanguageParser languag
     {
         if (cell.Source.Text is null) return new(cell.Source.NativeType, null);
         var text = new StringBuilder();
+        var edits = new List<XlsxTextEdit>();
         var offset = 0;
         foreach (var token in cell.Tokens)
         {
@@ -140,7 +136,9 @@ internal sealed partial class XlsxTemplatePlanner(TemplateLanguageParser languag
             offset = token.Start + token.Length;
             if (token.Kind != TemplateTokenKind.Expression)
             {
-                text.Append(token.Kind == TemplateTokenKind.LiteralOpenBrace ? '{' : '}');
+                var brace = token.Kind == TemplateTokenKind.LiteralOpenBrace ? "{" : "}";
+                text.Append(brace);
+                edits.Add(new(token.Start, token.Length, brace));
                 continue;
             }
             var expression = token.Expression!;
@@ -148,6 +146,7 @@ internal sealed partial class XlsxTemplatePlanner(TemplateLanguageParser languag
             context.ResolvedFields = checked(context.ResolvedFields + 1);
             var unavailableAncestor = path.Origin != TemplatePathOrigin.Root && path.ParentDepth >= scope.Values.Count;
             var dataPath = unavailableAncestor ? scope.Paths[0] : _resolver.DataPath(path, scope);
+            var replacementStart = text.Length;
             try
             {
                 if (unavailableAncestor)
@@ -182,7 +181,8 @@ internal sealed partial class XlsxTemplatePlanner(TemplateLanguageParser languag
                 if (cell.NativeField)
                     return value.Value.ValueKind switch
                     {
-                        JsonValueKind.String => new("inlineStr", SafeText(scalarString!, expression, cell.Location)),
+                        JsonValueKind.String => TextValue(cell, SafeText(scalarString!, expression, cell.Location),
+                            [new(0, cell.Source.Text.Length, scalarString!)]),
                         JsonValueKind.Number => new("n", SafeNumber(value.Value.GetRawText(), expression, cell.Location)),
                         JsonValueKind.True => new("b", "1"),
                         JsonValueKind.False => new("b", "0"),
@@ -192,8 +192,9 @@ internal sealed partial class XlsxTemplatePlanner(TemplateLanguageParser languag
                 text.Append(SafeText(_formatter.Format(value.Value, expression, context.Options, cell.Location), expression, cell.Location));
             }
             catch (TemplateException error) { context.Report(error, dataPath); }
+            finally { edits.Add(new(token.Start, token.Length, text.ToString(replacementStart, text.Length - replacementStart))); }
         }
         text.Append(cell.Source.Text, offset, cell.Source.Text.Length - offset);
-        return new("inlineStr", text.ToString());
+        return TextValue(cell, text.ToString(), edits);
     }
 }

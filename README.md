@@ -2,7 +2,7 @@
 
 MonoReport generates DOCX reports, contracts, acts, protocols, invoices, and similar documents from Microsoft Word templates and JSON data. It requires .NET SDK 10. Microsoft Word is useful for authoring and visual verification but is not required by the engine.
 
-1. MonoReport supports ordinary XLSX templates through Core, CLI and the existing HTTP document endpoints: scalar fields, nested vertical headers/footers and multirow blocks, recursive horizontal Cartesian expansion with branching sibling blocks and multirow headers, safe scalar A1 formulas including supported sheet/name/shared references, and physical PrintArea crop. See [XLSX compatibility and current limits](docs/xlsx-template-compatibility.md). XLSX Playground support is not included.
+1. MonoReport supports ordinary XLSX templates through Core, CLI and the existing HTTP document endpoints: scalar fields, nested vertical headers/footers and multirow blocks, recursive horizontal Cartesian expansion with branching sibling blocks and multirow headers, safe scalar A1 formulas including supported sheet/name/shared references, physical PrintArea crop, optional PrintArea on uncontrolled sheets, and styled rich-text substitutions. Recognized Excel save metadata and valid worksheet selections normalize during generation. Actual Excel save/edit/reopen acceptance remains Pending. See [XLSX compatibility and current limits](docs/xlsx-template-compatibility.md). The Playground provides an approximate read-only XLSX preview; download the output to recalculate and verify it in Excel.
 
 ## Projects
 

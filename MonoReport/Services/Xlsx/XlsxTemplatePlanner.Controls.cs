@@ -16,6 +16,12 @@ internal sealed partial class XlsxTemplatePlanner
             if (context.LimitReached) break;
             if (cell.Text is not { } text || !ControlPrefix().IsMatch(text)) continue;
             var location = Location(sheet, cell.Id.Address);
+            if (sheet.PrintArea is null)
+            {
+                context.Report(new TemplateException("Set one finite rectangular PrintArea for a worksheet containing repetition controls.",
+                    location: location, code: DiagnosticCodes.XlsxInvalidPrintArea));
+                continue;
+            }
             var match = Control().Match(text);
             if (!match.Success || !int.TryParse(match.Groups["level"].Value, NumberStyles.AllowLeadingSign,
                     CultureInfo.InvariantCulture, out var level))
@@ -41,8 +47,8 @@ internal sealed partial class XlsxTemplatePlanner
             var kind = vertical ? XlsxControlKind.Vertical : hasCollection ? XlsxControlKind.Header : XlsxControlKind.Geometry;
             var address = cell.Id.Address;
             var validPlacement = kind == XlsxControlKind.Geometry
-                ? address.Row < sheet.PrintArea.First.Row && address.Column >= sheet.PrintArea.First.Column && address.Column <= sheet.PrintArea.Last.Column
-                : hasCollection && address.Column < sheet.PrintArea.First.Column && address.Row >= sheet.PrintArea.First.Row && address.Row <= sheet.PrintArea.Last.Row;
+                ? address.Row < sheet.RetentionArea.First.Row && address.Column >= sheet.RetentionArea.First.Column && address.Column <= sheet.RetentionArea.Last.Column
+                : hasCollection && address.Column < sheet.RetentionArea.First.Column && address.Row >= sheet.RetentionArea.First.Row && address.Row <= sheet.RetentionArea.Last.Row;
             if (!validPlacement)
             {
                 context.Report(ControlError(location, "Place collection controls in one column left of PrintArea and geometry controls above its report columns."));

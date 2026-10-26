@@ -44,11 +44,23 @@ internal sealed record HorizontalInstancePath(int NodeId, int ItemIndex, Horizon
 internal sealed record CellInstanceId(SourceCellId Source, VerticalInstancePath? Vertical, HorizontalInstancePath? Horizontal);
 
 internal sealed record XlsxCellSource(SourceCellId Id, XElement Xml, string? Text, string? NativeType,
-    bool HasFormula, bool RichText, XElement? SharedString = null);
+    bool HasFormula, bool RichText, XElement? SharedString = null)
+{
+    internal XlsxRichString? RichString { get; init; }
+}
+internal sealed record XlsxTextSpan(int Start, string Text, XElement? Properties);
+internal sealed record XlsxRichString(string Text, ImmutableArray<XlsxTextSpan> Spans, ImmutableArray<XElement> Phonetics, XElement? PhoneticProperties);
+internal sealed record XlsxTextEdit(int Start, int Length, string Text);
+// RetentionArea is the reference domain: authored crop, or the full worksheet for identity retention.
+// It is never a stored-content extent and must not be emitted as a synthetic dimension/PrintArea.
 internal sealed record XlsxSheetSource(uint Id, string Name, string Part, XDocument Xml,
-    XlsxRectangle PrintArea, ImmutableArray<XlsxCellSource> Cells, ImmutableArray<string> Features, int PrintAreaNameIndex);
+    XlsxRectangle? PrintArea, XlsxRectangle RetentionArea, ImmutableArray<XlsxCellSource> Cells, ImmutableArray<string> Features, int PrintAreaNameIndex);
 internal sealed record XlsxSourceInventory(ImmutableArray<XlsxSheetSource> Sheets, bool Date1904,
-    ImmutableArray<XElement> Names, ImmutableArray<string> WorkbookFeatures, XDocument? Styles);
+    ImmutableArray<XElement> Names, ImmutableArray<string> WorkbookFeatures, XDocument? Styles)
+{
+    internal ImmutableArray<int> DisposableWorkbookNodes { get; init; } = [];
+    internal string WorkbookPart { get; init; } = "/xl/workbook.xml";
+}
 
 internal sealed record XlsxCellPlan(XlsxCellSource Source, ImmutableArray<TemplateToken> Tokens, string Location)
 {
@@ -82,4 +94,7 @@ internal sealed record XlsxTemplatePlan(XlsxSourceInventory Source, ImmutableArr
     internal ImmutableArray<XlsxDefinedName> DefinedNames { get; init; } = [];
     internal ImmutableArray<XlsxSharedFormulaGroup> SharedFormulas { get; init; } = [];
 }
-internal sealed record XlsxPreparedValue(string? Type, string? Value);
+internal sealed record XlsxPreparedValue(string? Type, string? Value)
+{
+    internal XlsxRichString? RichString { get; init; }
+}

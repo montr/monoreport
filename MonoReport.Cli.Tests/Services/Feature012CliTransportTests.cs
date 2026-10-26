@@ -7,16 +7,22 @@ namespace MonoReport.Tests.Services;
 public sealed class Feature012CliTransportTests
 {
     [Fact]
-    public void Maintained_tender_sample_generates_through_public_cli()
+    public void Test_owned_xlsx_generates_through_public_cli()
     {
-        var fixture = new TenderSampleFixture();
+        var fixture = new XlsxTransportFixture();
         using var services = new XlsxFixture().Services();
         var app = new CliApplication(new CliOptionsParser(), services.GetRequiredService<MergeEngine>(), services.GetRequiredService<TemplateAnalyzer>());
         using var output = new DocumentOutputStream(); using var errors = new StringWriter();
-        Assert.Equal(0, app.Run(["--template", fixture.TemplatePath, "--json", fixture.Data], Stream.Null, output, errors));
-        Assert.Empty(errors.ToString());
-        Assert.Equal(Assert.Single(output.Writes), output.ToArray());
-        fixture.AssertGenerated(output.ToArray());
+        var path = Path.Combine(Path.GetTempPath(), "xlsx-transport-" + Guid.NewGuid().ToString("N"));
+        File.WriteAllBytes(path, fixture.Source);
+        try
+        {
+            Assert.Equal(0, app.Run(["--template", path, "--json", fixture.Data], Stream.Null, output, errors));
+            Assert.Empty(errors.ToString());
+            Assert.Equal(Assert.Single(output.Writes), output.ToArray());
+            fixture.AssertGenerated(output.ToArray());
+        }
+        finally { File.Delete(path); }
     }
 
     [Theory]

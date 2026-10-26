@@ -16,9 +16,9 @@ public sealed class Feature012HttpTransportTests
     private const string Excel = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
     [Fact]
-    public async Task Maintained_tender_sample_generates_through_public_http()
+    public async Task Test_owned_xlsx_generates_through_public_http()
     {
-        var fixture = new TenderSampleFixture();
+        var fixture = new XlsxTransportFixture();
         using var factory = new WebApplicationFactory<Program>(); using var client = factory.CreateClient();
         using var form = HttpApiTests.Form(fixture.Source, fixture.Data);
         using var response = await client.PostAsync("/api/documents/generate", form);

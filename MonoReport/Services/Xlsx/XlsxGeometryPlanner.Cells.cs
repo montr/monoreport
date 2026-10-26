@@ -10,9 +10,12 @@ internal sealed partial class XlsxGeometryPlanner
     {
         var settings = new XElement(sheet.Source.Xml.Root!);
         settings.Element(S + "sheetData")!.RemoveNodes();
-        settings.Element(S + "dimension")?.Remove();
-        var dimension = new XElement(S + "dimension", new XAttribute("ref", geometry.OutputArea));
-        if (settings.Element(S + "sheetPr") is { } properties) properties.AddAfterSelf(dimension); else settings.AddFirst(dimension);
+        if (sheet.Source.PrintArea is not null)
+        {
+            settings.Element(S + "dimension")?.Remove();
+            var dimension = new XElement(S + "dimension", new XAttribute("ref", geometry.OutputArea));
+            if (settings.Element(S + "sheetPr") is { } properties) properties.AddAfterSelf(dimension); else settings.AddFirst(dimension);
+        }
         var columns = settings.Element(S + "cols");
         if (columns is not null)
         {
