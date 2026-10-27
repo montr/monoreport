@@ -1,11 +1,11 @@
 .document-toolbar {
-  min-height: 52px;
+  min-height: 44px;
   flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 8px 15px;
+  padding: 0 15px;
   border-bottom: 1px solid #e7eaf0;
   background: #fff;
 }
@@ -23,18 +23,14 @@
   color: #68727e;
 }
 
-.examples-picker { min-width: 0; }
+.examples-picker {
+  min-width: 0;
+}
 
 .examples-select {
   width: max-content;
   min-width: 175px;
   max-width: 100%;
-  height: 32px !important;
-  padding: 0 8px;
-  border: 1px solid #d7dce2;
-  border-radius: 6px;
-  background: #fff;
-  color: #303844;
 }
 
 .examples-select .ant-select-content {
@@ -53,14 +49,22 @@
   gap: 7px;
 }
 
-.examples-select .ant-select-content .format-label { width: 100%; }
-.examples-select .ant-select-content .format-title { color: #303844; }
+.examples-select .ant-select-content .format-label {
+  width: 100%;
+}
+
+.examples-select .ant-select-content .format-title {
+  color: #303844;
+}
 
 .format-title {
   white-space: nowrap;
 }
 
-.format-icon { flex: none; font-size: 18px; }
+.format-icon {
+  flex: none;
+  font-size: 18px;
+}
 
 .modified {
   font-size: 11px;
@@ -80,23 +84,57 @@
 }
 
 @media (max-width: 850px) {
-  .document-toolbar { padding-inline: 10px; }
+  .document-toolbar {
+    padding-inline: 10px;
+  }
 }
 
 @media (max-width: 560px) {
-  .document-toolbar { gap: 6px; padding-inline: 6px; }
-  .examples-control { gap: 5px; }
+  .document-toolbar {
+    gap: 6px;
+    padding-inline: 6px;
+  }
+
+  .examples-control {
+    gap: 5px;
+  }
+
   .examples-control label,
-  .modified { display: none; }
-  .examples-picker { max-width: 100%; }
-  .examples-select { min-width: 100px; }
-  .document-actions { gap: 5px; }
-  .document-actions .ant-btn { padding-inline: 8px; }
+  .modified {
+    display: none;
+  }
+
+  .examples-picker {
+    max-width: 100%;
+  }
+
+  .examples-select {
+    min-width: 100px;
+  }
+
+  .document-actions {
+    gap: 5px;
+  }
+
+  .document-actions .ant-btn {
+    padding-inline: 8px;
+  }
 }
 
 @media (max-width: 460px) {
-  .document-toolbar { flex-wrap: wrap; }
-  .examples-control { flex: 1 1 100%; }
-  .examples-picker { flex: 1 1 auto; }
-  .examples-select { max-width: 100%; }
+  .document-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .examples-control {
+    flex: 1 1 100%;
+  }
+
+  .examples-picker {
+    flex: 1 1 auto;
+  }
+
+  .examples-select {
+    max-width: 100%;
+  }
 }

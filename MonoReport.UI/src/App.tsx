@@ -1,5 +1,5 @@
 import { Button, ConfigProvider, Select, Spin } from "antd";
-import { FileExcelFilled, FileWordFilled } from "@ant-design/icons";
+import { CodeOutlined, DownloadOutlined, FileExcelFilled, FileWordFilled, GithubFilled, UploadOutlined } from "@ant-design/icons";
 import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
 import { XlsxPreview } from "./components/XlsxPreview";
 import { documentMimes, templateFormat, templateAccept } from "./services/documentFormat";
@@ -55,10 +55,6 @@ function filenameFromPath(path: string) {
   try { return decodeURIComponent(segment); } catch { return segment; }
 }
 
-function DownloadIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 17v3h16v-3" /></svg>;
-}
-
 function FormatIcon({ format }: { format: DocumentFormat }) {
   const Icon = format === "docx" ? FileWordFilled : FileExcelFilled;
   return <Icon className={`format-icon format-icon-${format}`} style={{ color: format === "docx" ? "#185abd" : "#217346" }} aria-hidden="true" />;
@@ -66,14 +62,6 @@ function FormatIcon({ format }: { format: DocumentFormat }) {
 
 function FormatLabel({ format, title }: { format: DocumentFormat; title: string }) {
   return <span className="format-label"><FormatIcon format={format} /><span className="format-title">{title}</span></span>;
-}
-
-function GitHubIcon() {
-  return <svg viewBox="0 0 24 24" width="13" height="13" style={{ marginRight: 5, verticalAlign: "middle" }} aria-hidden="true"><path fill="currentColor" stroke="none" d="M12 .8A11.2 11.2 0 0 0 8.46 22.62c.56.1.77-.24.77-.54v-2.13c-3.13.68-3.79-1.33-3.79-1.33-.5-1.27-1.24-1.61-1.24-1.61-1.02-.7.08-.69.08-.69 1.13.08 1.73 1.16 1.73 1.16 1 .1.78 1.4 3.27.95.1-.72.39-1.21.71-1.49-2.5-.29-5.13-1.25-5.13-5.54 0-1.23.44-2.23 1.16-3.02-.12-.28-.5-1.43.11-2.97 0 0 .94-.3 3.08 1.15a10.7 10.7 0 0 1 5.6 0c2.14-1.45 3.08-1.15 3.08-1.15.61 1.54.23 2.69.11 2.97.72.79 1.15 1.79 1.15 3.02 0 4.3-2.63 5.25-5.14 5.54.4.35.75 1.03.75 2.08v3.09c0 .3.21.65.78.54A11.2 11.2 0 0 0 12 .8Z" /></svg>;
-}
-
-function DocumentationIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.3c-3.8-2-7-1.7-9-1.1v13.5c3-.9 6.2-.7 9 1 2.8-1.7 6-1.9 9-1V5.2c-2-.6-5.2-.9-9 1.1Zm0 0v13.4" /></svg>;
 }
 
 function DocumentEmpty({ children }: { children: string }) {
@@ -401,6 +389,7 @@ export default function App() {
                 <Select
                   id="examples"
                   className="examples-select"
+                  size="small"
                   aria-label="Examples"
                   value={selectorValue ?? undefined}
                   placeholder="Loading…"
@@ -413,13 +402,13 @@ export default function App() {
               {modified && <span className="modified" aria-label="Example modified">Modified</span>}
             </div>
             <div className="document-actions">
-              <Button onClick={() => fileInput.current?.click()}>Upload</Button>
-              <Button className="download" aria-label="Download template" disabled={!template} onClick={() => template && downloadBlob(template, template.name)} icon={<DownloadIcon />}>Download</Button>
+              <Button size="small" icon={<UploadOutlined aria-hidden="true" />} onClick={() => fileInput.current?.click()}>Upload</Button>
+              <Button size="small" aria-label="Download template" disabled={!template} onClick={() => template && downloadBlob(template, template.name)} icon={<DownloadOutlined aria-hidden="true" />}>Download</Button>
               <input ref={fileInput} type="file" accept={templateAccept} onChange={selected} />
             </div>
           </div>}
           {active === "result" && <div className="document-toolbar result-toolbar" aria-label="Result actions">
-            <Button className="download" aria-label="Download result" disabled={!result} onClick={() => result && downloadBlob(result.blob, result.filename)} icon={<DownloadIcon />}>Download</Button>
+            <Button size="small" aria-label="Download result" disabled={!result} onClick={() => result && downloadBlob(result.blob, result.filename)} icon={<DownloadOutlined aria-hidden="true" />}>Download</Button>
           </div>}
           <div
             className={`canvas ${(active === "template" && template && templateFormat(template.name) === "xlsx") || (active === "result" && result?.format === "xlsx") ? "xlsx-view" : ""} ${active === "errors" && errors.length > 0 ? "errors-view" : ""} ${dragging ? "drop-target" : ""}`}
@@ -431,8 +420,8 @@ export default function App() {
         </section>
       </main>
       <footer>
-        <span className="project-links"><a href={repositoryUrl} target="_blank" rel="noreferrer" title="MonoReport on GitHub"><GitHubIcon />MonoReport</a>{__APP_VERSION__ === "dev" ? <span>dev</span> : <a href={`${repositoryUrl}/releases/tag/v${__APP_VERSION__}`} target="_blank" rel="noreferrer">v{__APP_VERSION__}</a>}</span>
-        <a href="/docs/" title="API documentation"><DocumentationIcon />API docs</a>
+        <span className="project-links"><a href={repositoryUrl} target="_blank" rel="noreferrer" title="MonoReport on GitHub"><GithubFilled aria-hidden="true" />MonoReport</a>{__APP_VERSION__ === "dev" ? <span>dev</span> : <a href={`${repositoryUrl}/releases/tag/v${__APP_VERSION__}`} target="_blank" rel="noreferrer">v{__APP_VERSION__}</a>}</span>
+        <a href="/docs/" title="API documentation"><CodeOutlined aria-hidden="true" />API docs</a>
       </footer>
     </div>
   </ConfigProvider>;

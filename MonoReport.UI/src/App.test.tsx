@@ -73,6 +73,7 @@ async function chooseExample(user: ReturnType<typeof userEvent.setup>, title: st
 
 describe("MonoReport playground", () => {
   beforeEach(() => {
+    localStorage.clear();
     class TestResizeObserver {
       observe() {}
       unobserve() {}
@@ -98,16 +99,44 @@ describe("MonoReport playground", () => {
     expect(document.querySelector(".examples-picker .format-icon-docx")).not.toBeNull();
     expect(document.querySelector(".examples-picker .format-icon-docx")).toHaveStyle({ color: "rgb(24, 90, 189)" });
     expect(document.querySelector(".examples-select .ant-select-suffix .anticon-down")).not.toBeNull();
+    expect(document.querySelector(".examples-select")).toHaveClass("ant-select-sm");
     expect(screen.getByRole("button", { name: "Download template" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Upload" })).toHaveClass("ant-btn-sm");
+    expect(screen.getByRole("button", { name: "Download template" })).toHaveClass("ant-btn-sm");
+    expect(screen.getByRole("button", { name: "Upload" }).querySelector(".anticon-upload")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Download template" }).querySelector(".anticon-download")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Result" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Generate JSON" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Generate JSON" })).toHaveAttribute("title", expect.stringContaining("not validated"));
     const repositoryLink = screen.getByRole("link", { name: "MonoReport" });
     expect(repositoryLink).toHaveAttribute("href", "https://github.com/montr/monoreport");
-    expect(repositoryLink.querySelector("svg")).not.toBeNull();
+    expect(repositoryLink.querySelector(".anticon-github")).not.toBeNull();
+    expect(screen.getByRole("link", { name: "API docs" })).toHaveAttribute("href", "/docs/");
+    expect(screen.getByRole("link", { name: "API docs" }).querySelector(".anticon-code")).not.toBeNull();
     expect(screen.getByText("dev")).toBeInTheDocument();
     const splitter = screen.getByRole("separator");
     fireEvent.keyDown(splitter, { key: "ArrowRight" });
     expect(splitter).toHaveAttribute("aria-valuenow", "48");
+  });
+
+  it("keeps template download disabled until a template is selected and opens the upload picker", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("Unavailable", { status: 503 })));
+    render(<App />);
+    expect(await screen.findByText("Examples unavailable")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Template" }));
+
+    const upload = screen.getByRole("button", { name: "Upload" });
+    const download = screen.getByRole("button", { name: "Download template" });
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const click = vi.spyOn(input, "click");
+    expect(upload).toBeEnabled();
+    expect(download).toBeDisabled();
+    await user.click(upload);
+    expect(click).toHaveBeenCalledOnce();
+
+    await user.upload(input, template());
+    expect(download).toBeEnabled();
   });
 
   it("loads an XLSX registry example with format-correct file metadata and preview dispatch", async () => {
@@ -241,6 +270,8 @@ describe("MonoReport playground", () => {
     expect(screen.queryByRole("button", { name: /Download/ })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Result" }));
     expect(screen.getByRole("button", { name: "Download result" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Download result" })).toHaveClass("ant-btn-sm");
+    expect(screen.getByRole("button", { name: "Download result" }).querySelector(".anticon-download")).not.toBeNull();
     const third = new File([new Uint8Array([2])], "third.docx", { type: mime });
     fireEvent.drop(screen.getByLabelText("Preview").querySelector(".canvas")!, { dataTransfer: { files: [third], types: ["Files"] } });
     expect(screen.getByText("third.docx")).toBeInTheDocument();
