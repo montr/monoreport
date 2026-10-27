@@ -69,7 +69,7 @@ module.exports = {
     proxy: [
       {
         context: ["/api", "/docs", "/openapi"],
-        target: process.env.MONOREPORT_API_URL || "http://127.0.0.1:5080"
+        target: process.env.MONOREPORT_API_URL || "http://localhost:5000"
       }]
   },
   performance: { hints: false }

@@ -33,7 +33,7 @@ MonoReport generates DOCX reports, contracts, acts, protocols, invoices, and sim
 3. Start the API and UI for local development in separate terminals:
 
    ```bash
-   ASPNETCORE_URLS=http://127.0.0.1:5080 dotnet run --project MonoReport.Api
+   dotnet run --project MonoReport.Api
    cd MonoReport.UI && npm run dev
    ```
 
