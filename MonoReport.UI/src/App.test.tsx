@@ -54,18 +54,50 @@ function mockPlaygroundFetch(api: (input: RequestInfo | URL, init?: RequestInit)
 }
 
 async function selectTemplate(user: ReturnType<typeof userEvent.setup>, file = template()) {
-  await user.upload(screen.getByLabelText("Template actions").querySelector("input[type=file]") as HTMLInputElement, file);
+  await user.upload(document.querySelector('input[type="file"]') as HTMLInputElement, file);
+}
+
+function selectedExample() {
+  return document.querySelector(".examples-select .ant-select-content .format-label");
+}
+
+async function chooseExample(user: ReturnType<typeof userEvent.setup>, title: string) {
+  fireEvent.mouseDown(document.querySelector(".examples-select") as HTMLElement, { button: 0 });
+  const optionTitle = await waitFor(() => {
+    const option = [...document.querySelectorAll(".ant-select-dropdown-list .format-title")].find(element => element.textContent === title);
+    expect(option).toBeDefined();
+    return option as HTMLElement;
+  });
+  await user.click(optionTitle);
 }
 
 describe("MonoReport playground", () => {
-  beforeEach(() => { previewSources.length = 0; xlsxSources.length = 0; previewTestState.failResultPreview = false; mockPlaygroundFetch(); });
+  beforeEach(() => {
+    class TestResizeObserver {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    }
+    vi.stubGlobal("ResizeObserver", TestResizeObserver);
+    previewSources.length = 0;
+    xlsxSources.length = 0;
+    previewTestState.failResultPreview = false;
+    mockPlaygroundFetch();
+  });
 
   it("loads the default example without generation and keeps the approved controls and accessible splitter", async () => {
+    const { fetchMock } = mockPlaygroundFetch();
     render(<App />);
     expect(await screen.findByText("Template preview")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith("/examples.json", { cache: "no-cache" });
+    expect(fetchMock).toHaveBeenCalledWith("/examples/sample.template.docx", { cache: "no-cache" });
+    expect(fetchMock).toHaveBeenCalledWith("/examples/sample.json", { cache: "no-cache" });
     expect(screen.getByRole("button", { name: "Form" })).toBeDisabled();
     expect(screen.getByLabelText("JSON data")).toHaveValue(sampleData);
-    expect(screen.getByRole("combobox", { name: "Examples" })).toHaveValue("construction-cost-estimate");
+    expect(selectedExample()).toHaveTextContent("Construction cost estimate");
+    expect(document.querySelector(".examples-picker .format-icon-docx")).not.toBeNull();
+    expect(document.querySelector(".examples-picker .format-icon-docx")).toHaveStyle({ color: "rgb(24, 90, 189)" });
+    expect(document.querySelector(".examples-select .ant-select-suffix .anticon-down")).not.toBeNull();
     expect(screen.getByRole("button", { name: "Download template" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Generate JSON" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Generate JSON" })).toHaveAttribute("title", expect.stringContaining("not validated"));
@@ -80,9 +112,10 @@ describe("MonoReport playground", () => {
 
   it("loads an XLSX registry example with format-correct file metadata and preview dispatch", async () => {
     const xlsxExample = examplesRegistry.examples.find(example => example.id === "xlsx-tender")!;
+    const otherXlsxExample = examplesRegistry.examples.find(example => example.id === "xlsx-employees")!;
     expect(xlsxExample.format).toBe("xlsx");
-    const registry = { defaultExample: xlsxExample.id, examples: [xlsxExample] };
-    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+    const registry = { defaultExample: xlsxExample.id, examples: [xlsxExample, otherXlsxExample] };
+    const fetchMock = vi.fn((input: RequestInfo | URL, _init?: RequestInit) => {
       const url = String(input);
       if (url === "/examples.json") return Promise.resolve(new Response(JSON.stringify(registry), { status: 200 }));
       if (url === xlsxExample.templatePath) return Promise.resolve(new Response(new Uint8Array([80, 75, 3, 4]), { status: 200, headers: { "Content-Type": "application/octet-stream" } }));
@@ -94,12 +127,23 @@ describe("MonoReport playground", () => {
     render(<App />);
 
     expect(await screen.findByText("Template XLSX preview")).toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: "Examples" })).toHaveValue("xlsx-tender");
+    expect(selectedExample()).toHaveTextContent(xlsxExample.title);
+    expect(document.querySelector(".examples-picker .format-icon-xlsx")).not.toBeNull();
+    expect(screen.getByRole("combobox", { name: "Examples" })).toBeEnabled();
+    expect(document.querySelector(".examples-picker .format-icon-xlsx")).toHaveStyle({ color: "rgb(33, 115, 70)" });
+    fireEvent.mouseDown(document.querySelector(".examples-select") as HTMLElement, { button: 0 });
+    expect(await screen.findByText(xlsxExample.title, { selector: ".ant-select-dropdown-list .format-title" })).toBeInTheDocument();
+    expect(document.querySelector(".ant-select-dropdown-list .format-icon-xlsx")).not.toBeNull();
+    expect(document.querySelector(".ant-select-dropdown-list .format-icon-xlsx")).toHaveStyle({ color: "rgb(33, 115, 70)" });
+    const selectedOption = document.querySelector(".ant-select-dropdown-list .ant-select-item-option-selected") as HTMLElement;
+    fireEvent.mouseMove(document.querySelector(".ant-select-dropdown-list .ant-select-item-option:not(.ant-select-item-option-selected)") as HTMLElement);
+    await waitFor(() => expect(selectedOption).not.toHaveClass("ant-select-item-option-active"));
+    expect(getComputedStyle(selectedOption).getPropertyValue("--ant-select-option-selected-bg").trim()).toBe("#fff3f0");
     expect(screen.getByLabelText("JSON data")).toHaveValue('{"Title":"Office equipment"}');
     expect(xlsxSources.at(-1)).toBeInstanceOf(File);
     expect(xlsxSources.at(-1)).toMatchObject({ name: "xlsx-tender.template.xlsx", type: xlsxMime });
-    expect(fetchMock).toHaveBeenCalledWith(xlsxExample.templatePath);
-    expect(fetchMock).toHaveBeenCalledWith(xlsxExample.dataPath);
+    expect(fetchMock).toHaveBeenCalledWith(xlsxExample.templatePath, { cache: "no-cache" });
+    expect(fetchMock).toHaveBeenCalledWith(xlsxExample.dataPath, { cache: "no-cache" });
     expect(fetchMock).not.toHaveBeenCalledWith("/api/documents/analyze", expect.anything());
   });
 
@@ -120,7 +164,7 @@ describe("MonoReport playground", () => {
     const user = userEvent.setup();
     render(<App />);
     await screen.findByText("Template preview");
-    fireEvent.change(screen.getByRole("combobox", { name: "Examples" }), { target: { value: "xlsx-tender" } });
+    await chooseExample(user, "XLSX tender");
     await waitFor(() => expect(resolveXlsxTemplate).toBeTypeOf("function"));
 
     const custom = new File([new Uint8Array([9])], "custom.xlsx", { type: xlsxMime });
@@ -129,7 +173,8 @@ describe("MonoReport playground", () => {
     resolveXlsxData(new Response('{"stale":true}', { status: 200 }));
 
     await waitFor(() => expect(screen.getByText("custom.xlsx")).toBeInTheDocument());
-    expect(screen.getByRole("combobox", { name: "Examples" })).toHaveValue("custom");
+    expect(selectedExample()).toHaveTextContent("Custom");
+    expect(document.querySelector(".examples-picker .format-icon-xlsx")).not.toBeNull();
     expect(screen.getByLabelText("JSON data")).toHaveValue(sampleData);
     expect(xlsxSources.at(-1)).toBe(custom);
   });
@@ -211,7 +256,7 @@ describe("MonoReport playground", () => {
     await user.click(screen.getByRole("button", { name: "Generate document" }));
     await screen.findByText("Result preview");
     await user.click(screen.getByRole("button", { name: "Template" }));
-    const picker = screen.getByLabelText("Template actions").querySelector("input")!;
+    const picker = document.querySelector('input[type="file"]')!;
     expect(picker).toHaveAttribute("accept", expect.stringContaining(".xlsx"));
     const book = new File([new Uint8Array([1])], "tender.XLSX", { type: mime });
     await selectTemplate(user, book);
@@ -561,7 +606,8 @@ describe("MonoReport playground", () => {
     resolveTemplate(new Response(new Uint8Array([80, 75]), { status: 200, headers: { "Content-Type": mime } }));
     resolveData(new Response('{"stale":true}', { status: 200 }));
     await waitFor(() => expect(screen.getByText("custom.docx")).toBeInTheDocument());
-    expect(screen.getByRole("combobox", { name: "Examples" })).toHaveValue("custom");
+    expect(selectedExample()).toHaveTextContent("Custom");
+    expect(document.querySelector(".examples-picker .format-icon-docx")).not.toBeNull();
     expect(screen.getByLabelText("JSON data")).toHaveValue("{}");
   });
 
@@ -575,17 +621,17 @@ describe("MonoReport playground", () => {
     const custom = new File([new Uint8Array([4, 5, 6])], "custom.docx", { type: mime });
     await selectTemplate(user, custom);
     expect(screen.getByLabelText("JSON data")).toHaveValue("byte-for-byte JSON");
-    expect(screen.getByRole("combobox", { name: "Examples" })).toHaveValue("custom");
+    expect(selectedExample()).toHaveTextContent("Custom");
     const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
     await user.click(screen.getByRole("button", { name: "Download template" }));
     expect(URL.createObjectURL).toHaveBeenCalledWith(custom);
     expect(click).toHaveBeenCalled();
     confirm.mockReturnValueOnce(false);
-    fireEvent.change(screen.getByRole("combobox", { name: "Examples" }), { target: { value: "construction-cost-estimate" } });
-    expect(screen.getByRole("combobox", { name: "Examples" })).toHaveValue("custom");
+    await chooseExample(user, "Construction cost estimate");
+    expect(selectedExample()).toHaveTextContent("Custom");
     expect(screen.getByLabelText("JSON data")).toHaveValue("byte-for-byte JSON");
     confirm.mockReturnValueOnce(true);
-    fireEvent.change(screen.getByRole("combobox", { name: "Examples" }), { target: { value: "construction-cost-estimate" } });
+    await chooseExample(user, "Construction cost estimate");
     await waitFor(() => expect(screen.getByLabelText("JSON data")).toHaveValue(sampleData));
   });
 
@@ -613,7 +659,7 @@ describe("MonoReport playground", () => {
     render(<App />);
     await screen.findByText("Template preview");
     await selectTemplate(user, new File([new Uint8Array([9])], "custom.docx", { type: mime }));
-    fireEvent.change(screen.getByRole("combobox", { name: "Examples" }), { target: { value: "construction-cost-estimate" } });
+    await chooseExample(user, "Construction cost estimate");
     await waitFor(() => expect(resolveTemplate).toBeTypeOf("function"));
     await user.click(screen.getByRole("button", { name: "Generate document" }));
     resolveTemplate(new Response(new Uint8Array([80, 75]), { status: 200, headers: { "Content-Type": mime } }));
@@ -640,13 +686,13 @@ describe("MonoReport playground", () => {
     }));
     render(<App />);
     await screen.findByText("Template preview");
-    const selector = screen.getByRole("combobox", { name: "Examples" });
-    fireEvent.change(selector, { target: { value: "second" } });
+    const user = userEvent.setup();
+    await chooseExample(user, "Second");
     await waitFor(() => expect(resolveTemplate).toBeTypeOf("function"));
-    fireEvent.change(selector, { target: { value: "construction-cost-estimate" } });
+    await chooseExample(user, "Construction cost estimate");
     resolveTemplate(new Response(new Uint8Array([1, 2]), { status: 200, headers: { "Content-Type": mime } }));
     resolveData(new Response('{"second":true}', { status: 200 }));
-    await waitFor(() => expect(selector).toHaveValue("construction-cost-estimate"));
+    await waitFor(() => expect(selectedExample()).toHaveTextContent("Construction cost estimate"));
     expect(screen.getByLabelText("JSON data")).toHaveValue(sampleData);
     expect(screen.getByText("sample.template.docx")).toBeInTheDocument();
   });

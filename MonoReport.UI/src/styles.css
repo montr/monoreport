@@ -5,3 +5,7 @@
 .xlsx-preview .preview-warning{flex:none;margin:8px}.xlsx-preview .preview-loading{flex:none;margin:8px;padding:9px 12px;border:1px solid #e4e7ec;background:#f7f8fa;color:#606b78;border-radius:6px}
 .xlsx-preview-host{flex:1;min-width:0;min-height:0;overflow:hidden;background:#fff}
 .xlsx-preview-session{width:100%;height:100%}
+.xlsx-formula-bar{display:flex;align-items:center;gap:8px;flex:none;min-width:0;padding:4px 8px;border-bottom:1px solid #e4e7ec;background:#f7f8fa;color:#606b78}
+.xlsx-cell-address{flex:none;min-width:58px;font-variant-numeric:tabular-nums;color:#383e47}
+.xlsx-formula-label{flex:none;font-style:italic}
+.xlsx-formula-bar textarea{flex:1;min-width:0;height:28px;margin:0;padding:4px 6px;border:1px solid #e4e7ec;border-radius:4px;background:#fff;color:#242831;font:inherit;line-height:18px;white-space:pre;resize:none;overflow:auto;user-select:text}

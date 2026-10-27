@@ -57,7 +57,7 @@ Extend the existing MonoReport Web Playground to support XLSX templates and gene
 ### 3.5. Formula preview limitation
 
 1. Do not add formula evaluation or workbook recalculation to the browser or backend as part of this feature.
-2. Display cached formula values only when present in the workbook. Formula cells without a cached result **may appear blank** in the preview, including newly generated MonoReport XLSX files.
+2. Display cached formula values only when present in the workbook. Formula cells without a cached result **may appear blank** in the worksheet grid, including newly generated MonoReport XLSX files. The read-only formula bar may still show their formula text.
 3. A missing cached value must not be misrepresented as zero, as a successful calculation, or as a workbook generation error.
 4. The downloaded workbook retains its original formulas and recalculation settings. Opening it in an application capable of recalculation is outside the browser-preview responsibility.
 
@@ -70,7 +70,7 @@ Extend the existing MonoReport Web Playground to support XLSX templates and gene
 
 ## 4. Agreed architectural boundaries
 
-1. Add an XLSX-only browser preview based on the architecture research's selected `@silurus/ooxml` **0.89.4** candidate; keep the existing DOCX viewer unchanged. Any later viewer consolidation is a separate decision and feature.
+1. Add an XLSX-only browser preview based on `@silurus/ooxml`, initially accepted at 0.89.4 and upgraded to **0.89.6** under the approval in section 10; keep the existing DOCX viewer unchanged. Any later viewer consolidation is a separate decision and feature.
 2. Prefer the XLSX-specific package entry point, lazy loading, and locally served JavaScript/WASM/worker assets to avoid increasing the initial DOCX page payload unnecessarily.
 3. Keep frontend integration narrow: explicit document-format handling and selection of the corresponding viewer are sufficient. Do not introduce a generic document plugin framework.
 4. Reuse existing document upload, analysis, generation, diagnostics and download APIs. No new backend endpoint, formula engine, server document converter, or document persistence is in scope.
@@ -116,3 +116,17 @@ Extend the existing MonoReport Web Playground to support XLSX templates and gene
 2. Reuse existing frontend and API verification evidence; the remaining Stage 4 scope adds no tests or browser acceptance matrix.
 3. Build the production UI and Release publish/container using the existing setup. Inspect emitted XLSX examples, JavaScript chunks, workers, and WASM, and confirm the container starts.
 4. Licensing/notice verification, S1-02, Docker-hosted browser acceptance, desktop spreadsheet checks, and additional Preview failure tests are deferred. Existing notice files remain unchanged. S3-01 and S3-02 remain Open and deferred to Feature 014.
+
+## 9. Approved maintenance — Webpack warning, 2026-10-27
+
+1. The Product Owner authorized investigation and a localized maintenance fix for the dynamic dependency warning from `@silurus/ooxml/dist/model-source-COXegBNA.js`, provided application behavior remains unchanged. Do not modify `node_modules`, add dependencies, or make unrelated changes.
+2. Suppress only the exact warning from the inspected dependency file after confirming its runtime URL import belongs to optional model-source support that MonoReport never enables. Retain the pinned viewer, XLSX entry point, worker mode, loading behavior, and generated assets. Investigation and verification are recorded in Implementation Plan section 11.
+3. Reassess this suppression before enabling legacy model sources or upgrading the viewer. This maintenance does not authorize legacy XLS support or change any existing acceptance limitations or deferred findings.
+
+## 10. Approved formula bar and viewer upgrade — 2026-10-27
+
+1. The Product Owner approved upgrading the existing XLSX dependency to the latest stable npm release, reviewing API compatibility, updating its lockfile and distribution version, and rechecking the existing Webpack warning suppression. Pin 0.89.6, the stable release verified on npm for this implementation. Do not add dependencies or change the DOCX viewer.
+2. Above each XLSX worksheet, display a compact active-cell address, an `fx` label, and selectable read-only formula/value text. Use public selection context callbacks and match the active cell by coordinates. Display formulas with exactly one leading equals sign; otherwise use the viewer's formatted display text. Do not evaluate formulas or change workbook bytes.
+3. Empty cells show their address and blank text. Null or non-range context clears the bar. Reset on source replacement and failures; ignore callbacks from failed, replaced or disposed sessions. Sheet changes use the library's selection reset/context notifications. Preserve existing worker settings and session guards.
+4. Keep selection context bounded. When the active cell's content cannot be resolved, preserve its address and leave the formula/value field empty. Do not display a Partial indicator or unavailable-value placeholder. Continue displaying available active-cell text from truncated contexts. Merged covered cells may remain blank because the public context does not resolve them to the anchor. Do not introduce separate workbook ownership, merge normalization, or expanded selection limits.
+5. Verify formula/value display, address conversion, empty and partial context, sheet-context reset, source replacement, failure and stale-callback handling through focused component checks. Run DOCX preview/normalization and App format-switch regressions, TypeScript checking, and development/production builds. Browser automation, extensive rendering matrices and resource-intensive tests are outside this approval.

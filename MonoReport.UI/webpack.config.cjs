@@ -37,6 +37,13 @@ module.exports = {
     publicPath: "/"
   },
   resolve: { extensions: [".tsx", ".ts", ".js"] },
+  // @silurus/ooxml 0.89.6's optional legacyXls loader uses a runtime import URL.
+  // MonoReport never configures legacyXls; suppress only this known warning.
+  // Reassess on viewer upgrades or legacy support: Feature 013 plan, section 11.
+  ignoreWarnings: [{
+    module: /[\\/]node_modules[\\/]@silurus[\\/]ooxml[\\/]dist[\\/]model-source-COXegBNA\.js$/,
+    message: /^Critical dependency: the request of a dependency is an expression$/
+  }],
   module: {
     rules: [
       { test: /\.tsx?$/, exclude: /node_modules/, use: "swc-loader" },

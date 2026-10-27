@@ -85,3 +85,10 @@ The Product Owner approved this specification and the Implementation Plan on 202
 2. Use Codex `/plan` to inspect the current UI implementation, check actual sample assets, and propose a concise implementation plan and targeted verification before making code changes.
 3. Obtain explicit Product Owner approval of the plan; implement with one agent and no mandatory orchestrator or independent-review gate.
 4. Report tests, manual checks, limitations, and changes for Product Owner acceptance. Preserve Git index and do not stage, commit, or publish without separate authorization.
+
+## 10. Approved cache revalidation correction — 2026-10-27
+
+1. The Product Owner approved extending the examples caching fix to the manifest, DOCX/XLSX example templates and example JSON data. These resources can change across deployments while retaining their URLs; each fetch must use the standard no-cache request mode to revalidate cached responses.
+2. Retain parallel template/data loading, atomic application of the selected pair and existing protection against obsolete asynchronous responses. XLSX support remains governed by Feature 013.
+3. Keep resource URLs unchanged. Do not introduce cache-busting queries, custom caching infrastructure or deployment configuration changes.
+4. Verify the request policy through the existing DOCX/XLSX loading tests and run focused App tests and TypeScript checking. Browser HTTP-cache behavior is supplied by the platform; component tests verify the request contract and loading behavior.

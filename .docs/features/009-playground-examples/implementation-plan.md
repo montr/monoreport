@@ -21,3 +21,12 @@ Status: Approved by the Product Owner on 2026-10-16
 1. Acceptance criteria 1–9 and the automated portion of criterion 11 are covered by focused `App` component tests.
 2. Criterion 10 is covered by existing and extended component, preview, Monaco, and splitter regressions plus the final typecheck and production build.
 3. The browser portion of criterion 11 is reserved for Product Owner manual acceptance and is not claimed as executed by the implementation agent.
+
+## 4. Stage 1 — Approved cache revalidation correction — 2026-10-27
+
+1. Status: Review (2026-10-27). The Product Owner explicitly authorized the manifest/template/data revalidation correction and focused verification in this session. Implementation and focused verification are complete; Product Owner acceptance is pending.
+2. Add the standard no-cache request mode directly to the manifest fetch and both parallel example asset fetches in App. Preserve URLs, state guards and atomic template/data application; no new loader, cache infrastructure or Docker/Compose changes are required.
+3. Extend the existing default DOCX and XLSX example loading assertions to verify unchanged URLs and cache revalidation for the manifest, templates and JSON data.
+4. Run the focused App component suite and TypeScript checking. Record results here; do not perform browser automation, deployment changes or Git operations.
+5. Verification passed: all 28 App component tests and TypeScript checking. Existing tests cover default DOCX loading, XLSX loading, atomic asset failure and obsolete-response protection; updated loading assertions verify the exact resource URLs and no-cache options. No new test suite or cache simulation was introduced.
+6. Limits: component tests mock fetch and do not exercise a browser HTTP cache. Production builds, browser automation and deployment checks were not run for this bounded request-policy correction. No Git operations were performed.

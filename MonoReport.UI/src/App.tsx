@@ -1,4 +1,5 @@
-import { Button, ConfigProvider, Spin } from "antd";
+import { Button, ConfigProvider, Select, Spin } from "antd";
+import { FileExcelFilled, FileWordFilled } from "@ant-design/icons";
 import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
 import { XlsxPreview } from "./components/XlsxPreview";
 import { documentMimes, templateFormat, templateAccept } from "./services/documentFormat";
@@ -58,6 +59,15 @@ function DownloadIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 17v3h16v-3" /></svg>;
 }
 
+function FormatIcon({ format }: { format: DocumentFormat }) {
+  const Icon = format === "docx" ? FileWordFilled : FileExcelFilled;
+  return <Icon className={`format-icon format-icon-${format}`} style={{ color: format === "docx" ? "#185abd" : "#217346" }} aria-hidden="true" />;
+}
+
+function FormatLabel({ format, title }: { format: DocumentFormat; title: string }) {
+  return <span className="format-label"><FormatIcon format={format} /><span className="format-title">{title}</span></span>;
+}
+
 function GitHubIcon() {
   return <svg viewBox="0 0 24 24" width="13" height="13" style={{ marginRight: 5, verticalAlign: "middle" }} aria-hidden="true"><path fill="currentColor" stroke="none" d="M12 .8A11.2 11.2 0 0 0 8.46 22.62c.56.1.77-.24.77-.54v-2.13c-3.13.68-3.79-1.33-3.79-1.33-.5-1.27-1.24-1.61-1.24-1.61-1.02-.7.08-.69.08-.69 1.13.08 1.73 1.16 1.73 1.16 1 .1.78 1.4 3.27.95.1-.72.39-1.21.71-1.49-2.5-.29-5.13-1.25-5.13-5.54 0-1.23.44-2.23 1.16-3.02-.12-.28-.5-1.43.11-2.97 0 0 .94-.3 3.08 1.15a10.7 10.7 0 0 1 5.6 0c2.14-1.45 3.08-1.15 3.08-1.15.61 1.54.23 2.69.11 2.97.72.79 1.15 1.79 1.15 3.02 0 4.3-2.63 5.25-5.14 5.54.4.35.75 1.03.75 2.08v3.09c0 .3.21.65.78.54A11.2 11.2 0 0 0 12 .8Z" /></svg>;
 }
@@ -81,6 +91,7 @@ export default function App() {
   const [dragging, setDragging] = useState(false);
   const [examples, setExamples] = useState<ExampleDefinition[]>([]);
   const [selectedExample, setSelectedExample] = useState<ExampleSelection>();
+  const [pendingExample, setPendingExample] = useState<string>();
   const [baselineJson, setBaselineJson] = useState("");
   const [exampleLoading, setExampleLoading] = useState(true);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -98,7 +109,7 @@ export default function App() {
     const expectedRevision = contentRevision.current;
     void (async () => {
       try {
-        const response = await fetch("/examples.json");
+        const response = await fetch("/examples.json", { cache: "no-cache" });
         if (!response.ok) throw new Error("The examples registry could not be loaded.");
         const manifest = validateManifest(await response.json());
         if (!active) return;
@@ -134,6 +145,7 @@ export default function App() {
   function commitContent(nextTab: Tab = "template") {
     contentRevision.current += 1;
     exampleLoadId.current += 1;
+    setPendingExample(undefined);
     setExampleLoading(false);
     invalidateOperation(nextTab);
   }
@@ -141,7 +153,10 @@ export default function App() {
   async function loadExample(example: ExampleDefinition, loadId = ++exampleLoadId.current, expectedRevision = contentRevision.current) {
     setExampleLoading(true);
     try {
-      const [templateResponse, dataResponse] = await Promise.all([fetch(example.templatePath), fetch(example.dataPath)]);
+      const [templateResponse, dataResponse] = await Promise.all([
+        fetch(example.templatePath, { cache: "no-cache" }),
+        fetch(example.dataPath, { cache: "no-cache" })
+      ]);
       if (!templateResponse.ok || !dataResponse.ok) throw new Error("The selected example assets could not be loaded.");
       const [blob, data] = await Promise.all([templateResponse.blob(), dataResponse.text()]);
       JSON.parse(data);
@@ -155,11 +170,13 @@ export default function App() {
       setJson(data);
       setBaselineJson(data);
       setSelectedExample(example.id);
+      setPendingExample(undefined);
       setErrors([]);
       setActive("template");
     } catch (error) {
       if (exampleLoadId.current !== loadId || contentRevision.current !== expectedRevision) return;
       setErrors(diagnostic("Example could not be loaded", error instanceof SyntaxError ? "The example JSON data is malformed." : error instanceof Error ? error.message : "The selected example could not be loaded."));
+      setPendingExample(undefined);
       setActive("errors");
     } finally {
       if (exampleLoadId.current === loadId) setExampleLoading(false);
@@ -169,14 +186,17 @@ export default function App() {
   function chooseExample(id: string) {
     const example = examples.find(item => item.id === id);
     if (!example) return;
+    if (id === pendingExample) return;
     if (id === selectedExample) {
       if (exampleLoading) {
         exampleLoadId.current += 1;
+        setPendingExample(undefined);
         setExampleLoading(false);
       }
       return;
     }
     if ((selectedExample === "custom" || json !== baselineJson) && !window.confirm("Replace the current template and JSON with the selected example?")) return;
+    setPendingExample(id);
     void loadExample(example);
   }
 
@@ -326,6 +346,17 @@ export default function App() {
   }
 
   const modified = selectedExample !== undefined && selectedExample !== "custom" && json !== baselineJson;
+  const selectorValue = pendingExample ?? selectedExample;
+  const exampleFormat = selectorValue === "custom"
+    ? template && templateFormat(template.name)
+    : examples.find(example => example.id === selectorValue)?.format;
+  const exampleOptions = examples.map(example => ({
+    value: example.id,
+    label: <FormatLabel format={example.format} title={example.title} />
+  }));
+  if (selectorValue === "custom" && exampleFormat) {
+    exampleOptions.push({ value: "custom", label: <FormatLabel format={exampleFormat} title="Custom" />, disabled: true } as typeof exampleOptions[number]);
+  }
 
   const content = active === "errors" ? (
     errors.length ? <div className="issues"><div className="issues-title"><strong>{errors.length} {errors.length === 1 ? "error" : "errors"}</strong></div>{errors.map((error, index) => <div className="issue" key={`${error.code ?? error.title}-${index}`}><span>{index + 1}.</span><div><strong>{error.title}</strong><p>{[error.code, error.field, error.dataPath, error.part, error.location, error.formatter, error.detail].filter(Boolean).join(" · ")}</p></div></div>)}</div> : <DocumentEmpty>No errors</DocumentEmpty>
@@ -366,11 +397,19 @@ export default function App() {
           {active === "template" && <div className="document-toolbar" aria-label="Template actions">
             <div className="examples-control">
               <label htmlFor="examples">Examples</label>
-              <select id="examples" value={selectedExample ?? ""} disabled={examples.length === 0} onChange={event => chooseExample(event.target.value)}>
-                {!selectedExample && <option value="">Loading…</option>}
-                {examples.map(example => <option value={example.id} key={example.id}>{example.title}</option>)}
-                {selectedExample === "custom" && <option value="custom" disabled>Custom</option>}
-              </select>
+              <div className="examples-picker">
+                <Select
+                  id="examples"
+                  className="examples-select"
+                  aria-label="Examples"
+                  value={selectorValue ?? undefined}
+                  placeholder="Loading…"
+                  disabled={examples.length === 0}
+                  options={exampleOptions}
+                  popupMatchSelectWidth={false}
+                  onChange={chooseExample}
+                />
+              </div>
               {modified && <span className="modified" aria-label="Example modified">Modified</span>}
             </div>
             <div className="document-actions">
