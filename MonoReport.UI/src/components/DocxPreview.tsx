@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { renderAsync } from "docx-preview";
-import { normalizeDocxForPreview } from "../services/docxPreviewNormalization";
 
 interface Props {
   source: Blob | File;
@@ -18,11 +17,7 @@ export function DocxPreview({ source, label }: Props) {
     const renderHost = document.createElement("div");
     container.replaceChildren(renderHost);
     setWarning(undefined);
-    void normalizeDocxForPreview(source)
-      .then(normalized => {
-        if (!current) return;
-        return renderAsync(normalized, renderHost, undefined, { inWrapper: true, ignoreWidth: false, ignoreHeight: false });
-      })
+    void renderAsync(source, renderHost, undefined, { inWrapper: true, ignoreWidth: false, ignoreHeight: false })
       .catch(() => { if (current) setWarning(`${label} preview could not be rendered.`); });
     return () => {
       current = false;

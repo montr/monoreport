@@ -16,7 +16,6 @@
     "@silurus/ooxml": "0.89.6",
     "antd": "6.6.6",
     "docx-preview": "0.4.1",
-    "jszip": "3.10.2",
     "monaco-editor": "0.57.0",
     "react": "19.3.0",
     "react-dom": "19.3.0"

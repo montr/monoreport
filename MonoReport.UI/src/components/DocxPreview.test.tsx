@@ -3,9 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DocxPreview } from "./DocxPreview";
 
 const renderAsync = vi.fn();
-const normalizeDocxForPreview = vi.fn();
 vi.mock("docx-preview", () => ({ renderAsync: (...args: unknown[]) => renderAsync(...args) }));
-vi.mock("../services/docxPreviewNormalization", () => ({ normalizeDocxForPreview: (...args: unknown[]) => normalizeDocxForPreview(...args) }));
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -17,8 +15,6 @@ function deferred<T>() {
 describe("DOCX preview boundary", () => {
   beforeEach(() => {
     renderAsync.mockReset();
-    normalizeDocxForPreview.mockReset();
-    normalizeDocxForPreview.mockImplementation(async (source: Blob | File) => source);
   });
 
   it("reports a render failure without throwing away the supplied document", async () => {
@@ -26,38 +22,33 @@ describe("DOCX preview boundary", () => {
     const source = new Blob([new Uint8Array([1, 2, 3])]);
     render(<DocxPreview source={source} label="Result" />);
     expect(await screen.findByText("Result preview could not be rendered.")).toBeInTheDocument();
-    expect(normalizeDocxForPreview).toHaveBeenCalledWith(source);
     expect(renderAsync).toHaveBeenCalledWith(source, expect.any(HTMLElement), undefined, expect.any(Object));
   });
 
-  it("reports a normalization failure without invoking the renderer", async () => {
-    normalizeDocxForPreview.mockRejectedValueOnce(new Error("malformed package"));
-    render(<DocxPreview source={new Blob([new Uint8Array([1])])} label="Template" />);
+  it("renders the supplied source directly", async () => {
+    renderAsync.mockResolvedValue(undefined);
+    const source = new Blob([new Uint8Array([1, 2, 3])]);
+    render(<DocxPreview source={source} label="Template" />);
 
-    expect(await screen.findByText("Template preview could not be rendered.")).toBeInTheDocument();
-    expect(renderAsync).not.toHaveBeenCalled();
+    await waitFor(() => expect(renderAsync).toHaveBeenCalledTimes(1));
+    expect(renderAsync.mock.calls[0][0]).toBe(source);
   });
 
-  it("never renders a normalization result superseded by source replacement", async () => {
-    const firstNormalization = deferred<Blob>();
-    const secondNormalization = deferred<Blob>();
-    normalizeDocxForPreview.mockReturnValueOnce(firstNormalization.promise).mockReturnValueOnce(secondNormalization.promise);
-    renderAsync.mockResolvedValue(undefined);
+  it("ignores an obsolete render failure after source replacement", async () => {
+    const firstRender = deferred<void>();
+    const secondRender = deferred<void>();
+    renderAsync.mockReturnValueOnce(firstRender.promise).mockReturnValueOnce(secondRender.promise);
     const first = new Blob([new Uint8Array([1])]);
     const second = new Blob([new Uint8Array([2])]);
-    const normalizedSecond = new Blob([new Uint8Array([4])]);
     const view = render(<DocxPreview source={first} label="Template" />);
     view.rerender(<DocxPreview source={second} label="Template" />);
-    await waitFor(() => expect(normalizeDocxForPreview).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(renderAsync).toHaveBeenCalledTimes(2));
 
-    await act(async () => firstNormalization.reject(new Error("obsolete malformed package")));
-    expect(renderAsync).not.toHaveBeenCalled();
+    await act(async () => firstRender.reject(new Error("obsolete render failure")));
     expect(screen.queryByText("Template preview could not be rendered.")).not.toBeInTheDocument();
-    await act(async () => secondNormalization.resolve(normalizedSecond));
-
-    await waitFor(() => expect(renderAsync).toHaveBeenCalledWith(normalizedSecond, expect.any(HTMLElement), undefined, expect.any(Object)));
-    expect(renderAsync).toHaveBeenCalledTimes(1);
-    expect(renderAsync.mock.calls[0][0]).toBe(normalizedSecond);
+    expect(renderAsync.mock.calls[0][0]).toBe(first);
+    expect(renderAsync.mock.calls[1][0]).toBe(second);
+    await act(async () => secondRender.resolve());
   });
 
   it("isolates a replacement from an obsolete render host", async () => {
