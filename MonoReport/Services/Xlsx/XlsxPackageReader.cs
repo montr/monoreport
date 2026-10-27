@@ -93,10 +93,11 @@ internal sealed partial class XlsxPackageReader
             _ => throw Invalid("Repair the workbook date1904 Boolean setting.", workbook.Uri.ToString())
         };
         return new(result.ToImmutable(), date1904,
-            names, effectiveNodes.Select(element => element.Name.ToString())
-                .Concat(effectiveNodes.SelectMany(element => element.Descendants()).Where(element => element.Name.Namespace != S || element.Name == S + "extLst").Select(element => element.Name.ToString()))
-                .Concat(related.Select(pair => pair.Part.RelationshipType))
-                .Concat(workbook.ExternalRelationships.Select(item => item.RelationshipType)).ToImmutableArray(),
+            names, effectiveNodes.Concat(effectiveNodes.SelectMany(element => element.Descendants())
+                    .Where(element => element.Name.Namespace != S || element.Name == S + "extLst"))
+                .Select(element => (element.Name.ToString(), DescribeWorkbookFeature(element)))
+                .Concat(related.Select(pair => pair.Part.RelationshipType).Concat(workbook.ExternalRelationships.Select(item => item.RelationshipType))
+                    .Select(type => (type, "relationship type " + WorkbookIdentifier(type)))).ToImmutableArray(),
             workbook.WorkbookStylesPart is { } styles ? Load(styles, context) : null)
         { DisposableWorkbookNodes = disposable, WorkbookPart = workbook.Uri.ToString() };
     }

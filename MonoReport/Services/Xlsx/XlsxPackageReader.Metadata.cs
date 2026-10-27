@@ -9,11 +9,48 @@ internal sealed partial class XlsxPackageReader
     private static readonly XNamespace Mc = "http://schemas.openxmlformats.org/markup-compatibility/2006";
     private static readonly XNamespace Ac = "http://schemas.microsoft.com/office/spreadsheetml/2010/11/ac";
     private static readonly XNamespace Revision = "http://schemas.microsoft.com/office/spreadsheetml/2014/revision";
+    private static readonly XNamespace CalcFeatures = "http://schemas.microsoft.com/office/spreadsheetml/2018/calcfeatures";
+    private const string CalcFeaturesExtension = "{B58B0392-4F1F-4190-BB64-5DF3571DCE5F}";
     private const string Excel15 = "http://schemas.microsoft.com/office/spreadsheetml/2010/11/main";
 
     private ImmutableArray<int> DisposableWorkbookNodes(XElement workbook) => workbook.Elements()
-        .Select((node, index) => (node, index)).Where(item => IsSavePath(item.node) || IsRevisionPointer(item.node))
+        .Select((node, index) => (node, index)).Where(item => IsSavePath(item.node) || IsRevisionPointer(item.node) || IsCalculationFeatures(item.node))
         .Select(item => item.index).ToImmutableArray();
+
+    private bool IsCalculationFeatures(XElement node) =>
+        node.Name == S + "extLst" && OnlyAttributes(node) && OnlyElementContent(node) && node.HasElements &&
+        node.Elements().All(IsCalculationFeaturesExtension);
+
+    private bool IsCalculationFeaturesExtension(XElement extension)
+    {
+        if (extension.Name != S + "ext" || !OnlyAttributes(extension, "uri") || !OnlyElementContent(extension) ||
+            !string.Equals((string?)extension.Attribute("uri"), CalcFeaturesExtension, StringComparison.OrdinalIgnoreCase)) return false;
+        var content = extension.Elements().ToArray();
+        if (content.Length != 1 || content[0].Name != CalcFeatures + "calcFeatures" ||
+            !OnlyAttributes(content[0]) || !OnlyElementContent(content[0]) || !content[0].HasElements) return false;
+        // These are calculation-engine capabilities, not functions used by the report. Rendering forces full recalculation.
+        return content[0].Elements().All(feature => feature.Name == CalcFeatures + "feature" &&
+            OnlyAttributes(feature, "name") && feature.Attribute("name") is not null && !feature.Nodes().Any());
+    }
+
+    private string DescribeWorkbookFeature(XElement node)
+    {
+        var description = "element " + WorkbookIdentifier(node.Name.ToString());
+        if (node.Name != S + "extLst") return description;
+        var extension = node.Elements().FirstOrDefault(element => !IsCalculationFeaturesExtension(element));
+        if (extension is null) return description;
+        description += "/" + WorkbookIdentifier(extension.Name.ToString());
+        // Extension URIs are arbitrary strings. Only disclose a GUID, never an arbitrary URI/attribute value.
+        description += Guid.TryParse((string?)extension.Attribute("uri"), out var id)
+            ? " (extension URI " + id.ToString("B").ToUpperInvariant() + ")" : " (unrecognized extension URI)";
+        if (extension.Elements().FirstOrDefault() is { } payload)
+            description += ", payload " + WorkbookIdentifier(payload.Name.ToString());
+        return description;
+    }
+
+    private string WorkbookIdentifier(string value) => value.Length <= 240 &&
+        value.All(character => char.IsAsciiLetterOrDigit(character) || "{}:/._-#".Contains(character))
+        ? value : "[unrecognized identifier]";
 
     private bool IsSavePath(XElement node)
     {

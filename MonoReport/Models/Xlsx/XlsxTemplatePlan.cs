@@ -56,7 +56,7 @@ internal sealed record XlsxTextEdit(int Start, int Length, string Text);
 internal sealed record XlsxSheetSource(uint Id, string Name, string Part, XDocument Xml,
     XlsxRectangle? PrintArea, XlsxRectangle RetentionArea, ImmutableArray<XlsxCellSource> Cells, ImmutableArray<string> Features, int PrintAreaNameIndex);
 internal sealed record XlsxSourceInventory(ImmutableArray<XlsxSheetSource> Sheets, bool Date1904,
-    ImmutableArray<XElement> Names, ImmutableArray<string> WorkbookFeatures, XDocument? Styles)
+    ImmutableArray<XElement> Names, ImmutableArray<(string Name, string Description)> WorkbookFeatures, XDocument? Styles)
 {
     internal ImmutableArray<int> DisposableWorkbookNodes { get; init; } = [];
     internal string WorkbookPart { get; init; } = "/xl/workbook.xml";

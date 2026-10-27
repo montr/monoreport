@@ -1,5 +1,5 @@
 {
-  "defaultExample": "xlsx-tender",
+  "defaultExample": "syntax-showcase",
   "examples": [
     {
       "id": "orders-report",

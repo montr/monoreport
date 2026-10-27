@@ -83,11 +83,11 @@ internal sealed partial class XlsxGeometryPlanner
         var safeWorkbook = new HashSet<string>(new[] { "fileVersion", "fileSharing", "workbookPr", "workbookProtection", "bookViews", "sheets", "definedNames", "calcPr" }
             .Select(name => (S + name).ToString()), StringComparer.Ordinal);
         foreach (var feature in inventory.WorkbookFeatures)
-            if (!safeWorkbook.Contains(feature) && feature is not (Relationships + "worksheet" or Relationships + "styles" or
+            if (!safeWorkbook.Contains(feature.Name) && feature.Name is not (Relationships + "worksheet" or Relationships + "styles" or
                 Relationships + "sharedStrings" or Relationships + "theme" or Relationships + "calcChain"))
                 throw new StructuralDiagnostic(DiagnosticCodes.XlsxUnsupportedFeature,
-                    "Remove the unsupported workbook feature or relationship before generation: " + feature,
-                    Location: inventory.WorkbookPart, Explanation: "Remove or re-author the indicated workbook feature or relationship.").ToException();
+                    "Remove the unsupported workbook feature or relationship before generation: " + feature.Description,
+                    Location: inventory.WorkbookPart, Explanation: "Remove or re-author the unsupported workbook " + feature.Description + ".").ToException();
         var safeSheet = new HashSet<XName>(new[] { "sheetPr", "dimension", "sheetViews", "sheetFormatPr", "cols", "sheetData", "sheetProtection",
             "mergeCells", "printOptions", "pageMargins", "pageSetup", "headerFooter", "rowBreaks", "colBreaks" }.Select(name => S + name));
         foreach (var element in sheet.Xml.Root!.Elements())

@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <None Update="Fixtures/feature012/*" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Fixtures/XlsxCompatibility/*.xlsx" CopyToOutputDirectory="PreserveNewest" />
     <None Condition="Exists('../Samples/sample.template.docx')" Include="../Samples/sample.template.docx" Link="sample.template.docx" CopyToOutputDirectory="PreserveNewest" />
     <None Condition="Exists('../Samples/sample.json')" Include="../Samples/sample.json" Link="sample.json" CopyToOutputDirectory="PreserveNewest" />
     <None Condition="Exists('../Samples/sample.docx')" Include="../Samples/sample.docx" Link="sample.docx" CopyToOutputDirectory="PreserveNewest" />
