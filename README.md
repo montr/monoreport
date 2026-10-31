@@ -9,7 +9,7 @@ MonoReport generates DOCX reports, contracts, acts, protocols, invoices, and sim
 1. `MonoReport` is the reusable library.
 2. `MonoReport.Cli` is the command-line application and .NET tool.
 3. `MonoReport.Api` is the ASP.NET Core HTTP application.
-4. `MonoReport.UI` is the React and TypeScript playground served by the API in production.
+4. `web` is the React and TypeScript playground served by the API in production.
 5. The three test projects cover Core, CLI, HTTP, OpenAPI, and Open XML behavior.
 
 ## Build and verify
@@ -21,7 +21,7 @@ MonoReport generates DOCX reports, contracts, acts, protocols, invoices, and sim
    dotnet test MonoReport.slnx -c Release
    ```
 
-2. Run the frontend checks from `MonoReport.UI`:
+2. Run the frontend checks from `web`:
 
    ```bash
    npm ci
@@ -34,7 +34,7 @@ MonoReport generates DOCX reports, contracts, acts, protocols, invoices, and sim
 
    ```bash
    dotnet run --project MonoReport.Api
-   cd MonoReport.UI && npm run dev
+   cd web && npm run dev
    ```
 
 ## Template syntax

@@ -4,6 +4,6 @@
 .vs/
 TestResults/
 *.user
-MonoReport.UI/node_modules/
-MonoReport.UI/dist/
-MonoReport.UI/.vite/
+web/node_modules/
+web/dist/
+web/.vite/

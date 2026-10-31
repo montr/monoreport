@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1.7
 
 FROM node:22-bookworm-slim AS ui-build
-WORKDIR /src/MonoReport.UI
-COPY MonoReport.UI/package.json MonoReport.UI/package-lock.json ./
+WORKDIR /src/web
+COPY web/package.json web/package-lock.json ./
 RUN npm ci
-COPY MonoReport.UI/ ./
+COPY web/ ./
 COPY Samples/ /src/Samples/
 ARG APP_VERSION=dev
 RUN MONOREPORT_VERSION="$APP_VERSION" npm run build
@@ -17,7 +17,7 @@ COPY MonoReport.Api/MonoReport.Api.csproj MonoReport.Api/
 RUN dotnet restore MonoReport.Api/MonoReport.Api.csproj
 COPY MonoReport/ MonoReport/
 COPY MonoReport.Api/ MonoReport.Api/
-COPY --from=ui-build /src/MonoReport.UI/dist /ui-dist
+COPY --from=ui-build /src/web/dist /ui-dist
 ARG APP_VERSION=dev
 RUN dotnet publish MonoReport.Api/MonoReport.Api.csproj -c Release --no-restore -o /app/publish \
     -p:MonoReportSkipUiBuild=true -p:MonoReportUiDist=/ui-dist -p:MonoReportUiVersion="$APP_VERSION"

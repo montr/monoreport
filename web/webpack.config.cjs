@@ -13,9 +13,11 @@ class PlaygroundExamplesPlugin {
         () => {
           const files = [
             [path.resolve(__dirname, "public/examples.json"), "examples.json"],
-            ...["favicon.ico", "icon-16.png", "icon-32.png", "icon-48.png", "icon-192.png", "icon-512.png", "apple-touch-icon.png"].map(name => [
-              path.resolve(__dirname, "public", name), name
-            ]),
+            ...["favicon.ico", "icon-16.png", "icon-32.png", "icon-48.png", "icon-192.png", "icon-512.png", "apple-touch-icon.png"].flatMap(name => {
+              const source = path.resolve(__dirname, "public/icons", name);
+              // Preserve existing icon URLs while the HTML uses /icons/.
+              return [[source, `icons/${name}`], [source, name]];
+            }),
             ...["LICENSE", "THIRD_PARTY_NOTICES.md"].map(name => [
               path.resolve(__dirname, "node_modules/@silurus/ooxml", name), `notices/ooxml/${name}`
             ]),

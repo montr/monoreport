@@ -3,7 +3,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <UiRoot>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../MonoReport.UI'))</UiRoot>
+    <UiRoot>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../web'))</UiRoot>
     <MonoReportUiDist Condition="'$(MonoReportUiDist)' == ''">$(UiRoot)/dist</MonoReportUiDist>
     <MonoReportUiVersion Condition="'$(MonoReportUiVersion)' == ''">dev</MonoReportUiVersion>
   </PropertyGroup>

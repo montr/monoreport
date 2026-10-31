@@ -21,14 +21,14 @@ jobs:
         with:
           node-version: '22.12'
           cache: npm
-          cache-dependency-path: MonoReport.UI/package-lock.json
+          cache-dependency-path: web/package-lock.json
       - name: Restore and test .NET
         run: |
           dotnet restore MonoReport.slnx
           dotnet build MonoReport.slnx -c Release --no-restore
           dotnet test MonoReport.slnx -c Release --no-build --no-restore
       - name: Test and build frontend
-        working-directory: MonoReport.UI
+        working-directory: web
         run: |
           npm ci
           npm run typecheck

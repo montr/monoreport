@@ -61,5 +61,5 @@ for path in /api/not-real /docs/not-real /openapi/not-real /missing.js; do
   ! grep -qi '<!doctype html' "$work/not-found.body"
 done
 
-docker exec "$name" sh -c 'test "$(id -u)" != 0 && ! command -v node && ! command -v npm && test ! -d /usr/share/dotnet/sdk && test ! -d /app/MonoReport.UI'
+docker exec "$name" sh -c 'test "$(id -u)" != 0 && ! command -v node && ! command -v npm && test ! -d /usr/share/dotnet/sdk && test ! -d /app/web'
 echo "Container smoke checks passed for $image on $root."
