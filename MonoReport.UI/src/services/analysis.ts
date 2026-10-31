@@ -2,7 +2,7 @@ import type { Diagnostic, TemplateAnalysis, TemplateOccurrence, TemplateRequirem
 import { normalizeProblem } from "./generation";
 
 export class AnalysisFailure extends Error {
-  constructor(public readonly diagnostics: Diagnostic[]) {
+  constructor(public readonly diagnostics: Diagnostic[], public readonly analysis?: TemplateAnalysis) {
     super("Template analysis failed");
   }
 }
@@ -93,7 +93,7 @@ export async function analyzeTemplate(file: File, signal?: AbortSignal): Promise
   const analysis = parseAnalysis(payload);
   if (!analysis) throw new AnalysisFailure([{ title: "Unexpected response", detail: "The server returned an invalid template analysis." }]);
   if (!analysis.valid) {
-    throw new AnalysisFailure(analysis.errors.length ? analysis.errors : [{ title: "Invalid template", detail: "The template could not be analyzed safely." }]);
+    throw new AnalysisFailure(analysis.errors.length ? analysis.errors : [{ title: "Invalid template", detail: "The template could not be analyzed safely." }], analysis);
   }
   return analysis;
 }

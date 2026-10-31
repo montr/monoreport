@@ -27,7 +27,8 @@ describe("analysis client", () => {
     const payload = { valid: false, errors: [{ code: "template.invalid_structure", message, field: "{For:Tags}", part: "/word/document.xml", location: "paragraph 2" }], warnings: [], requirements: [], occurrences: [] };
     vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(new Response(JSON.stringify(payload), { status: 200 })));
     await expect(analyzeTemplate(new File([], "bad.docx"))).rejects.toMatchObject<Partial<AnalysisFailure>>({
-      diagnostics: [{ title: "template.invalid_structure", detail: message, field: "{For:Tags}", part: "/word/document.xml", location: "paragraph 2" }]
+      diagnostics: [{ title: "template.invalid_structure", detail: message, field: "{For:Tags}", part: "/word/document.xml", location: "paragraph 2" }],
+      analysis: { ...payload, errors: [{ title: "template.invalid_structure", code: "template.invalid_structure", detail: message, field: "{For:Tags}", part: "/word/document.xml", location: "paragraph 2" }] }
     });
   });
 

@@ -1,0 +1,4 @@
+[mcp_servers.antd]
+command = "npx"
+args = ["-y", "@ant-design/cli", "mcp"]
+startup_timeout_sec = 30
