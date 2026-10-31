@@ -82,13 +82,18 @@ async function openMenu(user: ReturnType<typeof userEvent.setup>, context: "Data
   await user.click(screen.getByRole("button", { name: `${context} menu` }));
 }
 
+async function analyzeTemplate(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole("button", { name: "Generate actions" }));
+  await user.click(await screen.findByRole("menuitem", { name: "Analyze Template" }));
+}
+
 async function dataCommand(user: ReturnType<typeof userEvent.setup>, name: string | RegExp) {
   await openMenu(user, "Dataset");
   await user.click(await screen.findByRole(name === "Word wrap" ? "menuitemcheckbox" : "menuitem", { name: name === "Format" ? /^Format/ : name }));
 }
 
 async function generateJson(user: ReturnType<typeof userEvent.setup>, count = 10) {
-  await user.click(screen.getByRole("button", { name: "Analyze actions" }));
+  await user.click(screen.getByRole("button", { name: "Generate actions" }));
   await user.click(await screen.findByRole("menuitem", { name: "Generate Dataset..." }));
   const dialog = await screen.findByRole("dialog");
   if (count !== 10) fireEvent.change(within(dialog).getByRole("spinbutton", { name: "Items per collection" }), { target: { value: String(count) } });
@@ -410,7 +415,7 @@ describe("MonoReport playground", () => {
     await waitFor(() => expect(original.writable.write).toHaveBeenCalledWith(originalText));
     expect(screen.queryByLabelText("Dataset modified")).not.toBeInTheDocument();
     expectResultOutdated(false);
-    expect(screen.getByRole("status")).toHaveTextContent("Generate · Success");
+    expect(screen.getByRole("status")).toHaveTextContent("Success");
     const dirtyText = '{ "edited": 2 }\n';
     fireEvent.change(screen.getByLabelText("Dataset"), { target: { value: dirtyText } });
     await dataCommand(user, /^Save(?! As)/);
@@ -586,7 +591,7 @@ describe("MonoReport playground", () => {
     expect(savePicker).toHaveBeenCalledOnce();
     input.remove();
 
-    await user.click(screen.getByRole("button", { name: "Analyze actions" }));
+    await user.click(screen.getByRole("button", { name: "Generate actions" }));
     await user.click(await screen.findByRole("menuitem", { name: "Generate Dataset..." }));
     const spinbutton = await screen.findByRole("spinbutton", { name: "Items per collection" });
     const dialogSave = new KeyboardEvent("keydown", { key: "s", ctrlKey: true, bubbles: true, cancelable: true });
@@ -669,7 +674,7 @@ describe("MonoReport playground", () => {
     await waitFor(() => expect(picker).toHaveBeenCalledTimes(3));
     await waitFor(() => expect(previewSources.at(-1)).toBe(one.file));
     expectResultOutdated(false);
-    expect(screen.getByRole("status")).toHaveTextContent("Generate · Success");
+    expect(screen.getByRole("status")).toHaveTextContent("Success");
     await documentCommand(user, "Open…");
     expect(xlsxSources.at(-1)).toBe(two.file);
     await documentCommand(user, "Close");
@@ -772,9 +777,11 @@ describe("MonoReport playground", () => {
     expect(screen.queryByRole("button", { name: "Form" })).not.toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Template" })).toBeChecked();
     expect(screen.getByRole("radio", { name: "Result" })).not.toBeChecked();
-    expect(screen.getByRole("status")).toHaveTextContent("No operations yet");
+    expect(screen.getByRole("status")).toHaveTextContent("Ready");
+    expect(screen.getByRole("contentinfo")).toHaveStyle({ fontSize: "12px" });
     expect(screen.getByRole("link", { name: "MonoReport" })).toHaveAttribute("href", "https://github.com/montr/monoreport");
     expect(screen.getByText("dev")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "MonoReport" }).getAttribute("style")).toBe(screen.getByText("dev").getAttribute("style"));
     expect(screen.queryByRole("link", { name: "API documentation" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Application menu" }));
     const docs = await screen.findByRole("link", { name: "API documentation" });
@@ -782,8 +789,11 @@ describe("MonoReport playground", () => {
     expect(docs).toHaveAttribute("target", "_blank");
     expect(docs).toHaveAttribute("rel", "noopener noreferrer");
     const applicationMenu = screen.getByRole("menu");
-    expect(within(applicationMenu).getAllByRole("menuitem").map(item => item.textContent)).toEqual(["API documentation", "Keyboard shortcuts", "Clear Local Data…"]);
-    expect(applicationMenu.querySelectorAll(".ant-dropdown-menu-item-extra")).toHaveLength(0);
+    const shortcutItem = within(applicationMenu).getByRole("menuitem", { name: /Keyboard shortcuts/ });
+    const actualShortcut = /Mac|iPhone|iPad/.test(navigator.platform) ? "⇧ /" : "Shift+/";
+    expect(within(applicationMenu).getAllByRole("menuitem").map(item => item.textContent)).toEqual(["API documentation", `Keyboard shortcuts${actualShortcut}`, "Clear Local Data…"]);
+    expect(shortcutItem.querySelector(".ant-dropdown-menu-item-extra")).toHaveTextContent(actualShortcut);
+    expect(applicationMenu.querySelectorAll(".ant-dropdown-menu-item-icon")).toHaveLength(0);
     expect(document.querySelector(".ant-splitter-horizontal")).not.toBeNull();
   });
 
@@ -794,6 +804,8 @@ describe("MonoReport playground", () => {
     await screen.findByText("Template preview");
     await user.click(screen.getByRole("button", { name: "Generate document" }));
     await screen.findByText("Result preview");
+    await user.unhover(screen.getByRole("button", { name: "Generate document" }));
+    await waitFor(() => expect(screen.queryByRole("tooltip")).not.toBeInTheDocument());
 
     const header = document.querySelector(".preview .pane-header")!;
     const radioGroup = header.querySelector(".ant-radio-group")!;
@@ -1083,7 +1095,7 @@ describe("MonoReport playground", () => {
     await documentCommand(user, "Close");
     expect(screen.getByLabelText("Dataset")).toHaveValue('{"keep":true}');
     expect(screen.getByLabelText("Dataset modified")).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent("Generate · Success");
+    expect(screen.getByRole("status")).toHaveTextContent("Success");
     expectResultOutdated(false);
     expect(screen.queryByText("Result preview")).not.toBeInTheDocument();
     expect(screen.queryByText("sample.docx")).not.toBeInTheDocument();
@@ -1103,7 +1115,7 @@ describe("MonoReport playground", () => {
       expect(apiMock).toHaveBeenCalledTimes(2);
       expect(((apiMock.mock.calls[1][1] as RequestInit).body as FormData).get("data")).toBe('{"keep":true}');
       expectResultOutdated(false);
-    expect(screen.getByRole("status")).toHaveTextContent("Generate · Success");
+    expect(screen.getByRole("status")).toHaveTextContent("Success");
     } else {
       await user.click(screen.getByRole("radio", { name: "Template" }).closest("label")!);
       expect(screen.getByText("Select a DOCX or XLSX template")).toBeInTheDocument();
@@ -1295,23 +1307,23 @@ describe("MonoReport playground", () => {
     await user.click(screen.getByRole("button", { name: "Generate document" }));
     await screen.findByText("Result preview");
     expectResultOutdated(false);
-    expect(screen.getByRole("status")).toHaveTextContent("Generate · Success");
+    expect(screen.getByRole("status")).toHaveTextContent("Success");
     await dataCommand(user, "Format");
     expectResultOutdated(false);
-    expect(screen.getByRole("status")).toHaveTextContent("Generate · Success");
+    expect(screen.getByRole("status")).toHaveTextContent("Success");
     fireEvent.change(screen.getByLabelText("Dataset"), { target: { value: "{" } });
     expectResultOutdated();
     expect(screen.getByText("Result preview")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Generate document" }));
     expectResultOutdated();
-    expect(screen.getByRole("status")).toHaveTextContent("Generate · Failure");
-    expect(screen.getByText("Generate · Invalid JSON")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Error");
+    expect(screen.getByText("Invalid JSON", { selector: ".issue-heading strong" })).toBeInTheDocument();
     expect(apiMock).toHaveBeenCalledTimes(1);
     fireEvent.change(screen.getByLabelText("Dataset"), { target: { value: "{}" } });
     await user.click(screen.getByRole("button", { name: "Generate document" }));
     expect(await screen.findByText(/generation.invalid_data/)).toBeInTheDocument();
     expectResultOutdated(false);
-    expect(screen.getByRole("status")).toHaveTextContent("Generate · Failure");
+    expect(screen.getByRole("status")).toHaveTextContent("Error");
     expect(screen.getByRole("radio", { name: "Result" })).toBeChecked();
     expect(previewSources.at(-1)).toBe(blob);
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
@@ -1365,14 +1377,14 @@ describe("MonoReport playground", () => {
     await user.click(screen.getByRole("button", { name: "Generate document" }));
     await screen.findByRole("button", { name: "Hide diagnostics" });
     expectResultOutdated(false);
-    expect(screen.getByRole("status")).toHaveTextContent("Generate · Failure");
+    expect(screen.getByRole("status")).toHaveTextContent("Error");
     await user.click(screen.getByRole("button", { name: "Hide diagnostics" }));
     expect(localStorage.getItem(workspaceStorage.diagnosticsCollapsed)).toBe("true");
     const toggle = screen.getByRole("button", { name: "Problems 1" });
     expect(toggle.querySelector(".ant-badge-count")).toHaveTextContent("1");
     expect(toggle).toHaveAttribute("aria-expanded", "false");
     expect(preview).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent("Generate · Failure");
+    expect(screen.getByRole("status")).toHaveTextContent("Error");
     await user.click(toggle);
     expect(localStorage.getItem(workspaceStorage.diagnosticsCollapsed)).toBe("false");
     expect(toggle).not.toBeInTheDocument();
@@ -1395,7 +1407,7 @@ describe("MonoReport playground", () => {
     await user.click(screen.getByRole("button", { name: "Generate document" }));
     await user.type(screen.getByLabelText("Dataset"), " ");
     resolve(success());
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Generate · Cancelled"));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Cancelled"));
   });
 
   it("keeps the newer XLSX generation when an older request resolves afterward", async () => {
@@ -1415,7 +1427,7 @@ describe("MonoReport playground", () => {
     resolvers[1](newer);
     expect(await screen.findByText("Result XLSX preview")).toBeInTheDocument();
     resolvers[0](older);
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Generate · Success"));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Success"));
     expect(xlsxSources.at(-1)).toBe(await newer.blob());
     expect(screen.getByRole("radio", { name: "Result" })).toBeChecked();
   });
@@ -1434,7 +1446,7 @@ describe("MonoReport playground", () => {
 
     await waitFor(() => expect(screen.getByText("replacement.xlsx")).toBeInTheDocument());
     expect(screen.getByText("Template XLSX preview")).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent("Generate · Cancelled");
+    expect(screen.getByRole("status")).toHaveTextContent("Cancelled");
   });
 
   it("ignores an analysis response after the template is cleared", async () => {
@@ -1445,16 +1457,16 @@ describe("MonoReport playground", () => {
     await screen.findByText("Template preview");
     await selectTemplate(user, new File([new Uint8Array([80, 75])], "source.xlsx", { type: xlsxMime }));
     const editor = screen.getByLabelText("Dataset");
-    await user.click(screen.getByRole("button", { name: "Analyze template" }));
+    await analyzeTemplate(user);
     await documentCommand(user, "Close");
     resolveAnalysis(analysis([{ name: "Stale", type: "value" }]));
 
     await waitFor(() => expect(screen.getByText("Select a DOCX or XLSX template")).toBeInTheDocument());
     expect(editor).toHaveValue(sampleData);
-    expect(screen.getByRole("button", { name: "Analyze template" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Analyze actions" })).toBeDisabled();
-    expect(screen.getByRole("status")).toHaveTextContent("Analyze · Cancelled");
-    expect(screen.getByText("No analysis. Analyze a template to inspect its requirements.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Generate actions" }));
+    expect(await screen.findByRole("menuitem", { name: "Analyze Template" })).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("status")).toHaveTextContent("Cancelled");
+    expect(screen.getByText("No analysis yet.")).toBeInTheDocument();
   });
 
   it("analyzes only on explicit action, adds a dataset, and retains an outdated Result", async () => {
@@ -1475,7 +1487,7 @@ describe("MonoReport playground", () => {
 
     await waitFor(() => expect(screen.getByLabelText("Dataset")).toHaveValue(JSON.stringify({ Company: { Name: "" }, Orders: [{ Number: "" }] }, null, 2)));
     expectResultOutdated();
-    expect(screen.getByRole("status")).toHaveTextContent("Generate Dataset · Success");
+    expect(screen.getByRole("status")).toHaveTextContent("Success");
     expect(screen.getByText("Result preview")).toBeInTheDocument();
     const [, analysisInit] = apiMock.mock.calls[1] as [string, RequestInit];
     expect(((analysisInit.body as FormData).get("template") as File).name).toBe("sample.template.docx");
@@ -1515,7 +1527,7 @@ describe("MonoReport playground", () => {
     await screen.findByText("Template preview");
     const editor = screen.getByLabelText("Dataset");
     fireEvent.change(editor, { target: { value: "keep me" } });
-    await user.click(screen.getByRole("button", { name: "Analyze actions" }));
+    await user.click(screen.getByRole("button", { name: "Generate actions" }));
     await user.click(await screen.findByRole("menuitem", { name: "Generate Dataset..." }));
     const settings = await screen.findByRole("dialog", { name: "Generate Dataset" });
     await user.click(within(settings).getByRole("button", { name: "OK" }));
@@ -1535,12 +1547,12 @@ describe("MonoReport playground", () => {
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     await selectTemplate(user);
     const editor = screen.getByLabelText("Dataset");
-    await user.click(screen.getByRole("button", { name: "Analyze template" }));
+    await analyzeTemplate(user);
     fireEvent.change(editor, { target: { value: "edited during analysis" } });
     resolvers[0](analysis());
     await waitFor(() => expect(editor).toHaveValue("edited during analysis"));
 
-    await user.click(screen.getByRole("button", { name: "Analyze template" }));
+    await analyzeTemplate(user);
     const replacement = new File([new Uint8Array([1])], "replacement.docx", { type: mime });
     fireEvent.drop(screen.getByLabelText("Preview").querySelector(".canvas")!, { dataTransfer: { files: [replacement], types: ["Files"] } });
     resolvers[1](analysis([{ name: "Stale", type: "value" }]));
@@ -1556,7 +1568,7 @@ describe("MonoReport playground", () => {
     await screen.findByText("Template preview");
     await selectTemplate(user, new File([new Uint8Array([80, 75])], "source.xlsx", { type: xlsxMime }));
     const editor = screen.getByLabelText("Dataset");
-    await user.click(screen.getByRole("button", { name: "Analyze template" }));
+    await analyzeTemplate(user);
     const docx = template();
     fireEvent.drop(screen.getByLabelText("Preview").querySelector(".canvas")!, { dataTransfer: { files: [docx], types: ["Files"] } });
     resolveAnalysis(analysis([{ name: "Stale XLSX", type: "value" }]));
@@ -1574,7 +1586,7 @@ describe("MonoReport playground", () => {
     await screen.findByText("Template preview");
     await selectTemplate(user);
     const editor = screen.getByLabelText("Dataset");
-    await user.click(screen.getByRole("button", { name: "Analyze template" }));
+    await analyzeTemplate(user);
     const xlsx = new File([new Uint8Array([80, 75])], "replacement.xlsx", { type: xlsxMime });
     fireEvent.drop(screen.getByLabelText("Preview").querySelector(".canvas")!, { dataTransfer: { files: [xlsx], types: ["Files"] } });
     resolveAnalysis(analysis([{ name: "Stale DOCX", type: "value" }]));
@@ -1593,7 +1605,7 @@ describe("MonoReport playground", () => {
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     await selectTemplate(user, new File([new Uint8Array([80, 75])], "source.xlsx", { type: xlsxMime }));
     await generateJson(user, 1);
-    expect(await screen.findByText("Generate Dataset · Error · template.unmatched_brace", { selector: "strong" })).toBeInTheDocument();
+    expect(await screen.findByText("template.unmatched_brace", { selector: ".issue-heading strong" })).toBeInTheDocument();
     expect(screen.getByText(/Invoice reference: \{Name/, { selector: ".issue p" })).toHaveTextContent("Invoice.Name · /xl/worksheets/sheet1.xml · B12");
     expect(screen.getByLabelText("Dataset")).toHaveValue(sampleData);
   });
@@ -1691,7 +1703,7 @@ describe("MonoReport playground", () => {
     resolveData(new Response(sampleData, { status: 200 }));
     await waitFor(() => expect(screen.getByText("sample.template.docx")).toBeInTheDocument());
     resolveGenerate(success());
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Generate · Cancelled"));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Cancelled"));
   });
 
   it("does not apply an older example after a rapid selection returns to the current example", async () => {
@@ -1734,7 +1746,7 @@ describe("MonoReport playground", () => {
     expect(screen.getByLabelText("Dataset")).toHaveValue("{}");
     expect(screen.getByText("Select a DOCX or XLSX template")).toBeInTheDocument();
   });
-  it("places Analyze and Generate Dataset in the toolbar and offers only the two approved settings", async () => {
+  it("places the Generate split button in the toolbar and offers its approved menu actions", async () => {
     const user = userEvent.setup();
     const { apiMock } = mockPlaygroundFetch();
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
@@ -1742,16 +1754,28 @@ describe("MonoReport playground", () => {
     expect(within(screen.getByRole("banner")).getByText("monoreport", { exact: true })).toBeInTheDocument();
     expect(within(screen.getByRole("banner")).queryByText("Playground")).not.toBeInTheDocument();
     const actions = screen.getByLabelText("Workspace actions");
-    expect(within(actions).getAllByRole("button").map(button => button.getAttribute("aria-label"))).toEqual(["Examples", "Analyze template", "Analyze actions", "Generate document", "Application menu"]);
+    expect(within(actions).getAllByRole("button").map(button => button.getAttribute("aria-label"))).toEqual(["Examples", "Generate document", "Generate actions", "Application menu"]);
     expect(actions).toHaveClass("ant-flex", "ant-flex-wrap-wrap");
     expect(actions).toHaveStyle({ maxWidth: "100%" });
     const primaryGroup = screen.getByRole("button", { name: "Generate document" }).parentElement!;
-    expect(primaryGroup).toHaveClass("ant-flex", "ant-flex-align-center");
-    expect(primaryGroup).toContainElement(screen.getByRole("button", { name: "Application menu" }));
+    expect(primaryGroup).toHaveClass("ant-space-compact");
+    expect(primaryGroup).toContainElement(screen.getByRole("button", { name: "Generate actions" }));
+    await user.hover(screen.getByRole("button", { name: "Generate document" }));
+    const generateTooltip = await screen.findByRole("tooltip");
+    expect(generateTooltip).toHaveTextContent("Generate document");
+    const generateHint = /Mac|iPhone|iPad/.test(navigator.platform) ? ["⌘", "Enter"] : ["Ctrl", "Enter"];
+    expect(Array.from(generateTooltip.querySelectorAll("kbd"), key => key.textContent)).toEqual(generateHint);
+    expect(getComputedStyle(generateTooltip.querySelector("kbd")!.parentElement!).color).toBe("rgb(255, 255, 255)");
+    await user.unhover(screen.getByRole("button", { name: "Generate document" }));
+    await user.hover(screen.getByRole("button", { name: "Examples" }));
+    await waitFor(() => expect(screen.getByRole("tooltip")).toHaveTextContent("Explore examples to see how MonoReport works"));
+    await user.unhover(screen.getByRole("button", { name: "Examples" }));
     await openMenu(user, "Dataset");
     expect(screen.queryByRole("menuitem", { name: /Generate Dataset/ })).not.toBeInTheDocument();
     await user.keyboard("{Escape}");
-    await user.click(screen.getByRole("button", { name: "Analyze actions" }));
+    await user.click(screen.getByRole("button", { name: "Generate actions" }));
+    expect(await screen.findByRole("menuitem", { name: "Analyze Template" })).toBeInTheDocument();
+    expect(screen.getByRole("menu").querySelectorAll(".ant-dropdown-menu-item-icon")).toHaveLength(0);
     await user.click(await screen.findByRole("menuitem", { name: "Generate Dataset..." }));
     const dialog = await screen.findByRole("dialog");
     const count = within(dialog).getByRole("spinbutton", { name: "Items per collection" });
@@ -1770,7 +1794,23 @@ describe("MonoReport playground", () => {
     await user.click(within(dialog).getByRole("button", { name: "Close" }));
     expect(apiMock).not.toHaveBeenCalled();
     expect(screen.getByLabelText("Dataset")).toHaveValue(sampleData);
-    expect(screen.getByRole("status")).toHaveTextContent("No operations yet");
+    expect(screen.getByRole("status")).toHaveTextContent("Ready");
+  });
+
+  it("generates from Cmd+Enter or Ctrl+Enter, including Monaco focus, and prevents the browser default", async () => {
+    const user = userEvent.setup();
+    const { apiMock } = mockPlaygroundFetch(async () => success());
+    render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
+    await screen.findByText("Template preview");
+    const editor = screen.getByLabelText("Dataset");
+    await waitFor(() => expect(editor).toHaveValue(sampleData));
+
+    expect(fireEvent.keyDown(editor, { key: "Enter", metaKey: true })).toBe(false);
+    await waitFor(() => expect(apiMock).toHaveBeenCalledTimes(1));
+    await screen.findByText("Result preview");
+
+    expect(fireEvent.keyDown(document, { key: "Enter", ctrlKey: true })).toBe(false);
+    await waitFor(() => expect(apiMock).toHaveBeenCalledTimes(2));
   });
 
   it("does not start generation when settings are cancelled during form validation", async () => {
@@ -1778,23 +1818,23 @@ describe("MonoReport playground", () => {
     const { apiMock } = mockPlaygroundFetch(async () => analysis());
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     await screen.findByText("Template preview");
-    await user.click(screen.getByRole("button", { name: "Analyze actions" }));
+    await user.click(screen.getByRole("button", { name: "Generate actions" }));
     await user.click(await screen.findByRole("menuitem", { name: "Generate Dataset..." }));
     const dialog = await screen.findByRole("dialog");
     fireEvent.click(within(dialog).getByRole("button", { name: "OK" }));
     fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(apiMock).not.toHaveBeenCalled();
-    expect(screen.getByRole("status")).toHaveTextContent("No operations yet");
+    expect(screen.getByRole("status")).toHaveTextContent("Ready");
     expect(screen.getByLabelText("Dataset")).toHaveValue(sampleData);
   });
 
-  it("rejects invalid settings without a request or dataset and records validation failures", async () => {
+  it("rejects invalid settings without a request or dataset and reports the error in Problems", async () => {
     const user = userEvent.setup();
     const { apiMock } = mockPlaygroundFetch();
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     await screen.findByText("Template preview");
-    await user.click(screen.getByRole("button", { name: "Analyze actions" }));
+    await user.click(screen.getByRole("button", { name: "Generate actions" }));
     await user.click(await screen.findByRole("menuitem", { name: "Generate Dataset..." }));
     const dialog = await screen.findByRole("dialog");
     const count = within(dialog).getByRole("spinbutton", { name: "Items per collection" });
@@ -1807,14 +1847,10 @@ describe("MonoReport playground", () => {
     expect(apiMock).not.toHaveBeenCalled();
     await user.click(within(dialog).getByRole("button", { name: "Close" }));
     expect(screen.getByLabelText("Dataset")).toHaveValue(sampleData);
-    expect(screen.getByRole("status")).toHaveTextContent("Generate Dataset · Failure");
-    await diagnosticsTab(user, "Output");
-    const rows = within(screen.getByRole("tabpanel", { name: "Output" })).getAllByRole("listitem");
-    expect(rows).toHaveLength(4);
-    rows.forEach(row => {
-      expect(row).toHaveTextContent("Generate Dataset");
-      expect(within(row).getByRole("img", { name: "Failure" })).toBeInTheDocument();
-    });
+    expect(screen.getByRole("status")).toHaveTextContent("Error");
+    expect(screen.getByRole("status").querySelector(".anticon-close-circle")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Workspace status: Error" }));
+    expect(screen.getByRole("tabpanel", { name: "Problems 1" })).toHaveTextContent("Invalid settings");
   });
 
   it("renders actual nested analysis, occurrences and warnings, then reuses it across JSON edits and dataset creation", async () => {
@@ -1823,22 +1859,42 @@ describe("MonoReport playground", () => {
       valid: true, errors: [],
       warnings: [{ code: "template.notice", message: "A supplied template warning", field: "Rows", part: "/xl/worksheets/sheet1.xml", location: "C4", formatter: "format", dataPath: "$.Rows" }],
       requirements: [{ name: "Rows", type: "array", fields: [{ name: "Name", type: "value" }, { name: "Enabled", type: "boolean" }, { name: "Tags", type: "array" }] }],
-      occurrences: [{ kind: "for", expression: "{For:Rows}", path: "$.Rows", part: "/xl/worksheets/sheet1.xml", location: "C4" }]
+      occurrences: [
+        { kind: "for", expression: "{For:Rows}", path: "$.Rows", part: "/xl/worksheets/sheet1.xml", location: "C4" },
+        { kind: "if", expression: "{If:Rows[0].Description contains 'a long value'}", path: "$.Rows[0].Description/Details", part: "/xl/worksheets/sheet1.xml", location: "C5" }
+      ]
     };
     const { apiMock } = mockPlaygroundFetch(async () => new Response(JSON.stringify(payload), { status: 200 }));
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     await screen.findByText("Template preview");
-    await user.click(screen.getByRole("button", { name: "Analyze template" }));
+    await analyzeTemplate(user);
     const panel = await screen.findByRole("tabpanel", { name: "Analysis" });
     expect(await within(panel).findByText("Valid", { exact: true })).toBeInTheDocument();
-    for (const text of ["Rows · array", "Name · value", "Enabled · boolean", "Tags · array", "{For:Rows}", "A supplied template warning", "format"]) {
-      expect(within(panel).getByText(text, { exact: true })).toBeInTheDocument();
-    }
+    for (const text of ["Rows", "Name", "Enabled", "Tags", "{For:Rows}", "A supplied template warning", "format"]) expect(within(panel).getAllByText(text, { exact: true }).length).toBeGreaterThan(0);
+    for (const type of ["array", "value", "boolean"]) expect(within(panel).getAllByText(type, { exact: true }).length).toBeGreaterThan(0);
+    expect(within(panel).getAllByText("Rows", { exact: true })[0].getAttribute("style")).not.toBe(within(panel).getAllByText("array", { exact: true })[0].getAttribute("style"));
+    const summary = panel.querySelector(".ant-flex")!;
+    expect([...summary.querySelectorAll(".ant-typography")].every(node => getComputedStyle(node).fontSize === "12px")).toBe(true);
+    expect([...panel.querySelectorAll(".ant-tree-title .ant-typography")].every(node => getComputedStyle(node).fontSize === "12px")).toBe(true);
+    const occurrenceTable = within(panel).getByText("{For:Rows}").closest("table")!;
+    expect(occurrenceTable).toHaveTextContent("Location");
+    expect(within(occurrenceTable).queryByText("Part")).not.toBeInTheDocument();
+    expect([...occurrenceTable.querySelectorAll("thead th")].map(cell => cell.textContent)).toEqual(["Kind", "Expression", "Path", "Location"]);
+    expect(occurrenceTable.querySelectorAll("colgroup col")[0]).toHaveStyle({ width: "88px" });
+    expect(occurrenceTable.querySelectorAll("colgroup col")[1]).toHaveStyle({ width: "240px" });
+    expect(occurrenceTable.querySelectorAll("colgroup col")[2]).toHaveStyle({ width: "220px" });
+    expect(occurrenceTable.querySelectorAll("thead th")[3].getAttribute("style") ?? "").not.toMatch(/width:/);
+    const longExpression = "{If:Rows[0].Description contains 'a long value'}";
+    expect(within(occurrenceTable).getByText(longExpression).closest("td")).toHaveAttribute("title", longExpression);
+    expect(within(panel).getByRole("heading", { name: "Requirements" })).toHaveStyle({ fontSize: "12px" });
+    expect(within(panel).getByRole("tree").querySelector(".ant-tree-treenode")).toHaveStyle({ marginBlockEnd: "0px" });
+    expect(screen.getByRole("region", { name: "Diagnostics" })).toHaveStyle({ fontSize: "12px" });
+    expect(panel.querySelector(".ant-descriptions")).not.toBeInTheDocument();
     expect(within(panel).getAllByText("C4")).toHaveLength(2);
     expect(screen.getByLabelText("Dataset")).toHaveValue(sampleData);
     expect(screen.queryByText("Result preview")).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Dataset"), { target: { value: '{"keep":"dirty"}' } });
-    await user.click(screen.getByRole("button", { name: "Analyze actions" }));
+    await user.click(screen.getByRole("button", { name: "Generate actions" }));
     await user.click(await screen.findByRole("menuitem", { name: "Generate Dataset..." }));
     const dialog = await screen.findByRole("dialog");
     fireEvent.change(within(dialog).getByRole("spinbutton", { name: "Items per collection" }), { target: { value: "101" } });
@@ -1860,7 +1916,7 @@ describe("MonoReport playground", () => {
     expect(JSON.parse((screen.getByLabelText("Dataset") as HTMLTextAreaElement).value).Rows).toHaveLength(2);
     expect(selectedExample()).toHaveTextContent("sample-generated.json");
     await diagnosticsTab(user, "Problems 1");
-    expect(await screen.findByText("Generate Dataset · Warning · template.notice", { exact: true })).toBeInTheDocument();
+    expect(await screen.findByText("template.notice", { selector: ".issue-heading strong" })).toBeInTheDocument();
   });
 
   it("preserves structured invalid analysis and its warning/occurrence details, and never caches it for Generate Dataset", async () => {
@@ -1879,22 +1935,29 @@ describe("MonoReport playground", () => {
     });
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     await screen.findByText("Template preview");
-    await user.click(screen.getByRole("button", { name: "Analyze template" }));
-    expect(await screen.findByText("Company · object")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Analyze template" }));
+    await analyzeTemplate(user);
+    expect(await screen.findByText("Company")).toBeInTheDocument();
+    await analyzeTemplate(user);
     const panel = await screen.findByRole("tabpanel", { name: "Analysis" });
     expect(await within(panel).findByText("Invalid", { exact: true })).toBeInTheDocument();
-    expect(within(panel).getByText("Name · value")).toBeInTheDocument();
+    expect(within(panel).getByText("Name")).toBeInTheDocument();
+    const dataPathHeaders = within(panel).getAllByRole("columnheader", { name: "Data path" });
+    expect(dataPathHeaders).toHaveLength(2);
+    const dataPathCell = within(panel).getAllByText("$.Name").map(text => text.closest("td")).find(cell => cell?.style.verticalAlign === "top")!;
+    expect(dataPathCell).toBeInTheDocument();
+    dataPathHeaders.forEach(header => expect(header).toHaveStyle({ whiteSpace: "nowrap" }));
+    expect(dataPathCell.closest("table")).toBeInTheDocument();
+    expect(dataPathCell).toHaveStyle({ verticalAlign: "top" });
     expect(within(panel).getByText("Additional warning")).toBeInTheDocument();
     expect(within(panel).getAllByText("paragraph 8")).toHaveLength(2);
-    expect(screen.getByRole("status")).toHaveTextContent("Analyze · Failure");
+    expect(screen.getByRole("status")).toHaveTextContent("Error");
     await generateJson(user);
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(apiMock).toHaveBeenCalledTimes(3);
     expect(screen.getByLabelText("Dataset")).toHaveValue(sampleData);
-    expect(screen.getByRole("status")).toHaveTextContent("Generate Dataset · Failure");
-    expect(await screen.findByText("Generate Dataset · Error · template.bad")).toBeInTheDocument();
-    expect(screen.getByText("Generate Dataset · Warning · template.warning")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Error");
+    expect(await screen.findByText("template.bad", { selector: ".issue-heading strong" })).toBeInTheDocument();
+    expect(screen.getByText("template.warning", { selector: ".issue-heading strong" })).toBeInTheDocument();
   });
 
   it("clears analysis when the template changes and performs a fresh analysis for new data", async () => {
@@ -1902,12 +1965,12 @@ describe("MonoReport playground", () => {
     const { apiMock } = mockPlaygroundFetch(async () => analysis([{ name: "Rows", type: "array", fields: [{ name: "Name", type: "value" }] }]));
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     await screen.findByText("Template preview");
-    await user.click(screen.getByRole("button", { name: "Analyze template" }));
-    expect(await screen.findByText("Rows · array")).toBeInTheDocument();
+    await analyzeTemplate(user);
+    expect(await screen.findByText("Rows")).toBeInTheDocument();
     const replacement = new File([new Uint8Array([80, 75])], "new.xlsx", { type: xlsxMime });
     await selectTemplate(user, replacement);
-    expect(screen.queryByText("Rows · array")).not.toBeInTheDocument();
-    expect(screen.getByText("No analysis. Analyze a template to inspect its requirements.")).toBeInTheDocument();
+    expect(screen.queryByText("Rows")).not.toBeInTheDocument();
+    expect(screen.getByText("No analysis yet.")).toBeInTheDocument();
     await generateJson(user);
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(JSON.parse((screen.getByLabelText("Dataset") as HTMLTextAreaElement).value).Rows).toEqual(Array.from({ length: 10 }, () => ({ Name: "" })));
@@ -1926,7 +1989,7 @@ describe("MonoReport playground", () => {
     expect(await screen.findByText(/would exceed 100,000 array elements in total/)).toBeInTheDocument();
     expect(screen.getByLabelText("Dataset")).toHaveValue('{"keep":true}');
     expect(selectedExample()).toHaveTextContent("sample.json");
-    expect(screen.getByRole("status")).toHaveTextContent("Generate Dataset · Failure");
+    expect(screen.getByRole("status")).toHaveTextContent("Error");
     expect(selectedExample()).not.toHaveTextContent(/^Generated/);
     await generateJson(user, 2);
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
@@ -1935,7 +1998,7 @@ describe("MonoReport playground", () => {
     expect(selectedExample()).toHaveTextContent("sample-generated.json");
   });
 
-  it("records chronological measured events, includes internal analysis in Generate Dataset, and clears only Output", async () => {
+  it("shows compact operation status and measured duration without an Output history", async () => {
     const user = userEvent.setup();
     let now = 1000;
     vi.spyOn(performance, "now").mockImplementation(() => now);
@@ -1944,59 +2007,45 @@ describe("MonoReport playground", () => {
     const view = render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     await screen.findByText("Template preview");
     await generateJson(user, 1);
-    expect(screen.getByRole("status")).toHaveTextContent("Generate Dataset · Running");
+    expect(screen.getByRole("status")).toHaveTextContent("Analyzing...");
     now = 1125;
     resolvers[0](analysis());
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    expect(screen.getByRole("status")).toHaveTextContent(/Generate Dataset · Success · .* · 125 ms/);
+    expect(screen.getByRole("status")).toHaveTextContent("Success");
+    expect(screen.getByRole("status").querySelector(".anticon-check-circle")).toBeInTheDocument();
+    expect(screen.getByRole("status").firstElementChild).toHaveClass("ant-flex-align-center");
+    expect(screen.getByRole("button", { name: "Workspace status: Success" })).toHaveStyle({ paddingInlineStart: "0px" });
+    expect(screen.getByRole("status").querySelector("span[style*=\"display: inline-flex\"]")).toHaveStyle({ display: "inline-flex", alignItems: "center" });
+    expect(screen.getByRole("contentinfo")).toHaveTextContent("125 ms");
     now = 2000;
-    await user.click(screen.getByRole("button", { name: "Analyze template" }));
+    await analyzeTemplate(user);
     now = 2290;
     resolvers[1](analysis());
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(/Analyze · Success · .* · 290 ms/));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Success"));
+    expect(screen.getByRole("contentinfo")).toHaveTextContent("290 ms");
     now = 3000;
     await user.click(screen.getByRole("button", { name: "Generate document" }));
     now = 3450;
     resolvers[2](success());
     await screen.findByText("Result preview");
-    expect(screen.getByRole("status")).toHaveTextContent(/Generate · Success · .* · 450 ms/);
+    expect(screen.getByRole("status")).toHaveTextContent("Success");
+    expect(screen.getByRole("status").querySelector(".anticon-check-circle")).toBeInTheDocument();
     expect(apiMock.mock.calls.map(([url]) => String(url))).toEqual(["/api/documents/analyze", "/api/documents/analyze", "/api/documents/generate"]);
-    await user.click(screen.getByRole("status"));
-    let panel = screen.getByRole("tabpanel", { name: "Output" });
-    const rows = within(panel).getAllByRole("listitem");
-    expect(rows).toHaveLength(3);
-    ["Generate Dataset", "Analyze", "Generate"].forEach((action, index) => {
-      expect(within(rows[index]).getByText(action, { exact: true })).toBeInTheDocument();
-      expect(within(rows[index]).getByRole("img", { name: "Success" })).toBeInTheDocument();
-      expect(rows[index]).toHaveTextContent(["125 ms", "290 ms", "450 ms"][index]);
-      expect(rows[index].querySelector("time")).toHaveAttribute("datetime", expect.stringMatching(/^\d{4}-\d\d-\d\dT/));
-    });
-    expect(within(panel).queryByRole("table")).not.toBeInTheDocument();
-    expect(panel).not.toHaveTextContent("Company");
-    expect(panel).not.toHaveTextContent("Riverside");
-    expect(panel).not.toContainElement(screen.getByRole("button", { name: "Clear" }));
-    expect(screen.getByRole("toolbar", { name: "Diagnostics actions" })).toContainElement(screen.getByRole("button", { name: "Clear" }));
-    const savedStatus = screen.getByRole("status").textContent;
-    const savedText = (screen.getByLabelText("Dataset") as HTMLTextAreaElement).value;
-    const savedResult = previewSources.at(-1);
-    await user.click(screen.getByRole("button", { name: "Clear" }));
-    expect(within(panel).queryAllByRole("listitem")).toHaveLength(0);
-    expect(screen.getByRole("status")).toHaveTextContent(savedStatus!);
-    expect(screen.getByLabelText("Dataset")).toHaveValue(savedText);
-    expect(previewSources.at(-1)).toBe(savedResult);
+    expect(screen.getByRole("status")).toHaveTextContent("Success");
+    expect(screen.getByRole("contentinfo")).toHaveTextContent("450 ms");
+    expect(screen.getByRole("status").textContent).not.toMatch(/\d{1,2}:\d{2}/);
+    expect(screen.queryByRole("tab", { name: "Output" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Operation history")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Workspace status: Success" }));
+    expect(screen.getByRole("tabpanel", { name: "Problems" })).toBeInTheDocument();
     await diagnosticsTab(user, "Analysis");
-    expect(screen.getByText("Company · object")).toBeInTheDocument();
+    expect(screen.getByText("Company")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Hide diagnostics" }));
-    expect(screen.getByRole("status")).toHaveTextContent(savedStatus!);
-    await user.click(screen.getByRole("status"));
-    panel = screen.getByRole("tabpanel", { name: "Output" });
-    expect(within(panel).queryAllByRole("listitem")).toHaveLength(0);
+    expect(screen.getByRole("status")).toHaveTextContent("Success");
     view.unmount();
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     await screen.findByText("Template preview");
-    expect(screen.getByRole("status")).toHaveTextContent("No operations yet");
-    await diagnosticsTab(user, "Output");
-    expect(within(screen.getByRole("tabpanel", { name: "Output" })).queryAllByRole("listitem")).toHaveLength(0);
+    expect(screen.getByRole("status")).toHaveTextContent("Ready");
   });
 
   it("finishes cancelled work even when the transport ignores abort, and Clear preserves diagnostics and running status", async () => {
@@ -2009,24 +2058,14 @@ describe("MonoReport playground", () => {
     const dialog = screen.getByRole("dialog");
     await user.click(within(dialog).getByRole("button", { name: "Close" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    expect(screen.getByRole("status")).toHaveTextContent("Generate Dataset · Cancelled");
+    expect(screen.getByRole("status")).toHaveTextContent("Cancelled");
     resolvers[0](analysis([{ name: "Obsolete", type: "value" }]));
     expect(screen.getByLabelText("Dataset")).toHaveValue(sampleData);
-    await user.click(screen.getByRole("button", { name: "Analyze template" }));
+    await analyzeTemplate(user);
     resolvers[1](analysis([], false));
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Analyze · Failure"));
-    await diagnosticsTab(user, "Output");
-    expect(within(screen.getByRole("tabpanel", { name: "Output" })).getAllByRole("listitem")).toHaveLength(2);
-    await user.click(screen.getByRole("button", { name: "Clear" }));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Error"));
     await diagnosticsTab(user, "Problems 1");
-    expect(screen.getByText("Analyze · Error · template.invalid_structure")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Analyze template" }));
-    await diagnosticsTab(user, "Output");
-    await user.click(screen.getByRole("button", { name: "Clear" }));
-    expect(screen.getByRole("status")).toHaveTextContent("Analyze · Running");
-    resolvers[2](analysis());
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Analyze · Success"));
-    expect(within(screen.getByRole("tabpanel", { name: "Output" })).queryAllByRole("listitem")).toHaveLength(0);
+    expect(screen.getByText("template.invalid_structure", { selector: ".issue-heading strong" })).toBeInTheDocument();
   });
 
   it("keeps tabs, Clear-first actions and status outside the active content scroll host, including empty tabs", async () => {
@@ -2037,9 +2076,9 @@ describe("MonoReport playground", () => {
     const problems = within(footer).getByRole("button", { name: "Problems" });
     expect(problems.querySelector(".ant-badge")).not.toBeInTheDocument();
     expect(within(footer).getByRole("button", { name: "Analysis" })).toBeInTheDocument();
-    expect(within(footer).getByRole("button", { name: "Output" })).toBeInTheDocument();
+    expect(within(footer).queryByRole("button", { name: "Output" })).not.toBeInTheDocument();
     await user.click(problems);
-    for (const name of ["Problems", "Analysis", "Output"]) expect(within(footer).queryByRole("button", { name })).not.toBeInTheDocument();
+    for (const name of ["Problems", "Analysis"]) expect(within(footer).queryByRole("button", { name })).not.toBeInTheDocument();
     expect(within(footer).getByRole("status")).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Problems" }).querySelector(".ant-badge")).not.toBeInTheDocument();
     const panel = screen.getByRole("tabpanel", { name: "Problems" });
@@ -2047,45 +2086,18 @@ describe("MonoReport playground", () => {
     const tabs = screen.getByRole("tablist");
     expect(panel).not.toContainElement(tabs);
     expect(tabs.closest(".ant-tabs")).toHaveStyle({ height: "100%" });
-    const toolbar = screen.getByRole("toolbar", { name: "Diagnostics actions" });
-    expect(panel).not.toContainElement(toolbar);
-    expect(toolbar.parentElement).toContainElement(tabs);
-    expect(toolbar.parentElement).toHaveStyle({ flex: "0 0 auto" });
-    expect(toolbar).toHaveStyle({ minHeight: "24px", display: "flex" });
-    expect(toolbar.compareDocumentPosition(panel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(tabs.compareDocumentPosition(toolbar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(within(toolbar).getAllByRole("button").map(button => button.textContent)).toEqual(["Clear", "Copy"]);
+    expect(tabs.closest(".ant-tabs-nav")).toHaveStyle({ paddingBlock: "0px" });
+    expect(panel).not.toContainElement(footer);
     expect(panel).not.toContainElement(footer);
     expect(tabs.closest(".ant-tabs")).not.toContainElement(footer);
-    const copy = within(toolbar).getByRole("button", { name: "Copy" });
-    expect(copy).toBeDisabled();
-    const problemsClear = within(toolbar).getByRole("button", { name: "Clear" });
-    expect(problemsClear).toBeDisabled();
-    expect(problemsClear.parentElement).toBe(copy.parentElement);
-    expect(problemsClear).toHaveClass("ant-btn-sm");
-    expect(copy).toHaveClass("ant-btn-sm");
-    expect(copy.parentElement).toHaveClass("ant-flex-justify-flex-start");
-    await diagnosticsTab(user, "Output");
-    const outputPanel = screen.getByRole("tabpanel", { name: "Output" });
-    expect(outputPanel).toHaveStyle({ height: "100%", overflow: "auto" });
-    expect(screen.getByRole("toolbar", { name: "Diagnostics actions" })).toBe(toolbar);
-    expect(outputPanel).not.toContainElement(toolbar);
-    expect(within(toolbar).getAllByRole("button").map(button => button.textContent)).toEqual(["Clear"]);
-    const clear = within(toolbar).getByRole("button", { name: "Clear" });
-    expect(clear).toBeDisabled();
-    expect(clear).toHaveClass("ant-btn-sm");
-    expect(clear.parentElement).toHaveClass("ant-flex-justify-flex-start");
-    expect(screen.queryByRole("button", { name: "Copy" })).not.toBeInTheDocument();
     await diagnosticsTab(user, "Analysis");
-    expect(screen.getByRole("toolbar", { name: "Diagnostics actions" })).toBe(toolbar);
-    expect(toolbar).toHaveStyle({ minHeight: "24px", display: "flex" });
-    expect(within(toolbar).queryAllByRole("button")).toHaveLength(0);
-    expect(screen.getByRole("tabpanel", { name: "Analysis" })).not.toContainElement(toolbar);
+    expect(screen.getByRole("tabpanel", { name: "Analysis" })).toHaveStyle({ height: "100%", overflow: "auto" });
+    expect(screen.queryByRole("toolbar", { name: "Problems actions" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Hide diagnostics" }));
-    for (const name of ["Problems", "Analysis", "Output"]) expect(within(footer).getByRole("button", { name })).toBeInTheDocument();
+    for (const name of ["Problems", "Analysis"]) expect(within(footer).getByRole("button", { name })).toBeInTheDocument();
   });
 
-  it("clears only current Problems while retaining analysis, cached warnings, output, data and successful result bytes", async () => {
+  it("clears Problems while retaining analysis, data and successful result bytes", async () => {
     const user = userEvent.setup();
     const { apiMock } = mockPlaygroundFetch();
     const response = success();
@@ -2096,20 +2108,18 @@ describe("MonoReport playground", () => {
     await screen.findByText("Template preview");
     await user.click(screen.getByRole("button", { name: "Generate document" }));
     await screen.findByText("Result preview");
-    await user.click(screen.getByRole("button", { name: "Analyze template" }));
+    await analyzeTemplate(user);
     await screen.findByText("Valid", { exact: true });
     await diagnosticsTab(user, "Problems 1");
     const panel = screen.getByRole("tabpanel", { name: "Problems 1" });
-    const actions = screen.getByRole("toolbar", { name: "Diagnostics actions" });
+    const actions = screen.getByRole("toolbar", { name: "Problems actions" });
+    expect(actions).toHaveStyle({ marginTop: "4px", marginBottom: "4px", gap: "4px" });
     const buttons = within(actions).getAllByRole("button");
-    expect(buttons.map(button => button.textContent)).toEqual(["Clear", "Copy"]);
+    expect(buttons.map(button => button.getAttribute("aria-label"))).toEqual(["Clear", "Copy"]);
     buttons.forEach(button => { expect(button).toBeEnabled(); expect(button).toHaveClass("ant-btn-sm"); });
     await user.click(buttons[0]);
-    expect(within(actions).getAllByRole("button")).toEqual(buttons);
-    buttons.forEach(button => expect(button).toBeDisabled());
+    expect(screen.queryByRole("toolbar", { name: "Problems actions" })).not.toBeInTheDocument();
     expect(await within(panel).findByText("No problems")).toBeInTheDocument();
-    expect(within(screen.getByRole("toolbar", { name: "Diagnostics actions" })).getByRole("button", { name: "Copy" })).toBeDisabled();
-    expect(within(screen.getByRole("toolbar", { name: "Diagnostics actions" })).getByRole("button", { name: "Clear" })).toBeDisabled();
     expect(screen.getByRole("tab", { name: "Problems" }).querySelector(".ant-badge")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Dataset")).toHaveValue(sampleData);
     expect(screen.getByText("Result preview")).toBeInTheDocument();
@@ -2119,15 +2129,13 @@ describe("MonoReport playground", () => {
     await diagnosticsTab(user, "Analysis");
     expect(screen.getByText("Valid", { exact: true })).toBeInTheDocument();
     expect(screen.getByText("Review this field")).toBeInTheDocument();
-    await diagnosticsTab(user, "Output");
-    expect(within(screen.getByRole("tabpanel", { name: "Output" })).getAllByRole("listitem")).toHaveLength(2);
-    expect(screen.getByRole("status")).toHaveTextContent("Analyze · Success");
+    expect(screen.getByRole("status")).toHaveTextContent("Success");
     // A new operation publishes its diagnostics normally, even when it reuses cached analysis.
     await generateJson(user);
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(apiMock).toHaveBeenCalledTimes(2);
     await diagnosticsTab(user, "Problems 1");
-    expect(screen.getByText("Generate Dataset · Warning · template.notice")).toBeInTheDocument();
+    expect(screen.getByText("template.notice", { selector: ".issue-heading strong" })).toBeInTheDocument();
     expect(within(screen.getByRole("tabpanel", { name: "Problems 1" })).getByText(/Review this field/)).toBeInTheDocument();
   });
 
@@ -2143,69 +2151,61 @@ describe("MonoReport playground", () => {
     const clipboard = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     await screen.findByText("Template preview");
-    await user.click(screen.getByRole("button", { name: "Analyze template" }));
+    await analyzeTemplate(user);
     await screen.findByText("Invalid", { exact: true });
     await diagnosticsTab(user, "Problems 2");
     const panel = screen.getByRole("tabpanel", { name: "Problems 2" });
-    await user.click(within(screen.getByRole("toolbar", { name: "Diagnostics actions" })).getByRole("button", { name: "Copy" }));
+    expect(within(panel).getByRole("img", { name: "Error" })).toBeInTheDocument();
+    expect(within(panel).getByRole("img", { name: "Warning" })).toBeInTheDocument();
+    for (const issue of panel.querySelectorAll(".issue")) {
+      const heading = issue.querySelector(".issue-heading")!;
+      expect(heading.firstElementChild).toHaveClass("issue-icon");
+      expect(heading.children[1]).toBe(heading.querySelector("strong"));
+    }
+    expect(panel).not.toHaveTextContent("Analyze");
+    expect(panel).not.toHaveTextContent("Error ·");
+    expect(panel).not.toHaveTextContent("Warning ·");
+    await user.click(within(screen.getByRole("toolbar", { name: "Problems actions" })).getByRole("button", { name: "Copy" }));
     expect(await screen.findByText("Diagnostics copied to clipboard.")).toBeInTheDocument();
     expect(JSON.parse(clipboard.mock.calls[0][0])).toEqual([
       { title: "template.bad", code: "template.bad", detail: "Bad expression", field: "Amount", dataPath: "$.Rows.Amount", part: "/xl/worksheets/sheet1.xml", location: "C4", formatter: "currency", action: "Analyze", severity: "Error" },
       { title: "template.notice", code: "template.notice", detail: "Review this field", part: "/xl/worksheets/sheet2.xml", location: "D5", action: "Analyze", severity: "Warning" }
     ]);
     clipboard.mockRejectedValueOnce(new DOMException("Denied", "NotAllowedError"));
-    await user.click(within(screen.getByRole("toolbar", { name: "Diagnostics actions" })).getByRole("button", { name: "Copy" }));
+    await user.click(within(screen.getByRole("toolbar", { name: "Problems actions" })).getByRole("button", { name: "Copy" }));
     expect(await screen.findByText("The diagnostics could not be copied to the clipboard.")).toBeInTheDocument();
-    expect(within(panel).getByText("Analyze · Error · template.bad")).toBeInTheDocument();
-    expect(within(panel).getByText("Analyze · Warning · template.notice")).toBeInTheDocument();
+    expect(within(panel).getByText("template.bad", { selector: ".issue-heading strong" })).toBeInTheDocument();
+    expect(within(panel).getByText("template.notice", { selector: ".issue-heading strong" })).toBeInTheDocument();
     expect(screen.getByLabelText("Dataset")).toHaveValue(sampleData);
-    await diagnosticsTab(user, "Output");
-    expect(within(screen.getByRole("tabpanel", { name: "Output" })).getAllByRole("listitem")).toHaveLength(1);
+    expect(screen.getByRole("status")).toHaveTextContent("Error");
   });
 
-  it("uses the same native outcome icons in status and compact event rows, with final durations only", async () => {
+  it("shows generation loading on the Generate button and in status, then records cancellation", async () => {
     const user = userEvent.setup();
     let resolve!: (response: Response) => void;
     let signal: AbortSignal | undefined;
-    let call = 0;
-    const good = success();
-    const resultBlob = await good.blob();
     mockPlaygroundFetch(async (_input, init) => {
-      if (call++ === 0) return good;
-      if (call === 2) return analysis([], false);
       signal = init?.signal as AbortSignal;
       return new Promise<Response>(done => { resolve = done; });
     });
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     await screen.findByText("Template preview");
-    await user.click(screen.getByRole("button", { name: "Generate document" }));
-    await screen.findByText("Result preview");
-    expect(within(screen.getByRole("status")).getByRole("img", { name: "Success" }).querySelector("svg")).toHaveAttribute("data-icon", "check-circle");
-    await user.click(screen.getByRole("button", { name: "Analyze template" }));
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Analyze · Failure"));
-    expect(within(screen.getByRole("status")).getByRole("img", { name: "Failure" }).querySelector("svg")).toHaveAttribute("data-icon", "close-circle");
+    await selectTemplate(user);
     await user.click(screen.getByRole("button", { name: "Generate document" }));
     const status = screen.getByRole("status");
-    expect(within(status).getByRole("img", { name: "Running" })).toHaveClass("anticon-spin");
-    expect(within(status).getByRole("img", { name: "Running" }).querySelector("svg")).toHaveAttribute("data-icon", "loading");
+    expect(status).toHaveTextContent("Generating...");
+    expect(status.querySelector(".ant-spin-spinning")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Generate document" })).toHaveClass("ant-btn-loading");
     expect(status).not.toHaveTextContent(/ms|%/);
-    await user.click(status);
-    const outputPanel = screen.getByRole("tabpanel", { name: "Output" });
-    const runningRow = within(outputPanel).getAllByRole("listitem").at(-1)!;
-    expect(within(runningRow).getByRole("img", { name: "Running" }).querySelector("svg")).toHaveAttribute("data-icon", "loading");
-    expect(runningRow).not.toHaveTextContent(/ms|%/);
-    expect(within(outputPanel).queryByRole("table")).not.toBeInTheDocument();
-    expect(within(outputPanel).queryByRole("progressbar")).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Dataset"), { target: { value: sampleData + " " } });
     expect(signal?.aborted).toBe(true);
-    expect(within(status).getByRole("img", { name: "Cancelled" }).querySelector("svg")).toHaveAttribute("data-icon", "minus-circle");
-    expect(status).toHaveTextContent(/\d+ ms/);
-    const rows = within(outputPanel).getAllByRole("listitem");
-    ["Success", "Failure", "Cancelled"].forEach((outcome, index) => expect(within(rows[index]).getByRole("img", { name: outcome }).querySelector("svg")).toHaveAttribute("data-icon", ["check-circle", "close-circle", "minus-circle"][index]));
+    expect(status).toHaveTextContent("Cancelled");
+    expect(screen.getByRole("contentinfo")).toHaveTextContent(/\d+ ms/);
+    await user.click(screen.getByRole("button", { name: "Workspace status: Cancelled" }));
+    expect(screen.getByRole("tabpanel", { name: "Problems" })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Output" })).not.toBeInTheDocument();
     resolve(success());
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Generate · Cancelled"));
-    expect(previewSources.at(-1)).toBe(resultBlob);
-    expect(within(outputPanel).getAllByRole("listitem")).toHaveLength(3);
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Cancelled"));
   });
 
   it("cancels Generate Dataset through native Escape while pending and ignores the obsolete analysis", async () => {
@@ -2223,9 +2223,10 @@ describe("MonoReport playground", () => {
     await user.keyboard("{Escape}");
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(signal?.aborted).toBe(true);
-    expect(screen.getByRole("status")).toHaveTextContent("Generate Dataset · Cancelled");
+    expect(screen.getByRole("status")).toHaveTextContent("Cancelled");
+    expect(screen.getByRole("status").querySelector(".anticon-stop")).toBeInTheDocument();
     resolve(analysis([{ name: "Obsolete", type: "value" }]));
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Generate Dataset · Cancelled"));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Cancelled"));
     expect(screen.getByLabelText("Dataset")).toHaveValue(sampleData);
     apiMock.mockResolvedValueOnce(analysis());
     await generateJson(user);
@@ -2258,10 +2259,12 @@ describe("MonoReport playground", () => {
     const workspace = within(dialog).getByRole("region", { name: "Workspace" });
     const dataEditor = within(dialog).getByRole("region", { name: "Dataset editor" });
     expect(within(workspace).getByRole("group", { name: "Collapse diagnostics" })).toBe(row("Collapse diagnostics"));
+    expect(within(workspace).getByRole("group", { name: "Generate document" })).toBe(row("Generate document"));
     expect(within(dataEditor).getByRole("group", { name: "Format dataset" })).toBe(row("Format dataset"));
     expect(dataEditor.querySelectorAll(".ant-flex-vertical > [role='group']")).toHaveLength(4);
     const keycaps = (action: string) => Array.from(row(action).querySelectorAll("kbd"), key => key.textContent);
     expect(keycaps("Format dataset")).toEqual(format.split(/[ +]+/));
+    expect(keycaps("Generate document")).toEqual(platform === "MacIntel" ? ["⌘", "Enter"] : ["Ctrl", "Enter"]);
     expect(keycaps("Collapse diagnostics")).toEqual(platform === "MacIntel" ? ["⇧", "⎋"] : ["Shift", "Escape"]);
     expect(keycaps("Keyboard shortcuts")).toEqual(platform === "MacIntel" ? ["⇧", "/"] : ["Shift", "/"]);
     expect(within(row("Collapse diagnostics")).getByRole("group", { name: "Shift + Escape" })).toBeInTheDocument();
@@ -2391,7 +2394,7 @@ describe("MonoReport playground", () => {
     await waitFor(() => expect(screen.getByLabelText("Dataset")).toHaveValue('{"fresh":3}'));
     expect(screen.getByText("Select a DOCX or XLSX template")).toBeInTheDocument();
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent("No operations yet");
+    expect(screen.getByRole("status")).toHaveTextContent("Ready");
   });
 
   it("preserves partial context and asks for permission only after Grant access, retaining files after denial", async () => {
@@ -2482,7 +2485,7 @@ describe("MonoReport playground", () => {
     view = mount();
     await waitFor(() => expect(screen.getByLabelText("Dataset")).toHaveValue('{"second":true}'));
     expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/examples/sample"))).toBe(false);
-    expect(screen.getByRole("status")).toHaveTextContent("No operations yet");
+    expect(screen.getByRole("status")).toHaveTextContent("Ready");
   });
 
   it("ignores a late restored file after a newer user upload and remembers the newer context", async () => {
@@ -2538,7 +2541,7 @@ describe("MonoReport playground", () => {
     expect(await screen.findByText("Local data cleared", { exact: true })).toBeInTheDocument();
     expect(screen.getByLabelText("Dataset")).toHaveValue(sampleData);
     expect(screen.getByLabelText("Dataset")).toHaveAttribute("data-word-wrap", "false");
-    expect(screen.getByRole("status")).toHaveTextContent("No operations yet");
+    expect(screen.getByRole("status")).toHaveTextContent("Ready");
     expect(apiMock).toHaveBeenCalledOnce();
     for (const key of [workspaceStorage.desktop, workspaceStorage.mobile, workspaceStorage.desktopCollapsed, workspaceStorage.mobileCollapsed, workspaceStorage.diagnosticsSize, workspaceStorage.diagnosticsCollapsed, workspaceStorage.wordWrap]) expect(localStorage.getItem(key)).toBeNull();
     expect(localStorage.getItem("unrelated")).toBe("keep");
@@ -2547,11 +2550,10 @@ describe("MonoReport playground", () => {
     await waitFor(() => expect(localStorage.getItem(workspaceStorage.context)).not.toContain("disk.json"));
     await user.click(screen.getByRole("radio", { name: "Result" }).closest("label")!);
     expect(screen.getByText("Not generated")).toBeInTheDocument();
-    await diagnosticsTab(user, "Output");
-    expect(screen.getByText("No output")).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Output" })).not.toBeInTheDocument();
   });
 
-  it("Clear Local Data aborts pending generation and late replies cannot restore results or Output", async () => {
+  it("Clear Local Data aborts pending generation and late replies cannot restore results", async () => {
     const user = userEvent.setup();
     vi.stubGlobal("indexedDB", testIndexedDb().factory);
     let resolve!: (response: Response) => void;
@@ -2565,10 +2567,9 @@ describe("MonoReport playground", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(signal?.aborted).toBe(true);
     resolve(success());
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("No operations yet"));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Ready"));
     expect(screen.queryByText("Result preview")).not.toBeInTheDocument();
-    await diagnosticsTab(user, "Output");
-    expect(screen.getByText("No output")).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Output" })).not.toBeInTheDocument();
     expect(apiMock).toHaveBeenCalledOnce();
   });
 
@@ -2641,7 +2642,7 @@ describe("MonoReport playground", () => {
     await waitFor(() => expect(localStorage.getItem(workspaceStorage.context)).toContain(manifest.defaultExample));
     expect(screen.getByLabelText("Dataset")).toHaveValue(sampleData);
     expect(localStorage.getItem(workspaceStorage.context)).not.toContain("slow.json");
-    expect(screen.getByRole("status")).toHaveTextContent("No operations yet");
+    expect(screen.getByRole("status")).toHaveTextContent("Ready");
   });
 
 });

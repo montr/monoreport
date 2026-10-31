@@ -1,17 +1,369 @@
 /* Layout sizing is required for Monaco, native split panels, and document viewer hosts. */
-:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#242831;background:#fff;font-size:13px}*{box-sizing:border-box}html,body,#root,.app{height:100%;margin:0}.app{display:flex;flex-direction:column;min-width:320px;overflow:hidden}.app .app-header{min-height:47px;flex:none;border-bottom:1px solid #e7e9ed;padding:8px 18px}.brand{font-weight:750;letter-spacing:-.6px;font-size:18px;color:#262626}.layout{flex:1;min-height:0;overflow:hidden}.source,.preview{height:100%;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}.preview{background:#f5f6f8}.app .pane-header{flex:none;min-height:44px;padding:6px 12px;border-bottom:1px solid #e7eaf0;background:#fff}.context-name{flex:1;min-width:0}.editor{flex:1 1 0;min-width:0;min-height:0;width:100%;height:100%;position:relative;overflow:hidden}.canvas{flex:1;overflow:auto;min-height:0;padding:30px 26px;display:flex;justify-content:safe center;align-items:flex-start;position:relative}.canvas>.ant-empty,.canvas>.ant-upload-wrapper{align-self:center}.canvas>.ant-upload-wrapper{width:100%}.canvas.drop-target{outline:2px dashed var(--ant-color-primary);outline-offset:-9px;background:var(--ant-color-fill-quaternary)}.canvas.drop-target:after{content:"Drop DOCX or XLSX to select template";position:absolute;inset:18px;display:flex;align-items:center;justify-content:center;background:#ffffffed;border-radius:6px;color:var(--ant-color-text);font-weight:600;font-size:14px;z-index:5}.format-label{display:inline-flex;min-width:0;max-width:100%;align-items:center;gap:7px}.format-title{overflow-wrap:anywhere}.format-icon{flex:none;font-size:18px}.problems{height:100%;overflow:hidden;padding:0 12px}.app footer{min-height:33px;flex:none;border-top:1px solid #e8eaed;padding:2px 18px;font-size:11px;background:#fff}footer a{color:#707985;text-decoration:none;display:inline-flex;align-items:center;gap:5px}footer a:hover{text-decoration:underline}.project-links{display:flex;gap:8px;margin-left:auto}
-@media(max-width:850px){.canvas{padding:18px}}
-@media(max-width:560px){.app .app-header{padding-inline:10px}.app .pane-header{padding-inline:6px}.app footer{padding-inline:10px}}
-.document-preview{width:100%;max-width:760px;min-height:100%}.document-preview>div:last-child{background:#fff;box-shadow:0 3px 18px #14203912;border:1px solid #e6e8ec;min-height:530px}.document-preview .docx-wrapper{background:transparent!important;padding:0!important;align-items:safe center}.preview-warning{padding:9px 12px;margin-bottom:10px;border:1px solid #f2d0ce;background:#fff7f6;color:#a13d38;border-radius:6px}.issue{display:flex;align-items:flex-start;gap:8px;padding:6px 4px;border-bottom:1px solid #e4e7ed}.issue>span{color:#99a0aa;font-size:12px;min-width:18px}.issue strong{font-size:12px;font-weight:600;color:#454a54}.issue p{font:12px/1.5 ui-monospace,Consolas,monospace;color:#767f8c;margin:2px 0 0;overflow-wrap:anywhere}
-.canvas.xlsx-view{padding:0;overflow:hidden;align-items:stretch;justify-content:stretch}
-.xlsx-preview{width:100%;height:100%;min-width:0;min-height:0;display:flex;flex-direction:column;overflow:hidden}
-.xlsx-preview .preview-warning{flex:none;margin:8px}.xlsx-preview .preview-loading{flex:none;margin:8px;padding:9px 12px;border:1px solid #e4e7ec;background:#f7f8fa;color:#606b78;border-radius:6px}
-.xlsx-preview-host{flex:1;min-width:0;min-height:0;overflow:hidden;background:#fff}
-.xlsx-preview-session{width:100%;height:100%}
-.xlsx-formula-bar{display:flex;align-items:center;gap:8px;flex:none;min-width:0;padding:4px 8px;border-bottom:1px solid #e4e7ec;background:#f7f8fa;color:#606b78}
-.xlsx-cell-address{flex:none;min-width:58px;font-variant-numeric:tabular-nums;color:#383e47}
-.xlsx-formula-label{flex:none;font-style:italic}
-.xlsx-formula-bar textarea{flex:1;min-width:0;height:28px;margin:0;padding:4px 6px;border:1px solid #e4e7ec;border-radius:4px;background:#fff;color:#242831;font:inherit;line-height:18px;white-space:pre;resize:none;overflow:auto;user-select:text}
+:root {
+  font-family: Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+  color: #242831;
+  background: #fff;
+  font-size: 13px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,body,#root,.app {
+  height: 100%;
+  margin: 0;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-width: 320px;
+  overflow: hidden;
+}
+
+.app .app-header {
+  min-height: 47px;
+  flex: none;
+  border-bottom: 1px solid #e7e9ed;
+  padding: 8px 18px;
+}
+
+.brand {
+  font-weight: 750;
+  letter-spacing: -.6px;
+  font-size: 18px;
+  color: #262626;
+}
+
+.layout {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.source,.preview {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.preview {
+  background: #f5f6f8;
+}
+
+.app .pane-header {
+  flex: none;
+  min-height: 44px;
+  padding: 6px 12px;
+  border-bottom: 1px solid #e7eaf0;
+  background: #fff;
+}
+
+.context-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.editor {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.canvas {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+  padding: 30px 26px;
+  display: flex;
+  justify-content: safe center;
+  align-items: flex-start;
+  position: relative;
+}
+
+.canvas>.ant-empty,.canvas>.ant-upload-wrapper {
+  align-self: center;
+}
+
+.canvas>.ant-upload-wrapper {
+  width: 100%;
+}
+
+.canvas.drop-target {
+  outline: 2px dashed var(--ant-color-primary);
+  outline-offset: -9px;
+  background: var(--ant-color-fill-quaternary);
+}
+
+.canvas.drop-target:after {
+  content: "Drop DOCX or XLSX to select template";
+  position: absolute;
+  inset: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffffed;
+  border-radius: 6px;
+  color: var(--ant-color-text);
+  font-weight: 600;
+  font-size: 14px;
+  z-index: 5;
+}
+
+.format-label {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  align-items: center;
+  gap: 7px;
+}
+
+.format-title {
+  overflow-wrap: anywhere;
+}
+
+.format-icon {
+  flex: none;
+  font-size: 18px;
+}
+
+.problems {
+  height: 100%;
+  overflow: hidden;
+  padding: 0 12px;
+}
+
+.app footer {
+  min-height: 33px;
+  flex: none;
+  border-top: 1px solid #e8eaed;
+  padding: 2px 18px 2px 8px;
+  font-size: 11px;
+  background: #fff;
+}
+
+footer a {
+  color: #707985;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+footer a:hover {
+  text-decoration: underline;
+}
+
+.project-links {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+@media(max-width:850px) {
+  .canvas {
+    padding: 18px;
+  }
+}
+
+@media(max-width:560px) {
+  .app .app-header {
+    padding-inline: 10px;
+  }
+
+  .app .pane-header {
+    padding-inline: 6px;
+  }
+
+  .app footer {
+    padding-inline: 8px 10px;
+  }
+}
+
+.document-preview {
+  width: 100%;
+  max-width: 760px;
+  min-height: 100%;
+}
+
+.document-preview>div:last-child {
+  background: #fff;
+  box-shadow: 0 3px 18px #14203912;
+  border: 1px solid #e6e8ec;
+  min-height: 530px;
+}
+
+.document-preview .docx-wrapper {
+  background: transparent !important;
+  padding: 0 !important;
+  align-items: safe center;
+}
+
+.preview-warning {
+  padding: 9px 12px;
+  margin-bottom: 10px;
+  border: 1px solid #f2d0ce;
+  background: #fff7f6;
+  color: #a13d38;
+  border-radius: 6px;
+}
+
+.issue {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 4px;
+  border-bottom: 1px solid #e4e7ed;
+}
+
+.issue>span {
+  color: #99a0aa;
+  font-size: 12px;
+  min-width: 18px;
+}
+
+.issue strong {
+  font-size: 12px;
+  font-weight: 600;
+  color: #454a54;
+}
+
+.issue p {
+  font: 12px/1.5 ui-monospace,Consolas,monospace;
+  color: #767f8c;
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.canvas.xlsx-view {
+  padding: 0;
+  overflow: hidden;
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+.xlsx-preview {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.xlsx-preview .preview-warning {
+  flex: none;
+  margin: 8px;
+}
+
+.xlsx-preview .preview-loading {
+  flex: none;
+  margin: 8px;
+  padding: 9px 12px;
+  border: 1px solid #e4e7ec;
+  background: #f7f8fa;
+  color: #606b78;
+  border-radius: 6px;
+}
+
+.xlsx-preview-host {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #fff;
+}
+
+.xlsx-preview-session {
+  width: 100%;
+  height: 100%;
+}
+
+.xlsx-formula-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  min-width: 0;
+  padding: 4px 8px;
+  border-bottom: 1px solid #e4e7ec;
+  background: #f7f8fa;
+  color: #606b78;
+}
+
+.xlsx-cell-address {
+  flex: none;
+  min-width: 58px;
+  font-variant-numeric: tabular-nums;
+  color: #383e47;
+}
+
+.xlsx-formula-label {
+  flex: none;
+  font-style: italic;
+}
+
+.xlsx-formula-bar textarea {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  margin: 0;
+  padding: 4px 6px;
+  border: 1px solid #e4e7ec;
+  border-radius: 4px;
+  background: #fff;
+  color: #242831;
+  font: inherit;
+  line-height: 18px;
+  white-space: pre;
+  resize: none;
+  overflow: auto;
+  user-select: text;
+}
 
 /* Native Space supplies keycap gaps; reset Typography margins to keep those gaps consistent. */
-.shortcut{white-space:nowrap}.shortcut .ant-typography kbd{margin:0}
+.shortcut {
+  white-space: nowrap;
+}
+
+.shortcut .ant-typography kbd {
+  margin: 0;
+}
+
+.issue {
+  gap: 6px;
+  padding: 4px 4px;
+}
+
+.issue-icon {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  line-height: 1;
+}
+
+.issue-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.issue-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 6px;
+}
+
+.issue-heading>span {
+  font-size: 12px;
+  color: #454a54;
+}

@@ -1,5 +1,5 @@
 import { Alert, Badge, Button, ConfigProvider, Dropdown, Empty, Flex, Form, InputNumber, message, Modal, Radio, Space, Spin, Tabs, Tag, theme, Tooltip, Typography, Upload } from "antd";
-import { CheckCircleOutlined, CheckOutlined, CloseCircleOutlined, CloseOutlined, DownOutlined, EllipsisOutlined, ExclamationCircleOutlined, FileExcelFilled, FileWordFilled, GithubFilled, LoadingOutlined, MinusCircleOutlined, UploadOutlined } from "@ant-design/icons";
+import { BulbOutlined, CheckCircleFilled, CheckOutlined, CloseCircleFilled, CloseOutlined, CopyOutlined, DeleteOutlined, DownOutlined, EllipsisOutlined, ExclamationCircleFilled, ExclamationCircleOutlined, FileExcelFilled, FileWordFilled, GithubFilled, StopOutlined, UploadOutlined } from "@ant-design/icons";
 import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
 import { XlsxPreview } from "./components/XlsxPreview";
 import { documentMimes, templateFormat, templateAccept } from "./services/documentFormat";
@@ -18,17 +18,11 @@ import "./styles.css";
 
 type Tab = "template" | "result";
 type Operation = "generate" | "analyze" | "generate-json";
-type DiagnosticsTab = "problems" | "analysis" | "output";
-type OutputAction = "Generate" | "Analyze" | "Generate Dataset";
-interface OutputEvent {
-  id: number;
-  action: OutputAction;
-  startTime: string;
-  started: number;
-  outcome: "Running" | "Success" | "Failure" | "Cancelled";
-  duration: number;
-}
-interface Problem extends Diagnostic { action?: OutputAction; severity?: "Error" | "Warning"; }
+type DiagnosticsTab = "problems" | "analysis";
+type OperationAction = "Generate" | "Analyze" | "Generate Dataset";
+type OperationOutcome = "running" | "success" | "error" | "cancelled" | "ready";
+interface OperationStatus { action?: OperationAction; outcome: OperationOutcome; started?: number; duration?: number; }
+interface Problem extends Diagnostic { action?: OperationAction; severity?: "Error" | "Warning"; }
 type ExampleSelection = string | "custom";
 
 interface ExampleDefinition {
@@ -99,17 +93,11 @@ function FormatLabel({ format, title }: { format: DocumentFormat; title: string 
   return <span className="format-label"><FormatIcon format={format} /><span className="format-title">{title}</span></span>;
 }
 
-function OutcomeIcon({ outcome }: { outcome: OutputEvent["outcome"] }) {
-  const { token } = theme.useToken();
-  const Icon = { Running: LoadingOutlined, Success: CheckCircleOutlined, Failure: CloseCircleOutlined, Cancelled: MinusCircleOutlined }[outcome];
-  return <Icon aria-label={outcome} spin={outcome === "Running"} style={{ color: outcome === "Success" ? token.colorSuccess : outcome === "Failure" ? token.colorError : token.colorTextSecondary }} />;
-}
-
-function ShortcutKeys({ value }: { value: string }) {
+function ShortcutKeys({ value, color }: { value: string; color?: string }) {
   const keys = value.split(/[ +]+/);
   const names: Record<string, string> = { "⇧": "Shift", "⌘": "Command", "⌥": "Option", "⎋": "Escape" };
   return <Space size={4} wrap={false} className="shortcut" role="group" aria-label={keys.map(key => names[key] ?? key).join(" + ")}>
-    {keys.map((key, index) => <Typography.Text keyboard aria-hidden="true" key={index}>{key}</Typography.Text>)}
+    {keys.map((key, index) => <Typography.Text keyboard aria-hidden="true" key={index} style={color ? { color } : undefined}>{key}</Typography.Text>)}
   </Space>;
 }
 
@@ -178,10 +166,10 @@ export default function App() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [jsonSettings] = Form.useForm<SampleJsonSettings>();
   const [diagnosticsTab, setDiagnosticsTab] = useState<DiagnosticsTab>("problems");
-  const [output, setOutput] = useState<OutputEvent[]>([]);
-  const [latestEvent, setLatestEvent] = useState<OutputEvent>();
-  const runningEvent = useRef<OutputEvent | undefined>(undefined);
-  const eventId = useRef(0);
+  const [operationStatus, setOperationStatus] = useState<OperationStatus>({ outcome: "ready" });
+  const runningOperation = useRef<OperationStatus | undefined>(undefined);
+  const generateAction = useRef<() => void>(() => undefined);
+  generateAction.current = () => void generate();
   const [active, setActive] = useState<Tab>("template");
   const [pending, setPending] = useState<Operation>();
   const [dragging, setDragging] = useState(false);
@@ -451,28 +439,37 @@ export default function App() {
     changeProblemsOpen(true);
   }
 
-  function startOutput(action: OutputAction, startTime = new Date().toISOString(), started = performance.now()) {
-    const event: OutputEvent = { id: ++eventId.current, action, startTime, started, outcome: "Running", duration: 0 };
-    runningEvent.current = event;
-    setOutput(events => [...events, event]);
-    setLatestEvent(event);
+  function startOperation(action: OperationAction, started = performance.now()) {
+    const operation: OperationStatus = { action, started, outcome: "running" };
+    runningOperation.current = operation;
+    setOperationStatus(operation);
   }
 
-  function finishOutput(outcome: OutputEvent["outcome"]) {
-    const event = runningEvent.current;
-    if (!event) return;
-    const finished = { ...event, outcome, duration: performance.now() - event.started };
-    runningEvent.current = undefined;
-    setOutput(events => events.map(item => item.id === event.id ? finished : item));
-    setLatestEvent(finished);
+  function finishOperation(outcome: Exclude<OperationOutcome, "running" | "ready">) {
+    const operation = runningOperation.current;
+    if (!operation) return;
+    const finished = { ...operation, outcome, duration: performance.now() - (operation.started ?? performance.now()) };
+    runningOperation.current = undefined;
+    setOperationStatus(finished);
   }
 
   useEffect(() => {
+    function generateShortcut(event: KeyboardEvent) {
+      if (event.defaultPrevented || event.isComposing || event.repeat || event.altKey || event.shiftKey || jsonSettingsOpen || shortcutsOpen) return;
+      if (event.key !== "Enter" || event.metaKey === event.ctrlKey) return;
+      const target = event.target instanceof Element ? event.target : undefined;
+      if (target?.closest('[role="dialog"], [role="alertdialog"]')) return;
+      // Monaco binds Ctrl/Cmd+Enter to insert a line below; generation takes precedence for this workspace shortcut.
+      event.preventDefault();
+      event.stopPropagation();
+      generateAction.current();
+    }
     function keydown(event: KeyboardEvent) {
       if (event.defaultPrevented || event.isComposing || event.repeat || event.altKey || jsonSettingsOpen || shortcutsOpen) return;
       const target = event.target instanceof Element ? event.target : undefined;
       if (target?.closest('[role="dialog"], [role="alertdialog"]')) return;
-      const saveShortcut = event.key.toLowerCase() === "s" && (event.metaKey !== event.ctrlKey);
+      const workspaceModifier = event.metaKey !== event.ctrlKey;
+      const saveShortcut = event.key.toLowerCase() === "s" && workspaceModifier;
       if (saveShortcut) {
         const editable = target?.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"], [role="combobox"]');
         if (editable && !target?.closest(".monaco-editor")) return;
@@ -491,12 +488,16 @@ export default function App() {
         setShortcutsOpen(true);
       }
     }
+    document.addEventListener("keydown", generateShortcut, true);
     document.addEventListener("keydown", keydown);
-    return () => document.removeEventListener("keydown", keydown);
+    return () => {
+      document.removeEventListener("keydown", generateShortcut, true);
+      document.removeEventListener("keydown", keydown);
+    };
   }, [problemsOpen, jsonSettingsOpen, shortcutsOpen]);
 
   function invalidateOperation() {
-    finishOutput("Cancelled");
+    finishOperation("cancelled");
     operationId.current += 1;
     request.current?.abort();
     request.current = undefined;
@@ -627,12 +628,12 @@ export default function App() {
   }
 
   async function generate() {
-    if (pending || runningEvent.current || jsonSettingsOpen) return;
+    if (pending || runningOperation.current || jsonSettingsOpen) return;
     invalidateOperation();
-    startOutput("Generate");
+    startOperation("Generate");
     if (!template) {
       setErrors(diagnostic("Template is required", "Select a DOCX or XLSX file before generating a document.").map(item => ({ ...item, action: "Generate" })));
-      finishOutput("Failure");
+      finishOperation("error");
       openDiagnostics("problems");
       return;
     }
@@ -640,7 +641,7 @@ export default function App() {
       JSON.parse(json);
     } catch {
       setErrors(diagnostic("Invalid JSON", "Fix the JSON syntax before generating a document.").map(item => ({ ...item, action: "Generate" })));
-      finishOutput("Failure");
+      finishOperation("error");
       openDiagnostics("problems");
       return;
     }
@@ -657,12 +658,12 @@ export default function App() {
       setResult({ ...generated, filename: resultFilename(template.name) });
       setResultInputs({ datasetId, json, template, templateSource: selectedTemplate?.exampleId ? "Example file" : "Local file" });
       setActive("result");
-      finishOutput("Success");
+      finishOperation("success");
     } catch (error) {
       if (operationId.current !== operation || contentRevision.current !== expectedRevision) return;
-      if (error instanceof DOMException && error.name === "AbortError") { finishOutput("Cancelled"); return; }
+      if (error instanceof DOMException && error.name === "AbortError") { finishOperation("cancelled"); return; }
       setErrors((error instanceof GenerationFailure ? error.diagnostics : diagnostic("Generation failed", "The document could not be generated.")).map(item => ({ ...item, action: "Generate" })));
-      finishOutput("Failure");
+      finishOperation("error");
       openDiagnostics("problems");
     } finally {
       if (operationId.current === operation) {
@@ -672,15 +673,15 @@ export default function App() {
     }
   }
 
-  function analysisProblems(value: TemplateAnalysis, action: OutputAction): Problem[] {
+  function analysisProblems(value: TemplateAnalysis, action: OperationAction): Problem[] {
     return [...value.errors.map(item => ({ ...item, action, severity: "Error" as const })), ...value.warnings.map(item => ({ ...item, action, severity: "Warning" as const }))];
   }
 
   async function analyze(settings?: SampleJsonSettings) {
-    if (pending || runningEvent.current || !template || (!settings && jsonSettingsOpen)) return;
+    if (pending || runningOperation.current || !template || (!settings && jsonSettingsOpen)) return;
     invalidateOperation();
-    const action: OutputAction = settings ? "Generate Dataset" : "Analyze";
-    startOutput(action);
+    const action: OperationAction = settings ? "Generate Dataset" : "Analyze";
+    startOperation(action);
     const operation = operationId.current;
     const expectedRevision = contentRevision.current;
     const source = template;
@@ -701,13 +702,13 @@ export default function App() {
       if (settings) {
         const proposed = sampleJson.generate(analyzed.requirements, settings);
         // Finish before selecting the new dataset, which invalidates pending input work.
-        finishOutput("Success");
+        finishOperation("success");
         addDataset({ name: generatedDatasetFilename(source.name), kind: "generated", text: proposed });
         setJsonSettingsOpen(false);
-      } else finishOutput("Success");
+      } else finishOperation("success");
     } catch (error) {
       if (operationId.current !== operation || contentRevision.current !== expectedRevision) return;
-      if (error instanceof DOMException && error.name === "AbortError") { finishOutput("Cancelled"); return; }
+      if (error instanceof DOMException && error.name === "AbortError") { finishOperation("cancelled"); return; }
       if (error instanceof AnalysisFailure && error.analysis) {
         setAnalysis(error.analysis);
         const problems = analysisProblems(error.analysis, action);
@@ -716,7 +717,7 @@ export default function App() {
         const problems = error instanceof AnalysisFailure ? error.diagnostics : diagnostic(`${action} failed`, error instanceof Error ? error.message : "The operation could not be completed.");
         setErrors(problems.map(item => ({ ...item, action })));
       }
-      finishOutput("Failure");
+      finishOperation("error");
       if (settings) {
         setJsonSettingsOpen(false);
         openDiagnostics("problems");
@@ -730,8 +731,7 @@ export default function App() {
   }
 
   async function submitJsonSettings() {
-    if (pending || runningEvent.current) return;
-    const startTime = new Date().toISOString();
+    if (pending || runningOperation.current) return;
     const started = performance.now();
     const operation = operationId.current;
     const expectedRevision = contentRevision.current;
@@ -743,9 +743,9 @@ export default function App() {
       await analyze(settings);
     } catch {
       if (operationId.current !== operation || contentRevision.current !== expectedRevision) return;
-      startOutput("Generate Dataset", startTime, started);
+      startOperation("Generate Dataset", started);
       setErrors(diagnostic("Invalid settings", "Items per collection must be a positive integer.").map(item => ({ ...item, action: "Generate Dataset" })));
-      finishOutput("Failure");
+      finishOperation("error");
     }
   }
 
@@ -760,7 +760,7 @@ export default function App() {
     const expectedRevision = contentRevision.current;
     await modal.confirm({
       title: "Clear Local Data?", okText: "Clear", cancelText: "Cancel", okButtonProps: { danger: true },
-      content: "This removes local preferences, remembered file handles, and current workspace data, including generated documents and Output history. Unsaved workspace changes will be discarded. Files on disk will not be deleted.",
+      content: "This removes local preferences, remembered file handles, and current workspace data, including generated documents. Unsaved workspace changes will be discarded. Files on disk will not be deleted.",
       onOk: async () => {
         if (contentRevision.current !== expectedRevision || savingRef.current) {
           void feedback.warning("The workspace changed. Cancel and review Clear Local Data again.");
@@ -786,9 +786,8 @@ export default function App() {
         analysisCache.current = undefined;
         setAnalysis(undefined);
         setErrors([]);
-        setOutput([]);
-        setLatestEvent(undefined);
-        runningEvent.current = undefined;
+        runningOperation.current = undefined;
+        setOperationStatus({ outcome: "ready" });
         setJsonSettingsOpen(false);
         setShortcutsOpen(false);
         setProblemsOpen(false);
@@ -840,8 +839,10 @@ export default function App() {
   const commandKey = isMac ? "⌘ " : "Ctrl+";
   const saveAsShortcut = isMac ? "⇧ ⌘ S" : "Ctrl+Shift+S";
   const formatShortcut = /Linux/.test(platform) ? "Ctrl+Shift+I" : isMac ? "⇧ ⌥ F" : "Shift+Alt+F";
+  const generateShortcut = isMac ? "⌘ Enter" : "Ctrl+Enter";
   const shortcutGroups = [
     { id: "workspace", label: "Workspace", items: [
+      { action: "Generate document", shortcut: generateShortcut },
       { action: "Keyboard shortcuts", shortcut: isMac ? "⇧ /" : "Shift+/" },
       { action: "Collapse diagnostics", shortcut: isMac ? "⇧ ⎋" : "Shift+Escape" }
     ] },
@@ -862,7 +863,15 @@ export default function App() {
     }))
   })).filter(group => group.children.length > 0);
   const resultCurrent = Boolean(result && resultInputs?.datasetId === datasetId && resultInputs?.json === json && resultInputs?.template === template);
-  const eventSummary = latestEvent ? `${latestEvent.action} · ${latestEvent.outcome} · ${new Date(latestEvent.startTime).toLocaleTimeString()}${latestEvent.outcome === "Running" ? "" : ` · ${latestEvent.duration.toFixed(0)} ms`}` : "No operations yet";
+  const statusLabel = operationStatus.outcome === "running"
+    ? operationStatus.action === "Generate" ? "Generating..." : "Analyzing..."
+    : operationStatus.outcome === "ready" ? "Ready"
+      : operationStatus.outcome === "success" ? "Success"
+        : operationStatus.outcome === "error" ? "Error" : "Cancelled";
+  const statusIcon = operationStatus.outcome === "success" ? <CheckCircleFilled aria-hidden="true" style={{ color: token.colorSuccess }} />
+    : operationStatus.outcome === "error" ? <CloseCircleFilled aria-hidden="true" style={{ color: token.colorError }} />
+      : operationStatus.outcome === "cancelled" ? <StopOutlined aria-hidden="true" style={{ color: token.colorWarning }} />
+        : undefined;
   const source = active === "result" ? result?.blob : template;
   const format = active === "result" ? result?.format : template && templateFormat(template.name);
   const label = active === "result" ? "Result" : "Template";
@@ -916,20 +925,26 @@ export default function App() {
       <Flex component="header" className="app-header" align="center" justify="space-between" gap="small" wrap>
         <span className="brand">monoreport</span>
         <Flex align="center" justify="flex-end" gap="small" wrap flex="auto" style={{ maxWidth: "100%" }} aria-label="Workspace actions">
-          <Dropdown {...dropdownProps} trigger={["click"]} menu={{ items: exampleItems, selectedKeys: [pendingExample ?? selectedExample ?? ""], onClick: ({ key }) => void chooseExample(key) }}>
-            <Button aria-label="Examples" disabled={examples.length === 0}>Examples <DownOutlined aria-hidden="true" /></Button>
-          </Dropdown>
-          <Space.Compact>
-            <Button aria-label="Analyze template" loading={pending === "analyze"} disabled={!template || Boolean(pending)} onClick={() => void analyze()}>Analyze</Button>
-            <Dropdown {...dropdownProps} trigger={["click"]} menu={{ items: [{ key: "generate-json", label: "Generate Dataset...", disabled: !template || Boolean(pending), onClick: () => setJsonSettingsOpen(true) }] }}>
-              <Button aria-label="Analyze actions" icon={<DownOutlined />} disabled={!template || Boolean(pending)} />
+          <Tooltip title="Explore examples to see how MonoReport works">
+            <Dropdown {...dropdownProps} trigger={["click"]} menu={{ items: exampleItems, selectedKeys: [pendingExample ?? selectedExample ?? ""], onClick: ({ key }) => void chooseExample(key) }}>
+              <Button aria-label="Examples" disabled={examples.length === 0} icon={<BulbOutlined aria-hidden="true" />}>Examples <DownOutlined aria-hidden="true" /></Button>
             </Dropdown>
-          </Space.Compact>
+          </Tooltip>
           <Flex align="center" gap="small">
-            <Button type="primary" aria-label="Generate document" loading={pending === "generate"} disabled={Boolean(pending) || Boolean(dataset?.restoreError) || Boolean(selectedTemplate?.restoreError)} onClick={() => void generate()}>Generate</Button>
+            <Space.Compact>
+              <Tooltip title={<Space size="small"><span>Generate document</span><ShortcutKeys value={generateShortcut} color={token.colorTextLightSolid} /></Space>}>
+                <Button type="primary" aria-label="Generate document" loading={pending === "generate"} disabled={Boolean(pending) || Boolean(dataset?.restoreError) || Boolean(selectedTemplate?.restoreError)} onClick={() => void generate()}>Generate</Button>
+              </Tooltip>
+              <Dropdown {...dropdownProps} trigger={["click"]} menu={{ items: [
+                { key: "analyze", label: "Analyze Template", disabled: !template || Boolean(pending), onClick: () => void analyze() },
+                { key: "generate-json", label: "Generate Dataset...", disabled: !template || Boolean(pending), onClick: () => setJsonSettingsOpen(true) }
+              ] }}>
+                <Button type="primary" aria-label="Generate actions" icon={<DownOutlined />} disabled={Boolean(pending)} />
+              </Dropdown>
+            </Space.Compact>
             <Dropdown {...dropdownProps} trigger={["click"]} menu={{ items: [
               { key: "api", label: <a href="/docs/" target="_blank" rel="noopener noreferrer">API documentation</a> },
-              { key: "shortcuts", label: "Keyboard shortcuts", onClick: () => setShortcutsOpen(true) },
+              { key: "shortcuts", label: "Keyboard shortcuts", extra: isMac ? "⇧ /" : "Shift+/", onClick: () => setShortcutsOpen(true) },
               { type: "divider" },
               { key: "clear-local", label: "Clear Local Data…", disabled: saving || clearing, onClick: () => void clearLocalData() }
             ] }}>
@@ -982,47 +997,50 @@ export default function App() {
                   </Upload.Dragger>}
             </div>
           </section>}
-          problems={<section className="problems" aria-label="Diagnostics">
-            <Tabs size="small" styles={{ root: { height: "100%", overflow: "hidden" }, body: { height: "100%" }, content: { height: "100%", overflow: "auto" } }}
-              renderTabBar={(props, TabBar) => <Flex vertical style={{ flex: "none" }}>
-                <TabBar {...props} />
-                <Flex role="toolbar" aria-label="Diagnostics actions" justify="flex-start" gap="small" style={{ display: "flex", minHeight: token.controlHeightSM, marginBottom: token.marginXS }}>
-                  {diagnosticsTab === "problems" && <>
-                    <Button size="small" disabled={!errors.length} onClick={() => setErrors([])}>Clear</Button>
-                    <Button size="small" disabled={!errors.length} onClick={() => void copyProblems()}>Copy</Button>
-                  </>}
-                  {diagnosticsTab === "output" && <Button size="small" disabled={!output.length} onClick={() => setOutput([])}>Clear</Button>}
-                </Flex>
-              </Flex>} activeKey={diagnosticsTab} onChange={key => setDiagnosticsTab(key as DiagnosticsTab)} tabBarExtraContent={<Button size="small" type="text" icon={<CloseOutlined />} aria-label="Hide diagnostics" onClick={() => changeProblemsOpen(false)} />} items={[{
+          problems={<ConfigProvider componentSize="small" theme={{ token: { fontSize: 12, fontSizeSM: 12, fontSizeLG: 12, fontSizeHeading5: 12 }, components: {
+            Button: { contentFontSizeSM: 12 },
+            Tabs: { titleFontSizeSM: 12, horizontalItemPaddingSM: `${token.paddingXXS}px ${token.paddingSM}px`, horizontalItemGutter: token.marginXS, horizontalMargin: "0" },
+            Table: { cellFontSizeSM: 12, cellPaddingBlockSM: token.paddingXXS, cellPaddingInlineSM: token.paddingXS },
+            Typography: { titleMarginTop: token.marginXS, titleMarginBottom: token.marginXXS }
+          } }}>
+          <section className="problems" aria-label="Diagnostics" style={{ fontSize: 12 }}>
+            <Tabs size="small" styles={{ root: { height: "100%", overflow: "hidden" }, header: { background: token.colorFillQuaternary, paddingBlock: 0 }, body: { height: "100%" }, content: { height: "100%", overflow: "auto" } }}
+              activeKey={diagnosticsTab} onChange={key => setDiagnosticsTab(key as DiagnosticsTab)} tabBarExtraContent={<Tooltip title="Hide diagnostics"><Button size="small" type="text" icon={<CloseOutlined />} aria-label="Hide diagnostics" onClick={() => changeProblemsOpen(false)} /></Tooltip>} items={[{
               key: "problems", label: problemsLabel, children: <>
-                {errors.length ? <div>{errors.map((error, index) => <div className="issue" key={`${error.code ?? error.title}-${index}`}><span>{index + 1}.</span><div><strong>{[error.action, error.severity, error.title].filter(Boolean).join(" · ")}</strong><p>{[error.code, error.field, error.dataPath, error.part, error.location, error.formatter, error.detail].filter(Boolean).join(" · ")}</p></div></div>)}</div> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No problems" />}
+                {errors.length > 0 && <Flex role="toolbar" aria-label="Problems actions" align="center" gap={token.paddingXXS} style={{ marginTop: token.paddingXXS, marginBottom: token.marginXXS }}>
+                  <Tooltip title="Clear"><Button size="small" type="text" icon={<DeleteOutlined />} aria-label="Clear" onClick={() => setErrors([])} /></Tooltip>
+                  <Tooltip title="Copy"><Button size="small" type="text" icon={<CopyOutlined />} aria-label="Copy" onClick={() => void copyProblems()} /></Tooltip>
+                </Flex>}
+                {errors.length ? <div>{errors.map((error, index) => {
+                  const severity = error.severity ?? "Error";
+                  const Icon = severity === "Warning" ? ExclamationCircleFilled : CloseCircleFilled;
+                  const code = error.code ?? error.title;
+                  const title = error.title === code ? undefined : error.title;
+                  return <div className="issue" key={`${code}-${index}`}>
+                    <div className="issue-content">
+                      <div className="issue-heading"><div role="img" aria-label={severity} className="issue-icon" style={{ color: severity === "Warning" ? token.colorWarning : token.colorError }}><Icon aria-hidden="true" /></div><strong>{code}</strong>{title && <span>{title}</span>}</div>
+                      <p>{[error.field, error.dataPath, error.part, error.location, error.formatter, error.detail].filter(Boolean).join(" · ")}</p>
+                    </div>
+                  </div>;
+                })}</div> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No problems" />}
               </>
-            }, { key: "analysis", label: "Analysis", children: <AnalysisView analysis={analysis} /> }, {
-              key: "output", label: "Output", children: <>
-                {output.length ? <Flex component="ol" vertical gap="small" aria-label="Operation history">
-                  {output.map(event => <Flex component="li" key={event.id} align="center" gap="small" wrap>
-                    <OutcomeIcon outcome={event.outcome} />
-                    <Typography.Text type="secondary"><time dateTime={event.startTime}>{new Date(event.startTime).toLocaleTimeString()}</time></Typography.Text>
-                    <Typography.Text>{event.action}</Typography.Text>
-                    {event.outcome !== "Running" && <Typography.Text type="secondary">{event.duration.toFixed(0)} ms</Typography.Text>}
-                  </Flex>)}
-                </Flex> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No output" />}
-              </>
-            }]} />
-          </section>}
+            }, { key: "analysis", label: "Analysis", children: <AnalysisView analysis={analysis} /> }]} />
+          </section>
+          </ConfigProvider>}
         />
       </main>
       <input ref={fileInput} type="file" hidden accept={templateAccept} onChange={selected} />
       <input ref={dataInput} type="file" hidden accept=".json,application/json" aria-label="Upload dataset" onChange={event => { const file = event.target.files?.[0]; const replaceId = reopenDataId.current; reopenDataId.current = undefined; event.target.value = ""; if (file) void openData(file, replaceId); }} />
-      <Flex component="footer" align="center" gap="small" wrap>
-        <Button size="small" type="text" onClick={() => openDiagnostics("output")}><span role="status"><Space size="small">{latestEvent && <OutcomeIcon outcome={latestEvent.outcome} />}<span>{eventSummary}</span></Space></span></Button>
+      <ConfigProvider componentSize="small" theme={{ token: { fontSize: 12, fontSizeSM: 12, fontSizeLG: 12 }, components: { Button: { contentFontSizeSM: 12 } } }}>
+      <Flex component="footer" align="center" gap="small" wrap style={{ fontSize: 12 }}>
+        <Button size="small" type="text" style={{ paddingInlineStart: 0 }} onClick={() => openDiagnostics("problems")} aria-label={`Workspace status: ${statusLabel}`}><Space size="small"><span role="status" aria-label={statusLabel}><Flex align="center" gap={token.paddingXXS}><span style={{ display: "inline-flex", alignItems: "center" }}>{operationStatus.outcome === "running" ? <Spin size="small" /> : statusIcon}</span><span>{statusLabel}</span></Flex></span>{operationStatus.outcome !== "running" && operationStatus.duration !== undefined && <Typography.Text type="secondary">{operationStatus.duration.toFixed(0)} ms</Typography.Text>}</Space></Button>
         {!problemsOpen && <>
         <Button size="small" type="text" aria-expanded={problemsOpen && diagnosticsTab === "problems"} onClick={() => openDiagnostics("problems")}>{problemsLabel}</Button>
         <Button size="small" type="text" aria-expanded={problemsOpen && diagnosticsTab === "analysis"} onClick={() => openDiagnostics("analysis")}>Analysis</Button>
-        <Button size="small" type="text" aria-expanded={problemsOpen && diagnosticsTab === "output"} onClick={() => openDiagnostics("output")}>Output</Button>
         </>}
-        <span className="project-links"><a href={repositoryUrl} target="_blank" rel="noreferrer" title="MonoReport on GitHub"><GithubFilled aria-hidden="true" />MonoReport</a>{__APP_VERSION__ === "dev" ? <span>dev</span> : <a href={`${repositoryUrl}/releases/tag/v${__APP_VERSION__}`} target="_blank" rel="noreferrer">v{__APP_VERSION__}</a>}</span>
+        <span className="project-links"><a href={repositoryUrl} target="_blank" rel="noreferrer" title="MonoReport on GitHub" style={{ color: token.colorTextTertiary }}><GithubFilled aria-hidden="true" />MonoReport</a>{__APP_VERSION__ === "dev" ? <span style={{ color: token.colorTextTertiary }}>dev</span> : <a href={`${repositoryUrl}/releases/tag/v${__APP_VERSION__}`} target="_blank" rel="noreferrer" style={{ color: token.colorTextTertiary }}>v{__APP_VERSION__}</a>}</span>
       </Flex>
+      </ConfigProvider>
     </div>
   </ConfigProvider>;
 }
