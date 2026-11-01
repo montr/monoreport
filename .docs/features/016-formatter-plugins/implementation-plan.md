@@ -1,0 +1,97 @@
+# Feature 016 — Formatter Plugins Implementation Plan
+
+**Status:** Proposed revision for review and separate Product Owner approval. Implementation has not started.
+
+**Revised:** 2026-11-01
+
+## 1. Authority and scope
+
+1. Follow the approved [Feature Spec](feature-spec.md), sections 3–6 and decisions D1–D5. The latest Product Owner instructions authorize this three-stage plan revision, including temporary Core-hosted Spellout in Stage 1, and supersede the earlier example-migration ownership: the Developer migrates **all affected example templates**. No Product Owner template edits are a dependency.
+2. [future-vision.md](future-vision.md) remains future direction only. No package distribution/loading, discovery, plugin manager, reference evaluation, additional currencies, UI, or transport-schema work is included.
+3. Obtain separate Product Owner approval before implementation. Stages are unstarted; once work begins, retain their numbers and record In progress, Review, or Accepted with date. Follow [AGENTS.md](../../../AGENTS.md) for disruptive/resource-intensive checks; no delegation or Git index/history operations are authorized.
+
+## 2. Implementation boundaries
+
+1. Put public IFormatter contracts and data-only metadata, operand, context, and validation-result models in Core. Keep parameter name/type/required metadata and one optional positional target; preserve ordered argument occurrences through duplicate checking. Implement string literals only, leaving a small boundary for a future distinct reference without implementing it.
+2. Replace the fixed recognition in [TemplateLanguageParser](../../../MonoReport/Services/TemplateLanguageParser.cs), the single argument in [TemplateExpression](../../../MonoReport/Models/TemplateExpression.cs), and named dispatch in [ValueFormatter](../../../MonoReport/Services/ValueFormatter.cs) with one keyed lookup, binding, validation, and formatting path. Use the selected registration for metadata and behavior, with ordinal keys, caller scopes, TryAdd defaults, transient orchestration, and safe stateless singletons. Add no registry, secondary provider, global formatter cache, compatibility grammar, or conversion framework.
+3. Preserve the existing shared DOCX/XLSX preflight and rendering boundaries. Analyze validates syntax, binding, and known literals without a dataset or runtime formatting, including inactive content; Raw/opaque content remains literal. Number/date own their framework-based pattern checks. Keep unformatted conversion, empty/missing handling, safe ordered diagnostics, caller ownership, inert insertion, and XLSX native/text and styling distinctions.
+4. Reuse the existing casing, ISO-date, and RUB algorithms. Share invariant decimal input conversion between number and Spellout through the smallest justified injected service; expose only what external Spellout needs at extraction. Carry effective MergeOptions.Culture explicitly and derive diagnostic identity from the invoked key.
+5. Update tests, fixture generators, manual constructors, and provider setup **in the stage that changes their behavior or dependencies**. Preserve obsolete-syntax rejection tests and intentional literal content. Use existing subsystem tests and focused public-contract test implementations; no production demonstration formatter or extra contracts assembly is needed.
+
+## 3. Examples inventory and migration responsibility
+
+1. Planning inspection covered all seven entries in [examples.json](../../../web/public/examples.json), all seven paired JSON files, and actual OOXML package contents. DOCX inspection reconstructed paragraph text across runs in document/header/footer/note parts and checked field instructions/media. XLSX inspection resolved shared strings and cell references, joined rich/inline text, and inspected worksheet controls, styles, formulas, workbook metadata, and data value kinds. Discovery was not limited to raw text matches for colon patterns.
+2. The following paths are relative to Samples. These are content-inspection findings, **not executed Analyze/Generate results**. Recheck the inventory against the implementation working tree before migration; edit only templates requiring a change and preserve paired data.
+
+| Catalog entry | Template / paired JSON | Migration and output checks |
+| --- | --- | --- |
+| orders-report | orders-report.template.docx / orders-report.json | Migrate number/date patterns. Preserve 20 orders, 152 item rows, supplied decimal-string totals including 60,206.90 RUB, dates, repeated tables, headers/footers, and formatting. |
+| project-costs | project-costs.template.docx / project-costs.json | Migrate number patterns. Preserve 3 projects, 8 stages including an empty Items array, 16 items, total 10,532,700, merged table cells, and hierarchy formatting. |
+| syntax-showcase | syntax-showcase.template.docx / syntax-showcase.json | Migrate active number/date patterns **and escaped instructional labels** showing those forms. Preserve all seven formatter results, explicit date offset, conditions/lists, and intentionally malformed Raw text. Expected number/date displays assume the stated culture. |
+| construction-cost-estimate | sample.template.docx / sample.json | Migrate number/date patterns; keep parameterless Spellout. Preserve 3 materials, total 125,430.50, dates/RUB wording, table formatting, and the existing sample.docx output reference. |
+| repeated-image | repeated-image.template.docx / repeated-image.json | No formatter migration identified; leave template unchanged. Verify 3 labeled image instances from one source image, media relationships, geometry, and list formatting. |
+| xlsx-tender | xlsx-tender.template.xlsx / xlsx-tender.json | No formatter migration identified; leave template unchanged. Check 2 bids × 2 criteria, the 12 level/path records, repeated headers/rows, numeric Quantity/Value outputs, SUM references, print area, and styles. Keep numeric fields native rather than adding text formatters. |
+| xlsx-employees | xlsx-employees.template.xlsx / xlsx-employees.json | No formatter migration identified; leave template unchanged. Check 10 departments and 100 employees, native string results, hierarchy, print area, and cell styles. |
+
+3. [Feature010AcceptanceTests](../../../MonoReport.Tests/Services/Feature010AcceptanceTests.cs) already verifies the five DOCX entries, including row contents, showcase values, images, and an exact XML comparison against Samples/sample.docx. Reuse these assertions; preserve the expected output reference rather than regenerating it to hide regressions. Add only missing catalog/XLSX checks and necessary fixture-copy inputs.
+4. [webpack.config.cjs](../../../web/webpack.config.cjs) emits Samples templates/data to the catalog paths. The Developer verifies all seven source pairs and emitted copies in Stage 3; unchanged templates/data should remain untouched. Updating instructional syntax is intentional; other rendered values and document formatting must remain equivalent.
+
+## 4. Implementation stages
+
+### Stage 1 — Common formatter path
+
+1. **Dependency:** separate Product Owner approval of this plan.
+2. Implement the public contracts, keyed DI, metadata, single formatter validation operation, literal operands, and binding. Migrate **all seven** built-ins to IFormatter, initially keeping Spellout in Core and registering it there temporarily. Preserve its default key and behavior. Remove parser whitelists and runtime name branches within this stage; do not leave parallel formatter paths.
+3. Implement the approved leading positional/named double-quoted syntax and reject colon/bare/single-quoted forms, malformed assignments, unknown/duplicate/missing parameters, unsupported positional forms, chaining, and invocation punctuation. Preserve quoted contents and existing quote/brace/identifier rules. Positional and named pattern forms share one binding; quoted dataset-looking paths remain literals.
+4. Integrate binding and formatter-owned literal checks with existing Analyze and generation preflight in both formats. Number/date patterns use fixed-sample framework checks. Runtime receives validated bindings and explicit culture; dataset-dependent conversion/range failures happen during formatting without another required validation pass.
+5. Update affected parser/formatter tests, generated fixtures, manual construction helpers, and CLI/HTTP test source syntax now. Test public Analyze/Generate with bounded synthetic DOCX/XLSX inputs, including custom keys, positional/named equivalence, generic parameter relationships, replacement metadata/validation/output, inactive/empty content, Raw boundaries, and no runtime Format calls during Analyze.
+6. Verify all built-in semantics, shared numeric acceptance, RUB grammar/rounding/range, null/empty bypass, missing policies, diagnostics/order/caps/no partial output, ownership, parse-once/inert text, and native XLSX precision/types/rich-text styling. Cover TryAdd/repeated bootstrap, normal same-key selection, scoped dependencies/disposal, and concurrent value/culture isolation. Reuse the affected parser, UnifiedTemplateTests, Feature010DocxTests/IntegrationTests, Feature012FoundationTests/CompatibilityTests, and XlsxRichTextSubstitutionTests; add only coverage gaps under subsystem names.
+7. **Exit criteria:** the complete common path works through public DOCX/XLSX analysis and generation with seven Core-hosted formatters, with coherent selected metadata/validation/output and passing affected focused tests. Catalog-template migration remains explicitly scheduled for Stage 3; do not disable those acceptance tests or claim the unmigrated catalog already passes.
+
+### Stage 2 — External Spellout
+
+1. **Dependency:** Stage 1's working common formatter path and recorded behavior evidence.
+2. Extract the existing IFormatter implementation into MonoReport.Formatter.Spellout, referencing Core without friend access. Remove its temporary Core default and concrete dependency; final AddMonoReport supplies six simple keyed defaults. Keep the same numeric parsing and RUB behavior, using the minimal public conversion surface needed by the external implementation.
+3. Implement AddMonoReportSpelloutFormatter(string key = "spellout") as a normal keyed singleton registration per call, validating representable nonempty keys. Verify default, custom-only, two distinct keys, and repeated same-key calls; no aliases, hidden default registration, deduplication, or cross-key instance-sharing layer.
+4. Update API/CLI explicit default registration, solution/application/test references, and [Dockerfile](../../../Dockerfile) project-file **and source** copy inputs. Move affected helper/provider/test setup in this stage, including Core-only unknown-Spellout expectations and explicit external registration wherever RUB behavior is required.
+5. Verify independent compilation using public contracts and actual DOCX/XLSX Analyze/Generate for default/custom keys, with invoked keys in failures. Reuse Stage 1 contract scenarios for focused extraction regressions; rerun RUB/changed composition cases because their assembly and registration changed, not unchanged parser/casing suites merely for milestone closure.
+6. Run affected CLI/HTTP integration and existing contract/OpenAPI checks for explicit Spellout composition, new syntax, actual output, safe errors, and unchanged response shape. Validate and explicitly resolve/invoke default and scoped graphs. Check solution build and API/CLI runtime delivery; use existing publish/container CI evidence or obtain approval before resource-intensive local checks. Missing execution evidence stays recorded rather than inferred from Docker inspection.
+7. **Exit criteria:** final six-Core/one-external composition works, Core-only use reports absent Spellout normally, custom keys and registration order work, and application/build delivery checks have recorded outcomes. No parser or dispatch change is needed to use external Spellout.
+
+### Stage 3 — Examples, documentation, and final verification
+
+1. **Dependency:** Stages 1–2 and their recorded verification; Developer-owned example migration has no dependency on Product Owner edits.
+2. Reconfirm section 3's complete catalog inventory, migrate every affected template and maintained copy, and update example-coupled tests/fixture inputs with those changes. Preserve run/paragraph/cell styling, pattern contents, expected outputs, and literal Raw boundaries; update escaped showcase syntax labels deliberately. Leave unaffected templates and all currently compatible sample data unchanged.
+3. Verify **Analyze and Generate for all seven** catalog pairs using the integrated composition and explicit appropriate culture. Reuse existing DOCX acceptance assertions and add focused XLSX/catalog coverage where missing. Assert output values/counts, document/package integrity and formatting, repeated-image preservation, and actual native XLSX cell types/formulas/styles. The examples contain numeric/string XLSX cases; retain Stage 1 synthetic Boolean/precision evidence rather than modifying examples to add coverage.
+4. Verify emitted/published example copies match the verified sources through the existing webpack process and catalog paths. Update README and active syntax/setup guidance for positional/named strings, explicit Spellout references/registration, Core-only use, and intentional migration breaks. Leave completed Feature documents and historical evidence unchanged; add no migration product, UI, or compatibility shim.
+5. Close only remaining integration/acceptance gaps. Reuse Stage 1–2 results for unchanged code; rerun a check only when later changes invalidate its evidence or expose an uncovered risk. Do not schedule another blanket solution/parser/formatter test run solely for final acceptance. Reuse current build/publish/CI evidence where applicable, recording any remaining limitation.
+6. **Exit criteria:** all seven examples pass actual analysis/generation with expected outputs, formatting, and native types; only affected templates changed; active docs/build copies agree. Submit one acceptance evidence map with test/check references, outcomes, inherited limitations, and outstanding issues for review and Product Owner acceptance. Do not claim independent review or acceptance from self-checks.
+
+## 5. Primary acceptance verification
+
+| Spec section 6 criterion | Primary stage | Evidence to retain for final acceptance |
+| --- | --- | --- |
+| 1. Complete migration | 2 | Stage 1 common-path output tests plus final six-Core/one-external composition and removal of Core Spellout dependency. |
+| 2. Public extension | 2 | External compilation without friend access and DOCX/XLSX public-contract integration; reuse Stage 1 generic parameter probes. |
+| 3. Spellout keys | 2 | Default/custom-only/two-key Analyze/Generate, repeated registration, and invoked-key failures. |
+| 4. DI selection | 2 | Stage 1 reversed same-key metadata/validation/output and TryAdd tests, completed by Stage 2 Spellout registration-order checks. |
+| 5. Metadata | 1 | Required pattern/positional target and parameterless built-ins, one schema without defaults or allowed-value lists. |
+| 6. Accepted syntax | 1 | Equivalent number/date forms, named order, positional-plus-named probes, quoted content and no-argument calls. |
+| 7. Rejected syntax/binding | 1 | Focused grammar/binding matrix with source diagnostics and duplicate/required/positional cases. |
+| 8. Literal-aware Analyze | 1 | Instrumented no-dataset/no-Format checks, structural/literal constraints, inactive-content preflight, and later data-dependent failure. |
+| 9. Unchanged RUB | 1 | Numeric domains, wording/rounding/range and unknown currency parameter; Stage 2 focused extraction results supplement this evidence. |
+| 10. Output regressions | 1 | Actual outputs/culture, empty/missing handling, safe diagnostics, no partial output, ownership, inert text, native types and styling. |
+| 11. Composition/lifetimes | 2 | Stage 1 scoped/disposal/concurrency evidence plus final Core-only, API/CLI, external registration and validated graphs. |
+| 12. Migration consistency | 3 | Stage-local test/setup/build changes, all seven source/output checks, active docs and emitted copies; reuse Stage 2 CLI/HTTP contracts. |
+| 13. Future boundary/scope | 1 | Literal identity and invalid references, unchanged inferred requirements, small public boundary; final scope inspection adds no new test pass. |
+
+1. Retain the exact checks, outcomes, and relevant source/fixture revision per stage. Later acceptance reviews that evidence rather than repeating tests; new failures, changed dependencies, or changed fixtures justify targeted reruns.
+2. Criteria completed primarily in Stage 2 or Stage 3 still receive functional coverage when their behavior first changes. No test/fixture migration is deferred merely because its criterion has a later primary stage; catalog-coupled checks accompany the Stage 3 template edits they exercise.
+
+## 6. Risks, dependencies, and current limits
+
+1. **Intentional migration breaks:** Stage 1 removes colon syntax; Stage 2 changes Spellout setup. Migrate corresponding test fixtures immediately and document the temporary stage boundary. Catalog acceptance depends on Stage 3 edits, not legacy parsing or a Product Owner handoff.
+2. **Behavior/lifetime fidelity:** selected metadata must agree with validation/output; extraction must preserve numeric/RUB semantics and caller scopes. Stage 1 supplies common-path regressions; Stage 2 adds only extraction/composition checks. No provider/cache or raw-exception transport path is introduced.
+3. **Example fidelity:** syntax can span OOXML runs or appear as escaped documentation. Preserve the existing sample.docx output reference and all formatting/native-type assertions; investigate any difference instead of automatically refreshing expected outputs. Untouched repeated-image/XLSX templates still require actual analysis/generation evidence.
+4. **Build delivery:** external references require both Docker copy groups and runtime assembly delivery. Report unavailable publish/container execution or inherited fixture limitations explicitly; browser automation/capacity testing is not required for this feature. No unresolved product-level architecture decision or Product Owner-supplied artifact blocks this plan.
+5. This revision changes only implementation-plan.md. Inspection of catalog/template/data contents and existing tests is not application execution evidence: no implementation, template edits, build, application tests, browser automation, or container run occurred. The revised plan is submitted for review; implementation awaits separate Product Owner approval.
