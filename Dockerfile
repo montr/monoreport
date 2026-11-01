@@ -13,9 +13,11 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS api-build
 WORKDIR /src
 COPY global.json Directory.Build.props NuGet.Config ./
 COPY MonoReport/MonoReport.csproj MonoReport/
+COPY MonoReport.Formatter.Spellout/MonoReport.Formatter.Spellout.csproj MonoReport.Formatter.Spellout/
 COPY MonoReport.Api/MonoReport.Api.csproj MonoReport.Api/
 RUN dotnet restore MonoReport.Api/MonoReport.Api.csproj
 COPY MonoReport/ MonoReport/
+COPY MonoReport.Formatter.Spellout/ MonoReport.Formatter.Spellout/
 COPY MonoReport.Api/ MonoReport.Api/
 COPY --from=ui-build /src/web/dist /ui-dist
 ARG APP_VERSION=dev

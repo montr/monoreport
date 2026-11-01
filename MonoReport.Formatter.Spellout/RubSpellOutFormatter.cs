@@ -1,8 +1,8 @@
 using System.Globalization;
-namespace MonoReport.Services
+namespace MonoReport.Formatter.Spellout
 {
     /// <summary>Russian RUB amounts, rounded to kopecks away from zero.</summary>
-    public sealed class RubSpellOutFormatter
+    internal sealed class RubSpellOutFormatter
     {
         private const string FeminineOne = "одна";
         private const string FeminineTwo = "две";

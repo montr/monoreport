@@ -875,7 +875,7 @@ public sealed class Feature010DocxTests
     [InlineData("{Text caps}", "hELLO wORLD", "HELLO WORLD")]
     [InlineData("{Text firstcap}", "--hello WORLD", "--Hello WORLD")]
     [InlineData("{Text upper}", "true", "TRUE")]
-    [InlineData("{Text number:\"0.00\"}", " 1.2e2 ", "120.00")]
+    [InlineData("{Text number \"0.00\"}", " 1.2e2 ", "120.00")]
     public void Built_in_formatters_apply_approved_scalar_semantics(string expression, string value, string expected)
     {
         var jsonValue = value == "true" ? "true" : System.Text.Json.JsonSerializer.Serialize(value);
@@ -899,7 +899,7 @@ public sealed class Feature010DocxTests
     [InlineData("\"\"")]
     public void Null_and_empty_string_skip_conversion_for_every_formatter(string jsonLiteral)
     {
-        var expressions = new[] { "upper", "lower", "caps", "firstcap", "spellout", "number:\"0.00\"", "date:\"yyyy\"" };
+        var expressions = new[] { "upper", "lower", "caps", "firstcap", "spellout", "number \"0.00\"", "date \"yyyy\"" };
         var template = Docx.Create(Docx.P(Docx.Run(string.Join('|', expressions.Select(name => $"{{Value {name}}}")))));
         var result = Docx.Merge(template, $"{{\"Value\":{jsonLiteral}}}");
         Assert.Equal("||||||", Docx.Text(Docx.Read(result.Document)));
@@ -912,7 +912,7 @@ public sealed class Feature010DocxTests
     [InlineData("Infinity")]
     public void Number_rejects_non_invariant_or_non_finite_strings(string value)
     {
-        var template = Docx.Create(Docx.P(Docx.Run("{Value number:\"0.00\"}")));
+        var template = Docx.Create(Docx.P(Docx.Run("{Value number \"0.00\"}")));
         Assert.Throws<TemplateException>(() => Docx.Merge(template,
             System.Text.Json.JsonSerializer.Serialize(new { Value = value })));
     }
@@ -920,7 +920,7 @@ public sealed class Feature010DocxTests
     [Fact]
     public void Number_uses_invariant_input_and_configured_output_culture_without_losing_decimal_precision()
     {
-        var template = Docx.Create(Docx.P(Docx.Run("{Value number:\"#,##0.000\"}")));
+        var template = Docx.Create(Docx.P(Docx.Run("{Value number \"#,##0.000\"}")));
         var result = Docx.Merge(template, """{"Value":" -1.2345e2 "}""",
             new MergeOptions { Culture = CultureInfo.GetCultureInfo("de-DE") });
         Assert.Equal("-123,450", Docx.Text(Docx.Read(result.Document)));
@@ -932,7 +932,7 @@ public sealed class Feature010DocxTests
     [InlineData("12.50")]
     public void Number_and_spellout_share_accepted_decimal_inputs(string literal)
     {
-        var template = Docx.Create(Docx.P(Docx.Run("{Value number:\"0.00\"}|{Value spellout}")));
+        var template = Docx.Create(Docx.P(Docx.Run("{Value number \"0.00\"}|{Value spellout}")));
         var result = Docx.Merge(template, $"{{\"Value\":{literal}}}");
         Assert.Contains('|', Docx.Text(Docx.Read(result.Document)));
     }
@@ -946,7 +946,7 @@ public sealed class Feature010DocxTests
     [InlineData("1e1000")]
     public void Number_and_spellout_share_rejected_numeric_strings(string value)
     {
-        foreach (var formatter in new[] { "number:\"0.00\"", "spellout" })
+        foreach (var formatter in new[] { "number \"0.00\"", "spellout" })
         {
             var template = Docx.Create(Docx.P(Docx.Run($"{{Value {formatter}}}")));
             var error = Assert.Throws<TemplateException>(() => Docx.Merge(template,
@@ -958,7 +958,7 @@ public sealed class Feature010DocxTests
     [Fact]
     public void Date_preserves_explicit_offset_and_rejects_offsetless_datetime()
     {
-        var template = Docx.Create(Docx.P(Docx.Run("{Value date:\"yyyy-MM-dd HH:mm zzz\"}")));
+        var template = Docx.Create(Docx.P(Docx.Run("{Value date \"yyyy-MM-dd HH:mm zzz\"}")));
         var valid = Docx.Merge(template, """{"Value":"2026-01-02T03:04:05.123+03:30"}""");
         Assert.Equal("2026-01-02 03:04 +03:30", Docx.Text(Docx.Read(valid.Document)));
 
@@ -971,7 +971,7 @@ public sealed class Feature010DocxTests
     [InlineData("2026-01-02T03:04:05.1234567-04:30", "2026-01-02 03:04 -04:30")]
     public void Date_accepts_only_approved_iso_representations(string value, string expected)
     {
-        var template = Docx.Create(Docx.P(Docx.Run("{Value date:\"yyyy-MM-dd HH:mm zzz\"}")));
+        var template = Docx.Create(Docx.P(Docx.Run("{Value date \"yyyy-MM-dd HH:mm zzz\"}")));
         var result = Docx.Merge(template, System.Text.Json.JsonSerializer.Serialize(new { Value = value }));
         Assert.Equal(expected, Docx.Text(Docx.Read(result.Document)));
     }
@@ -983,7 +983,7 @@ public sealed class Feature010DocxTests
     [InlineData("2026-01-02T03:04:05.12345678Z")]
     public void Date_rejects_ambiguous_or_unsupported_input(string value)
     {
-        var template = Docx.Create(Docx.P(Docx.Run("{Value date:\"yyyy\"}")));
+        var template = Docx.Create(Docx.P(Docx.Run("{Value date \"yyyy\"}")));
         Assert.Throws<TemplateException>(() => Docx.Merge(template,
             System.Text.Json.JsonSerializer.Serialize(new { Value = value })));
     }
@@ -1026,8 +1026,8 @@ public sealed class Feature010DocxTests
     [Fact]
     public void Formatter_failures_are_aggregated_without_partial_output()
     {
-        var template = Docx.Create(Docx.P(Docx.Run("{Amount number:\"0.00\"}")),
-            Docx.P(Docx.Run("{Date date:\"yyyy\"}")), Docx.P(Docx.Run("{Words spellout}")));
+        var template = Docx.Create(Docx.P(Docx.Run("{Amount number \"0.00\"}")),
+            Docx.P(Docx.Run("{Date date \"yyyy\"}")), Docx.P(Docx.Run("{Words spellout}")));
         var error = Assert.Throws<TemplateException>(() => Docx.Merge(template,
             """{"Amount":true,"Date":"not-a-date","Words":[]}"""));
         Assert.Equal(3, error.Errors.Count);
@@ -1038,7 +1038,7 @@ public sealed class Feature010DocxTests
     private static TemplateAnalyzer Analyzer()
     {
         var reader = new DocxStoryReader();
-        return new(reader, new DocxTemplatePlanner(new TemplateLanguageParser()));
+        return new(reader, new DocxTemplatePlanner(TestComposition.Parser));
     }
 
     private static XElement OpaqueContent(string kind, bool visible)

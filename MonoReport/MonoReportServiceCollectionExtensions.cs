@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using MonoReport.Services;
 using MonoReport.Services.Xlsx;
+using MonoReport.Models;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -31,7 +32,13 @@ public static class MonoReportServiceCollectionExtensions
         services.TryAddTransient<DocumentRenderer>();
         services.TryAddTransient<DataResolver>();
         services.TryAddTransient<ValueFormatter>();
-        services.TryAddSingleton<RubSpellOutFormatter>();
+        services.TryAddSingleton<InvariantDecimalParser>();
+        services.TryAdd(ServiceDescriptor.KeyedSingleton<IFormatter, UpperFormatter>("upper"));
+        services.TryAdd(ServiceDescriptor.KeyedSingleton<IFormatter, LowerFormatter>("lower"));
+        services.TryAdd(ServiceDescriptor.KeyedSingleton<IFormatter, CapsFormatter>("caps"));
+        services.TryAdd(ServiceDescriptor.KeyedSingleton<IFormatter, FirstCapFormatter>("firstcap"));
+        services.TryAdd(ServiceDescriptor.KeyedSingleton<IFormatter, NumberFormatter>("number"));
+        services.TryAdd(ServiceDescriptor.KeyedSingleton<IFormatter, DateFormatter>("date"));
 
         return services;
     }

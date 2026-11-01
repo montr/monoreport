@@ -109,5 +109,5 @@ public sealed partial class Feature010IdentityTests
         return analysis;
     }
 
-    internal static TemplateAnalyzer Analyzer() => new(new DocxStoryReader(), new DocxTemplatePlanner(new TemplateLanguageParser()));
+    internal static TemplateAnalyzer Analyzer() => new(new DocxStoryReader(), new DocxTemplatePlanner(TestComposition.Parser));
 }

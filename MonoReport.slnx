@@ -5,4 +5,5 @@
   <Project Path="MonoReport.Api.Tests/MonoReport.Api.Tests.csproj" />
   <Project Path="MonoReport.Tests/MonoReport.Tests.csproj" />
   <Project Path="MonoReport/MonoReport.csproj" />
+  <Project Path="MonoReport.Formatter.Spellout/MonoReport.Formatter.Spellout.csproj" />
 </Solution>

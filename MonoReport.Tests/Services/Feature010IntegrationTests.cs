@@ -71,7 +71,7 @@ public sealed class Feature010IntegrationTests
         var checkedIn = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "sample.docx"));
         Docx.AssertValid(template);
         using var input = new MemoryStream(template);
-        using var provider = new ServiceCollection().AddMonoReport().BuildServiceProvider();
+        using var provider = new ServiceCollection().AddMonoReport().AddMonoReportSpelloutFormatter().BuildServiceProvider();
         var analysis = provider.GetRequiredService<TemplateAnalyzer>().Analyze(input);
         Assert.True(analysis.Valid);
         Assert.Contains(analysis.Requirements, item => item.Name == "Materials" && item.Type == "array");

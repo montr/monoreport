@@ -35,7 +35,7 @@ public sealed class CliTests
     [Fact]
     public void Generate_writes_docx_and_reports_location_bearing_format_errors_without_partial_output()
     {
-        var path = WriteTemplate(Docx.Create(Docx.P(Docx.Run("{Amount number:\"0.00\"}"))));
+        var path = WriteTemplate(Docx.Create(Docx.P(Docx.Run("{Amount number \"0.00\"}"))));
         try
         {
             using var provider = new ServiceCollection().AddMonoReport().BuildServiceProvider();

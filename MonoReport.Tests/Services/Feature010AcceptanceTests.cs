@@ -194,7 +194,7 @@ public sealed class Feature010AcceptanceTests
                 : Docx.P(Docx.Run(left), metadata[0], Docx.Run(middle), metadata[1], Docx.Run(right));
         }
         // Use separate fixtures so bookmark/permission IDs stay unique in each source package.
-        var scalar = Docx.Create(Split("Cost: {", "Amount", " number:\"N2\"}"));
+        var scalar = Docx.Create(Split("Cost: {", "Amount", " number \"N2\"}"));
         Docx.AssertValid(scalar);
         using var input = new MemoryStream(scalar);
         Assert.True(Analyzer().Analyze(input).Valid);
@@ -228,7 +228,7 @@ public sealed class Feature010AcceptanceTests
             MergedRow(Docx.Run("{For:Projects}")), MergedRow(Docx.Run("Project {Name}")),
             MergedRow(Docx.Run("{For:Stages}")), MergedRow(Docx.Run("Stage {Name}")),
             MergedRow(Docx.Run("{For:Items}")),
-            new XElement(w + "tr", new[] { "{Name}", "{../../Name}", "{../Name}", "{$.Currency}", "{Total number:\"N2\"}" }
+            new XElement(w + "tr", new[] { "{Name}", "{../../Name}", "{../Name}", "{$.Currency}", "{Total number \"N2\"}" }
                 .Select(text => new XElement(w + "tc", Docx.P(Docx.Run(text))))),
             MergedRow(Docx.Run("{/"), new XElement(w + "proofErr", new XAttribute(w + "type", "spellStart")),
                 Docx.Run("For"), new XElement(w + "proofErr", new XAttribute(w + "type", "spellEnd")), Docx.Run("}")),
@@ -268,7 +268,7 @@ public sealed class Feature010AcceptanceTests
         Assert.Equal(issue.Location, diagnostic.Location);
     }
 
-    private static TemplateAnalyzer Analyzer() => new(new DocxStoryReader(), new DocxTemplatePlanner(new TemplateLanguageParser()));
+    private static TemplateAnalyzer Analyzer() => new(new DocxStoryReader(), new DocxTemplatePlanner(TestComposition.Parser));
 
     [Fact]
     public void Diagnostic_context_finds_a_late_fragment_without_dumping_the_entire_paragraph()

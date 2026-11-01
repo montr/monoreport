@@ -19,6 +19,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 builder.Services.AddMonoReport();
+builder.Services.AddMonoReportSpelloutFormatter();
 builder.Services.AddTransient<MultipartRequestReader>();
 builder.Services.AddTransient<DocumentEndpoints>();
 builder.Services.AddTransient<GenerationOptionsFactory>();

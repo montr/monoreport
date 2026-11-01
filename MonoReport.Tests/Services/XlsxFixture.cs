@@ -41,7 +41,7 @@ internal sealed class XlsxFixture
     internal Cell Text(string address, string text) => new() { CellReference = address,
         DataType = CellValues.InlineString, InlineString = new InlineString(new Text(text) { Space = SpaceProcessingModeValues.Preserve }) };
 
-    internal ServiceProvider Services() => new ServiceCollection().AddMonoReport().BuildServiceProvider();
+    internal ServiceProvider Services() => new ServiceCollection().AddMonoReport().AddMonoReportSpelloutFormatter().BuildServiceProvider();
 
     // Interpret the stored ST_Xstring once, independently of production encoding and SDK InnerText.
     internal string ReadCellText(byte[] source, string address)

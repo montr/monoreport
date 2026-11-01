@@ -37,7 +37,7 @@ public sealed class HttpApiTests
     {
         using var factory = new WebApplicationFactory<Program>();
         using var client = factory.CreateClient();
-        var template = Docx.Create(Docx.P(Docx.Run("{Amount number:\"0.00\"}")));
+        var template = Docx.Create(Docx.P(Docx.Run("{Amount number \"0.00\"}")));
         using (var form = Form(template, "{\"Amount\":1234.5}"))
         using (var response = await client.PostAsync("/api/documents/generate", form))
         {
@@ -53,6 +53,18 @@ public sealed class HttpApiTests
         var issue = Assert.Single(problem.RootElement.GetProperty("errors").EnumerateArray());
         Assert.Equal("$.Amount", issue.GetProperty("dataPath").GetString());
         Assert.Equal("number", issue.GetProperty("formatter").GetString());
+    }
+
+    [Fact]
+    public async Task Generate_uses_the_explicitly_registered_default_spellout_formatter()
+    {
+        using var factory = new WebApplicationFactory<Program>();
+        using var client = factory.CreateClient();
+        var template = Docx.Create(Docx.P(Docx.Run("{Amount spellout}")));
+        using var form = Form(template, "{\"Amount\":1}");
+        using var response = await client.PostAsync("/api/documents/generate", form);
+        response.EnsureSuccessStatusCode();
+        Assert.Equal("Один рубль 00 копеек", Docx.Text(Docx.Read(await response.Content.ReadAsByteArrayAsync())));
     }
 
     [Fact]

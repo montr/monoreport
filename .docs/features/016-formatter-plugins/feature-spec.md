@@ -1,6 +1,6 @@
 # Feature 016 — Formatter Plugins
 
-**Status:** Revised draft for Product Owner review. The requirements and decisions recorded below are approved; the complete revised specification and implementation are not yet approved. No Implementation Plan is included.
+**Status:** Approved by the Product Owner (2026-11-01).
 
 **Prepared:** 2026-11-01
 

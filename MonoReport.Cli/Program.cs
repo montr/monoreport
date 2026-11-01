@@ -9,6 +9,7 @@ namespace MonoReport.Cli
         {
             var services = new ServiceCollection();
             services.AddMonoReport();
+            services.AddMonoReportSpelloutFormatter();
             services.AddTransient<CliOptionsParser>();
             services.AddTransient<CliApplication>();
             using var provider = services.BuildServiceProvider();

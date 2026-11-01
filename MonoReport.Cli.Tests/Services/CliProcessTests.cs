@@ -36,6 +36,24 @@ public sealed class CliProcessTests
         finally { Directory.Delete(directory, true); }
     }
 
+    [Fact]
+    public async Task Real_entry_point_registers_default_spellout_formatter()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"monoreport-cli-spellout-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        var template = Path.Combine(directory, "template.docx");
+        var result = Path.Combine(directory, "result.docx");
+        await File.WriteAllBytesAsync(template, Docx.Create(Docx.P(Docx.Run("{Amount spellout}"))));
+        try
+        {
+            var generation = await Run(["--template", template, "--json", "{\"Amount\":1}", "--output", result]);
+            Assert.Equal(0, generation.ExitCode);
+            Assert.Empty(generation.Error);
+            Assert.Equal("Один рубль 00 копеек", Docx.Text(Docx.Read(await File.ReadAllBytesAsync(result))));
+        }
+        finally { Directory.Delete(directory, true); }
+    }
+
     private static async Task<(int ExitCode, byte[] Output, string Error)> Run(string[] arguments)
     {
         var root = new DirectoryInfo(AppContext.BaseDirectory).Parent!.Parent!.Parent!.Parent!.FullName;

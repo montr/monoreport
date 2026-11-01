@@ -5,7 +5,7 @@ namespace MonoReport.Tests.Services;
 
 public sealed class TemplateLanguageParserTests
 {
-    private readonly TemplateLanguageParser _parser = new();
+    private readonly TemplateLanguageParser _parser = TestComposition.Parser;
 
     [Fact]
     public void Parses_paths_controls_formatters_and_strict_escapes()
@@ -47,7 +47,13 @@ public sealed class TemplateLanguageParserTests
     [InlineData("{Name unknown}")]
     [InlineData("{Name upper lower}")]
     [InlineData("{For:Items upper}")]
-    [InlineData("{Name number:\"\"}")]
+    [InlineData("{Name number \"\"}")]
+    [InlineData("{Name number:\"0.00\"}")]
+    [InlineData("{Name number bare}")]
+    [InlineData("{Name number '0.00'}")]
+    [InlineData("{Name number \"0.00\" pattern=\"N2\"}")]
+    [InlineData("{Name number \"0.00\" \"N2\"}")]
+    [InlineData("{Name number pattern =\"N2\"}")]
     [InlineData("{bad-name}")]
     public void Rejects_malformed_or_unsupported_syntax(string template)
     {
@@ -57,11 +63,21 @@ public sealed class TemplateLanguageParserTests
     [Fact]
     public void Parses_exactly_one_pattern_formatter()
     {
-        var result = _parser.Parse("{Amount number:\"0.00\"}{When date:\"yyyy-MM-dd\"}", "part");
+        var result = _parser.Parse("{Amount number \"0.00\"}{When date \"yyyy-MM-dd\"}", "part");
 
         Assert.Empty(result.Diagnostics);
-        Assert.Equal("0.00", result.Tokens[0].Expression!.Formatter!.Argument);
-        Assert.Equal("yyyy-MM-dd", result.Tokens[1].Expression!.Formatter!.Argument);
+        Assert.Equal("0.00", result.Tokens[0].Expression!.Formatter!.Arguments["pattern"].Literal);
+        Assert.Equal("yyyy-MM-dd", result.Tokens[1].Expression!.Formatter!.Arguments["pattern"].Literal);
+    }
+
+    [Fact]
+    public void Positional_and_named_patterns_bind_the_same_parameter()
+    {
+        var result = _parser.Parse("{Amount number pattern=\"N2\"}{Amount number \"N2\"}", "part");
+        Assert.Empty(result.Diagnostics);
+        Assert.Equal("N2", result.Tokens[0].Expression!.Formatter!.Arguments["pattern"].Literal);
+        Assert.Equal(result.Tokens[0].Expression!.Formatter!.Arguments,
+            result.Tokens[1].Expression!.Formatter!.Arguments);
     }
 
     [Fact]

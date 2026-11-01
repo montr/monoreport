@@ -333,6 +333,6 @@ public sealed class UnifiedTemplateTests
     private static TemplateAnalyzer Analyzer()
     {
         var reader = new DocxStoryReader();
-        return new(reader, new DocxTemplatePlanner(new TemplateLanguageParser()));
+        return new(reader, new DocxTemplatePlanner(TestComposition.Parser));
     }
 }

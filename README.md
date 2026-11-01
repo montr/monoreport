@@ -10,7 +10,8 @@ MonoReport generates DOCX reports, contracts, acts, protocols, invoices, and sim
 2. `MonoReport.Cli` is the command-line application and .NET tool.
 3. `MonoReport.Api` is the ASP.NET Core HTTP application.
 4. `web` is the React and TypeScript playground served by the API in production.
-5. The three test projects cover Core, CLI, HTTP, OpenAPI, and Open XML behavior.
+5. `MonoReport.Formatter.Spellout` is the optional Russian RUB wording formatter.
+6. The three test projects cover Core, CLI, HTTP, OpenAPI, and Open XML behavior.
 
 ## Build and verify
 
@@ -51,17 +52,18 @@ MonoReport generates DOCX reports, contracts, acts, protocols, invoices, and sim
 | Literal DOCX region | `{Raw}` … `{/Raw}` |
 | Literal braces | `{{` and `}}` |
 | Text format | `{Name upper}`, `{Name lower}`, `{Name caps}`, `{Name firstcap}` |
-| Decimal format | `{Amount number:"#,##0.00"}` |
-| ISO date format | `{Date date:"dd MMM yyyy"}` |
+| Decimal format | `{Amount number "#,##0.00"}` or `{Amount number pattern="#,##0.00"}` |
+| ISO date format | `{Date date "dd MMM yyyy"}` or `{Date date pattern="dd MMM yyyy"}` |
 | Russian RUB words | `{Amount spellout}` |
 
 1. Paths are ordinal and case-sensitive. A segment starts with a Unicode letter or underscore and then contains Unicode letters, digits, or underscores.
 2. `For` accepts JSON arrays, including mixed arrays of objects, strings, numbers, Booleans, and null. `{.}` renders the complete current primitive element and is valid only inside a loop.
 3. `If` accepts a JSON Boolean. Missing or null structural values select zero iterations or the false branch; incompatible non-null structural values are errors.
-4. A scalar expression supports at most one built-in formatter. `number` and `spellout` accept JSON numbers or invariant numeric strings. `date` accepts `YYYY-MM-DD` or an ISO date-time with `Z` or an explicit offset.
-5. Explicit null and empty strings render empty. Missing scalar values follow `MergeOptions.MissingValues`.
-6. Inserted JSON text and emitted literal braces are never reinterpreted as template syntax.
-7. Raw markers occupy dedicated sibling paragraphs or dedicated sibling table rows under the same parent. Content between them is preserved literally without expression parsing, dependency extraction, brace unescaping, or data evaluation. Raw does not nest.
+4. A scalar expression supports at most one formatter. Formatter arguments are double-quoted strings: one optional leading positional argument and named arguments such as `pattern="N2"`. Names and keys are ordinal and case-sensitive. Colon patterns, bare values, single-quoted values, chaining, and formatter pipelines are invalid.
+5. `number` and `spellout` accept JSON numbers or invariant numeric strings. `date` accepts `YYYY-MM-DD` or an ISO date-time with `Z` or an explicit offset.
+6. Explicit null and empty strings render empty. Missing scalar values follow `MergeOptions.MissingValues`.
+7. Inserted JSON text and emitted literal braces are never reinterpreted as template syntax.
+8. Raw markers occupy dedicated sibling paragraphs or dedicated sibling table rows under the same parent. Content between them is preserved literally without expression parsing, dependency extraction, brace unescaping, or data evaluation. Raw does not nest.
 
 ## DOCX compatibility
 
@@ -89,6 +91,7 @@ For the support, preservation, and rejection policy for Microsoft Word features,
 
    ```csharp
    services.AddMonoReport();
+   services.AddMonoReportSpelloutFormatter(); // Optional; required for `{Amount spellout}`
 
    using var template = File.OpenRead("template.docx");
    using var data = JsonDocument.Parse(json);
@@ -101,7 +104,9 @@ For the support, preservation, and rejection policy for Microsoft Word features,
 
 2. `Merge` reads from the template stream's current position and leaves caller-owned inputs open. A successful result contains independent document bytes, warnings and format metadata. `AddMonoReport()` composes both Word and XLSX handlers; existing manually composed Word constructors remain supported. A failed merge throws `TemplateException`, aggregates up to 100 ordered diagnostics, and returns no partial document.
 3. `MergeOptions.Culture` controls output casing, decimal formatting, and date formatting. It does not change invariant numeric input parsing, ISO date interpretation, or Russian RUB `spellout` behavior.
-4. Custom formatter registration is not available in the unified language. Consumers can transform values before supplying JSON; formatter extensibility may be considered in a future Feature.
+4. Core registers the six simple formatters. Spellout is an optional external formatter; register it explicitly with `services.AddMonoReportSpelloutFormatter()` when templates use `{Amount spellout}`. A custom registration key can be used in a template by passing that key to the extension.
+5. Add a project reference to `MonoReport.Formatter.Spellout` in applications that use its registration extension; this Feature does not distribute it as a NuGet package.
+6. Custom formatters implement Core's `IFormatter` contract and register as keyed services. The service key becomes the template name; the selected formatter supplies its own parameter metadata and validation.
 
 ## Analyzer
 
@@ -148,6 +153,7 @@ For the support, preservation, and rejection policy for Microsoft Word features,
 3. Feature 010 removed legacy Word `MERGEFIELD`, `TableStart:`, `TableEnd:`, Word switch formatting, and programmatic formatter bindings from MonoReport interpretation. Existing Word fields remain untouched as ordinary opaque document content.
 4. Feature 011 changes control closes to `{/For}` and `{/If}`. The former spellings `EndFor` and `EndIf` are ordinary case-sensitive scalar property names, not aliases or migration controls.
 5. Convert legacy scalar fields to `{Path}`, collection markers to `{For:Path}` and `{/For}`, conditional closes to `{/If}`, and Word formatting switches to the built-in formatter syntax shown above. Remove comments, bookmarks, and internal links from repeated or conditional bodies, or move complete ranges outside the operation. Use Raw only for literal, structurally bounded Word content.
+6. Migrate legacy colon patterns such as `{Amount number:"N2"}` to positional or named double-quoted arguments. The old colon syntax and bare formatter arguments are intentionally rejected.
 
 ## Production hosting
 

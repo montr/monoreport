@@ -1,13 +1,12 @@
-using System.Globalization;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.DependencyInjection;
 using MonoReport.Models;
 
 namespace MonoReport.Services;
 
-public sealed partial class TemplateLanguageParser
+public sealed partial class TemplateLanguageParser(IServiceProvider provider)
 {
-    private static readonly HashSet<string> TextFormatters =
-        new(["upper", "lower", "caps", "firstcap", "spellout"], StringComparer.Ordinal);
+    private readonly IKeyedServiceProvider _formatters = provider as IKeyedServiceProvider ?? throw new ArgumentException("The service provider must support keyed services.", nameof(provider));
 
     internal TemplateParseResult Parse(string text, string location)
     {
@@ -71,7 +70,7 @@ public sealed partial class TemplateLanguageParser
         return new(tokens, diagnostics);
     }
 
-    private static bool TryParseExpression(string content, string source, string location,
+    private bool TryParseExpression(string content, string source, string location,
         out TemplateExpression? expression, out StructuralDiagnostic? diagnostic)
     {
         expression = null;
@@ -113,16 +112,16 @@ public sealed partial class TemplateLanguageParser
         {
             var formatterSource = content[separator..].Trim();
             if (!TryParseFormatter(formatterSource, out formatter, out var reason))
-                return Invalid(source, location, reason!, out diagnostic);
+                return Invalid(source, location, reason!, out diagnostic, formatterSource.Split((char[]?)null, 2)[0]);
         }
         expression = new(TemplateExpressionKind.Field, source, scalarPath, formatter);
         return true;
     }
 
     private static bool Invalid(string source, string location, string message,
-        out StructuralDiagnostic? diagnostic)
+        out StructuralDiagnostic? diagnostic, string? formatter = null)
     {
-        diagnostic = Error(DiagnosticCodes.TemplateInvalidExpression, message, source, location);
+        diagnostic = Error(DiagnosticCodes.TemplateInvalidExpression, message, source, location, formatter: formatter);
         return false;
     }
 
@@ -158,44 +157,119 @@ public sealed partial class TemplateLanguageParser
         return true;
     }
 
-    private static bool TryParseFormatter(string source, out TemplateFormatter? formatter, out string? reason)
+    private bool TryParseFormatter(string source, out TemplateFormatter? formatter, out string? reason)
     {
         formatter = null;
         reason = null;
-        if (TextFormatters.Contains(source))
+        var cursor = 0;
+        while (cursor < source.Length && !char.IsWhiteSpace(source[cursor])) cursor++;
+        var name = source[..cursor];
+        if (!IdentifierRegex().IsMatch(name))
         {
-            formatter = new(source);
-            return true;
+            reason = $"'{source}' is not a valid formatter invocation.";
+            return false;
+        }
+        var selected = _formatters.GetKeyedService<IFormatter>(name);
+        if (selected is null)
+        {
+            reason = $"Formatter '{name}' is not registered.";
+            return false;
+        }
+        var metadata = selected.Metadata;
+        var supplied = new List<KeyValuePair<string, FormatterOperand>>();
+        string literal;
+        var firstArgument = true;
+        if (cursor < source.Length && char.IsWhiteSpace(source[cursor]))
+        {
+            while (cursor < source.Length && char.IsWhiteSpace(source[cursor])) cursor++;
+            if (cursor < source.Length && source[cursor] == '"')
+            {
+                if (metadata.PositionalParameter is null)
+                {
+                    reason = $"Formatter '{name}' does not accept a positional argument.";
+                    return false;
+                }
+                if (!ReadLiteral(source, ref cursor, out literal))
+                {
+                    reason = $"Formatter '{name}' requires double-quoted string arguments.";
+                    return false;
+                }
+                supplied.Add(new(metadata.PositionalParameter, new(FormatterOperandKind.Literal, literal)));
+                firstArgument = false;
+            }
+            while (cursor < source.Length)
+            {
+                if (!firstArgument && !char.IsWhiteSpace(source[cursor]))
+                {
+                    reason = "Formatter arguments must be separated by whitespace.";
+                    return false;
+                }
+                if (!firstArgument)
+                    while (cursor < source.Length && char.IsWhiteSpace(source[cursor])) cursor++;
+                if (cursor == source.Length) break;
+                firstArgument = false;
+                var start = cursor;
+                while (cursor < source.Length && (char.IsLetterOrDigit(source[cursor]) || source[cursor] == '_')) cursor++;
+                var parameter = source[start..cursor];
+                if (!IdentifierRegex().IsMatch(parameter) || cursor >= source.Length || source[cursor++] != '=')
+                {
+                    reason = $"Formatter '{name}' arguments must use name=\"value\" syntax.";
+                    return false;
+                }
+                if (cursor >= source.Length || source[cursor++] != '"' || !ReadLiteralBody(source, ref cursor, out literal))
+                {
+                    reason = $"Formatter '{name}' requires double-quoted string arguments.";
+                    return false;
+                }
+                supplied.Add(new(parameter, new(FormatterOperandKind.Literal, literal)));
+            }
         }
 
-        foreach (var name in new[] { "number", "date" })
+        var known = metadata.Parameters.ToDictionary(parameter => parameter.Name, StringComparer.Ordinal);
+        var bound = new Dictionary<string, FormatterOperand>(StringComparer.Ordinal);
+        foreach (var (parameter, value) in supplied)
         {
-            var prefix = name + ":\"";
-            if (!source.StartsWith(prefix, StringComparison.Ordinal) || source.Length <= prefix.Length ||
-                source[^1] != '"' || source[prefix.Length..^1].Contains('"', StringComparison.Ordinal)) continue;
-            var argument = source[prefix.Length..^1];
-            if (argument.Length == 0)
+            if (!known.ContainsKey(parameter))
             {
-                reason = $"Formatter '{name}' requires a non-empty pattern.";
+                reason = $"Formatter '{name}' does not declare parameter '{parameter}'.";
                 return false;
             }
-            try
+            if (!bound.TryAdd(parameter, value))
             {
-                _ = name == "number"
-                    ? 0m.ToString(argument, CultureInfo.InvariantCulture)
-                    : DateTimeOffset.UnixEpoch.ToString(argument, CultureInfo.InvariantCulture);
-            }
-            catch (FormatException)
-            {
-                reason = $"Formatter '{name}' has an invalid .NET format pattern.";
+                reason = $"Formatter '{name}' parameter '{parameter}' was supplied more than once.";
                 return false;
             }
-            formatter = new(name, argument);
-            return true;
         }
+        var missing = metadata.Parameters.FirstOrDefault(parameter => parameter.Required && !bound.ContainsKey(parameter.Name));
+        if (missing is not null)
+        {
+            reason = $"Formatter '{name}' requires parameter '{missing.Name}'.";
+            return false;
+        }
+        var validation = selected.Validate(bound);
+        if (validation.Errors.Count > 0)
+        {
+            reason = validation.Errors[0];
+            return false;
+        }
+        formatter = new(name, bound);
+        return true;
+    }
 
-        reason = $"'{source}' is not a supported formatter or contains more than one formatter.";
-        return false;
+    private static bool ReadLiteral(string source, ref int cursor, out string value)
+    {
+        cursor++;
+        return ReadLiteralBody(source, ref cursor, out value);
+    }
+
+    private static bool ReadLiteralBody(string source, ref int cursor, out string value)
+    {
+        var start = cursor;
+        while (cursor < source.Length && source[cursor] != '"' && source[cursor] is not ('{' or '}')) cursor++;
+        if (cursor >= source.Length || source[cursor] != '"') { value = string.Empty; return false; }
+        value = source[start..cursor];
+        cursor++;
+        return true;
     }
 
     private static int FindWhitespace(string value)
@@ -206,8 +280,8 @@ public sealed partial class TemplateLanguageParser
     }
 
     private static StructuralDiagnostic Error(string code, string detail, string expression, string location,
-        int sourceOrder = int.MaxValue) =>
-        new(code, detail, expression, expression, location, SourceOrder: sourceOrder);
+        int sourceOrder = int.MaxValue, string? formatter = null) =>
+        new(code, detail, expression, expression, location, formatter, SourceOrder: sourceOrder);
 
     [GeneratedRegex(@"^[\p{L}_][\p{L}\p{Nd}_]*$", RegexOptions.CultureInvariant)]
     private static partial Regex IdentifierRegex();

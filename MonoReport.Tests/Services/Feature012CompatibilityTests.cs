@@ -94,7 +94,7 @@ public sealed class Feature012CompatibilityTests
         var analyzer = Feature010IdentityTests.Analyzer();
         var engine = Docx.CreateEngine();
         var services = new ServiceCollection().AddSingleton(resolver).AddSingleton(analyzer).AddSingleton(engine);
-        services.AddMonoReport().AddMonoReport();
+        services.AddMonoReport().AddMonoReport().AddMonoReportSpelloutFormatter();
         using var provider = services.BuildServiceProvider();
         Assert.Same(resolver, provider.GetRequiredService<DataResolver>());
         Assert.Same(analyzer, provider.GetRequiredService<TemplateAnalyzer>());
@@ -113,11 +113,11 @@ public sealed class Feature012CompatibilityTests
     public void Composition_Required_dependencies_and_inputs_have_null_guards()
     {
         var reader = new DocxStoryReader();
-        var planner = new DocxTemplatePlanner(new TemplateLanguageParser());
+        var planner = new DocxTemplatePlanner(TestComposition.Parser);
         Assert.Throws<ArgumentNullException>(() => new TemplateAnalyzer(null!, planner));
         Assert.Throws<ArgumentNullException>(() => new TemplateAnalyzer(reader, null!));
         Assert.Throws<ArgumentNullException>(() => new MergeEngine(null!, reader, Feature010IdentityTests.Analyzer()));
-        var renderer = new DocumentRenderer(new DataResolver(), new ValueFormatter(new RubSpellOutFormatter()));
+        var renderer = new DocumentRenderer(new DataResolver(), TestComposition.Formatter);
         Assert.Throws<ArgumentNullException>(() => new MergeEngine(renderer, null!, Feature010IdentityTests.Analyzer()));
         Assert.Throws<ArgumentNullException>(() => new MergeEngine(renderer, reader, null!));
         using var provider = new XlsxFixture().Services();

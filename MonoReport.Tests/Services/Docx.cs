@@ -3,6 +3,7 @@ using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
+using Microsoft.Extensions.DependencyInjection;
 using MonoReport.Models;
 using MonoReport.Services;
 
@@ -10,6 +11,7 @@ namespace MonoReport.Tests.Services
 {
     internal static class Docx
     {
+        private static readonly ServiceProvider Services = new ServiceCollection().AddMonoReport().AddMonoReportSpelloutFormatter().BuildServiceProvider();
         internal static IReadOnlyDictionary<string, XDocument> ReadStories(byte[] bytes)
         {
             using var stream = new MemoryStream(bytes);
@@ -56,11 +58,7 @@ namespace MonoReport.Tests.Services
 
         internal static MergeEngine CreateEngine()
         {
-            var language = new TemplateLanguageParser();
-            var renderer = new DocumentRenderer(new DataResolver(), new ValueFormatter(new RubSpellOutFormatter()));
-            var storyReader = new DocxStoryReader();
-            return new MergeEngine(renderer, storyReader,
-                new TemplateAnalyzer(storyReader, new DocxTemplatePlanner(language)));
+            return Services.GetRequiredService<MergeEngine>();
         }
 
         internal static MergeResult Merge(byte[] template, string json, MergeOptions? options = null,

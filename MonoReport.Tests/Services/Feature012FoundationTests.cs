@@ -94,7 +94,7 @@ public sealed class Feature012FoundationTests
         var parent = root.GetProperty("Items")[0];
         var scope = new DataScope(root, [parent.GetProperty("Child"), parent, root], ["$.Items[0].Child", "$.Items[0]", "$"]);
         var resolver = new DataResolver();
-        var parser = new TemplateLanguageParser();
+        var parser = TestComposition.Parser;
         var paths = new[] { "Name", "name", "Nil", "../Title", "$.Title" }
             .Select(field => parser.Parse("{" + field + "}", "test").Tokens.Single().Expression!.Path!).ToArray();
         Assert.Equal("leaf", resolver.Resolve(paths[0], scope).Value.GetString());
@@ -114,7 +114,7 @@ public sealed class Feature012FoundationTests
     [InlineData("{Missing}", null, null)]
     [InlineData("{{{Text}}}", "inlineStr", "{{Name}=1}")]
     [InlineData("Total: {Number}", "inlineStr", "Total: 12.5")]
-    [InlineData("{Number number:\"0.00\"}", "inlineStr", "12.50")]
+    [InlineData("{Number number \"0.00\"}", "inlineStr", "12.50")]
     [InlineData("{Text upper}", "inlineStr", "{NAME}=1")]
     public void Scalar_Parse_once_prepares_native_or_text_without_reinterpreting_insertions(string template, string? type, string? value)
     {
@@ -154,7 +154,7 @@ public sealed class Feature012FoundationTests
     [InlineData("{../Name}", DiagnosticCodes.TemplateInvalidContext)]
     [InlineData("{If:Flag}", DiagnosticCodes.XlsxUnsupportedFeature)]
     [InlineData("{Raw}", DiagnosticCodes.XlsxUnsupportedFeature)]
-    [InlineData("{Name number:\"Q\"}", DiagnosticCodes.TemplateInvalidExpression)]
+    [InlineData("{Name number \"Q\"}", DiagnosticCodes.TemplateInvalidExpression)]
     [InlineData("{Name", DiagnosticCodes.TemplateUnmatchedBrace)]
     public void Scalar_Invalid_or_structural_expressions_fail_before_binding(string text, string code)
     {
@@ -172,7 +172,7 @@ public sealed class Feature012FoundationTests
         var source = _fixture.Create((_, worksheet) => worksheet.Worksheet!.Descendants<Text>().Single().Text = text);
         using var document = SpreadsheetDocument.Open(new MemoryStream(source), false);
         var context = new XlsxOperationContext(new MergeOptions());
-        var planner = new XlsxTemplatePlanner(new TemplateLanguageParser(), new DataResolver(), new ValueFormatter(new RubSpellOutFormatter()), new XlsxFormulaReferences());
+        var planner = new XlsxTemplatePlanner(TestComposition.Parser, new DataResolver(), TestComposition.Formatter, new XlsxFormulaReferences());
         var plan = planner.Plan(new XlsxPackageReader().Read(document, context), context);
         return (plan.Sheets.Single().Cells.Single(), planner);
     }

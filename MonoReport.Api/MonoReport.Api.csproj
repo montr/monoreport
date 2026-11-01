@@ -10,6 +10,7 @@
   <ItemGroup>
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.3.0" />
     <ProjectReference Include="../MonoReport/MonoReport.csproj" />
+    <ProjectReference Include="../MonoReport.Formatter.Spellout/MonoReport.Formatter.Spellout.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
   </ItemGroup>
   <Target Name="BuildProductionUi" BeforeTargets="ComputeFilesToPublish" Condition="'$(Configuration)' == 'Release' and '$(MonoReportSkipUiBuild)' != 'true'">
