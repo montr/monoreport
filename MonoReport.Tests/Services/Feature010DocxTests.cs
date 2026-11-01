@@ -989,41 +989,6 @@ public sealed class Feature010DocxTests
     }
 
     [Fact]
-    public void Spellout_uses_shared_numeric_parser_and_boolean_is_a_diagnostic()
-    {
-        var template = Docx.Create(Docx.P(Docx.Run("{Value spellout}")));
-        var valid = Docx.Merge(template, """{"Value":" 1.25e1 "}""",
-            new MergeOptions { Culture = CultureInfo.GetCultureInfo("en-US") });
-        Assert.Equal("Двенадцать рублей 50 копеек", Docx.Text(Docx.Read(valid.Document)));
-
-        var error = Assert.Throws<TemplateException>(() => Docx.Merge(template, """{"Value":true}"""));
-        Assert.Equal("generation.invalid_format", error.Code);
-    }
-
-    [Theory]
-    [InlineData("0", "Ноль рублей 00 копеек")]
-    [InlineData("-1.005", "Минус один рубль 01 копейка")]
-    [InlineData("2.5", "Два рубля 50 копеек")]
-    [InlineData("1000", "Одна тысяча рублей 00 копеек")]
-    public void Spellout_preserves_ruble_rounding_and_grammar(string value, string expected)
-    {
-        var template = Docx.Create(Docx.P(Docx.Run("{Value spellout}")));
-        var result = Docx.Merge(template, $"{{\"Value\":{value}}}",
-            new MergeOptions { Culture = CultureInfo.GetCultureInfo("tr-TR") });
-        Assert.Equal(expected, Docx.Text(Docx.Read(result.Document)));
-    }
-
-    [Fact]
-    public void Spellout_accepts_the_upper_boundary_and_rejects_the_first_rounded_out_of_range_value()
-    {
-        var template = Docx.Create(Docx.P(Docx.Run("{Value spellout}")));
-        var allowed = Docx.Merge(template, """{"Value":999999999999999999.994}""");
-        Assert.EndsWith("99 копеек", Docx.Text(Docx.Read(allowed.Document)));
-        Assert.Throws<TemplateException>(() => Docx.Merge(template,
-            """{"Value":999999999999999999.995}"""));
-    }
-
-    [Fact]
     public void Formatter_failures_are_aggregated_without_partial_output()
     {
         var template = Docx.Create(Docx.P(Docx.Run("{Amount number \"0.00\"}")),

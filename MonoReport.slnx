@@ -6,4 +6,5 @@
   <Project Path="MonoReport.Tests/MonoReport.Tests.csproj" />
   <Project Path="MonoReport/MonoReport.csproj" />
   <Project Path="MonoReport.Formatter.Spellout/MonoReport.Formatter.Spellout.csproj" />
+  <Project Path="MonoReport.Formatter.Spellout.Tests/MonoReport.Formatter.Spellout.Tests.csproj" />
 </Solution>

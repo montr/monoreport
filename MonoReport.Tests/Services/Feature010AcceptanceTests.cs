@@ -84,7 +84,8 @@ public sealed class Feature010AcceptanceTests
                 Assert.Equal(20, tables.Length);
                 Assert.Equal(orders.Length, root.GetProperty("OrderCount").GetInt32());
                 var subtotals = xml.Descendants(w + "p").Select(Docx.Text).Where(value => value.StartsWith("Order subtotal:")).ToArray();
-                Assert.Equal(orders.Select(order => $"Order subtotal: {Money(order.GetProperty("Total"))} RUB"), subtotals);
+                var currency = root.GetProperty("Currency").GetString();
+                Assert.Equal(orders.Select(order => $"Order subtotal: {Money(order.GetProperty("Total"))} {currency}"), subtotals);
                 for (var index = 0; index < orders.Length; index++)
                 {
                     var order = orders[index];
@@ -97,7 +98,7 @@ public sealed class Feature010AcceptanceTests
                     Assert.Equal(decimal.Parse(order.GetProperty("Total").GetString()!, CultureInfo.InvariantCulture),
                         items.Sum(item => decimal.Parse(item.GetProperty("LineTotal").GetString()!, CultureInfo.InvariantCulture)));
                 }
-                Assert.Contains("REPORT TOTAL: 60,206.90 RUB", text);
+                Assert.Contains($"REPORT TOTAL: {Money(root.GetProperty("GrandTotal"))} {currency}", text);
                 Assert.Equal(decimal.Parse(root.GetProperty("GrandTotal").GetString()!, CultureInfo.InvariantCulture),
                     orders.Sum(order => decimal.Parse(order.GetProperty("Total").GetString()!, CultureInfo.InvariantCulture)));
                 break;
