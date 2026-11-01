@@ -19,7 +19,7 @@
       "Unit": "bags",
       "UnitPrice": 500.0,
       "LineTotal": 50000.0,
-      "Currency": "RUB"
+      "Currency": "USD"
     },
     {
       "Reference": "MAT-002/2026",
@@ -29,7 +29,7 @@
       "Unit": "slabs",
       "UnitPrice": 1308.61,
       "LineTotal": 65430.5,
-      "Currency": "RUB"
+      "Currency": "USD"
     },
     {
       "Reference": "MAT-003/2026",
@@ -39,12 +39,12 @@
       "Unit": "tonnes",
       "UnitPrice": 2000.0,
       "LineTotal": 10000.0,
-      "Currency": "RUB"
+      "Currency": "USD"
     }
   ],
   "Totals": {
     "Count": 3,
     "Amount": 125430.5,
-    "Currency": "RUB"
+    "Currency": "USD"
   }
 }

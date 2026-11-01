@@ -71,6 +71,19 @@ public sealed class FormatterSpelloutRegistrationTests
     }
 
     [Fact]
+    public void Registration_accepts_a_unicode_template_identifier_key()
+    {
+        const string key = "слово_٢";
+        using var provider = new ServiceCollection().AddMonoReport()
+            .AddMonoReportSpelloutFormatter(key)
+            .BuildServiceProvider();
+
+        Assert.NotNull(provider.GetKeyedService<IFormatter>(key));
+        var parsed = provider.GetRequiredService<TemplateLanguageParser>().Parse("{Value " + key + "}", "test");
+        Assert.Empty(parsed.Diagnostics);
+    }
+
+    [Fact]
     public void Repeated_same_key_registrations_are_normal_keyed_services_and_distinct_keys_do_not_share_instances()
     {
         var services = new ServiceCollection().AddMonoReport()

@@ -1,10 +1,9 @@
-using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
 using MonoReport.Models;
 
 namespace MonoReport.Services;
 
-public sealed partial class TemplateLanguageParser(IServiceProvider provider)
+public sealed class TemplateLanguageParser(IServiceProvider provider)
 {
     private readonly IKeyedServiceProvider _formatters = provider as IKeyedServiceProvider ?? throw new ArgumentException("The service provider must support keyed services.", nameof(provider));
 
@@ -152,7 +151,7 @@ public sealed partial class TemplateLanguageParser(IServiceProvider provider)
         }
 
         var segments = source.Split('.', StringSplitOptions.None);
-        if (segments.Length == 0 || segments.Any(segment => !IdentifierRegex().IsMatch(segment))) return false;
+        if (segments.Length == 0 || segments.Any(segment => !TemplateIdentifier.IsValid(segment))) return false;
         path = new(origin, parents, false, segments);
         return true;
     }
@@ -164,7 +163,7 @@ public sealed partial class TemplateLanguageParser(IServiceProvider provider)
         var cursor = 0;
         while (cursor < source.Length && !char.IsWhiteSpace(source[cursor])) cursor++;
         var name = source[..cursor];
-        if (!IdentifierRegex().IsMatch(name))
+        if (!TemplateIdentifier.IsValid(name))
         {
             reason = $"'{source}' is not a valid formatter invocation.";
             return false;
@@ -211,7 +210,7 @@ public sealed partial class TemplateLanguageParser(IServiceProvider provider)
                 var start = cursor;
                 while (cursor < source.Length && (char.IsLetterOrDigit(source[cursor]) || source[cursor] == '_')) cursor++;
                 var parameter = source[start..cursor];
-                if (!IdentifierRegex().IsMatch(parameter) || cursor >= source.Length || source[cursor++] != '=')
+                if (!TemplateIdentifier.IsValid(parameter) || cursor >= source.Length || source[cursor++] != '=')
                 {
                     reason = $"Formatter '{name}' arguments must use name=\"value\" syntax.";
                     return false;
@@ -282,7 +281,4 @@ public sealed partial class TemplateLanguageParser(IServiceProvider provider)
     private static StructuralDiagnostic Error(string code, string detail, string expression, string location,
         int sourceOrder = int.MaxValue, string? formatter = null) =>
         new(code, detail, expression, expression, location, formatter, SourceOrder: sourceOrder);
-
-    [GeneratedRegex(@"^[\p{L}_][\p{L}\p{Nd}_]*$", RegexOptions.CultureInvariant)]
-    private static partial Regex IdentifierRegex();
 }
