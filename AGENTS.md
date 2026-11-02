@@ -20,6 +20,14 @@
 3. Separate feature-specific logic from shared functionality. Introduce abstractions only when justified by actual requirements.
 4. Prefer built-in platform, framework, and established library capabilities over custom implementations. Introduce custom infrastructure only when justified by concrete requirements or clear technical benefits.
 
+## C# Language Conventions
+
+1. Disable ImplicitUsings in all C# projects. Use explicit file-level using directives for required namespaces.
+2. Do not use global using directives or MSBuild Using Include declarations.
+3. Avoid custom extension methods. Allow them only when required by established framework conventions or when they provide a clear, justified benefit, such as dependency injection registration.
+4. Prefer ordinary instance methods and services over extension methods for application logic.
+5. Do not mechanically rewrite existing extension methods without evaluating their responsibilities and usage.
+
 ## Test Quality
 
 1. Write tests for meaningful behavior, critical requirements, and regression risks. Avoid redundant tests and coverage-driven testing.
@@ -31,7 +39,6 @@
 1. Write Skills, project rules, specifications, plans, decisions, and other project documentation in English; Product Owner discussions may use another language.
 2. Use explicitly sequential numbered lists, not bullets; keep references unambiguous.
 3. Do not add code-formatting examples unless the Product Owner requests them.
-
 
 ## UI Development
 
