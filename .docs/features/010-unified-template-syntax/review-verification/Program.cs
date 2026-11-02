@@ -3,8 +3,9 @@ using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
-using MonoReport.Models;
-using MonoReport.Services;
+using MonoReport.Core;
+using MonoReport;
+using MonoReport.Docx;
 
 if (args.Length != 1) throw new ArgumentException("Supply an output directory outside the repository.");
 var outputDirectory = Path.GetFullPath(args[0]);

@@ -1,13 +1,22 @@
 using System.Text.Json;
-using MonoReport.Models;
-using MonoReport.Services;
+using System.Collections.Generic;
+using MonoReport.Core.Formatting;
 
 namespace MonoReport.Formatter.Spellout;
 
-internal sealed class SpelloutFormatter(InvariantDecimalParser decimalParser, RubSpellOutFormatter spellout) : IFormatter
+internal sealed class SpelloutFormatter(InvariantDecimalParser decimalParser, RubSpellOutFormatter spellout)
+    : IFormatter
 {
     public FormatterMetadata Metadata { get; } = new([]);
-    public FormatterValidationResult Validate(IReadOnlyDictionary<string, FormatterOperand> parameters) => FormatterValidationResult.Valid;
-    public string Format(JsonElement value, IReadOnlyDictionary<string, FormatterOperand> parameters, FormatterContext context) =>
-        spellout.Format(decimalParser.Parse(value));
+
+    public FormatterValidationResult Validate(IReadOnlyDictionary<string, FormatterOperand> parameters)
+    {
+        return FormatterValidationResult.Valid;
+    }
+
+    public string Format(JsonElement value, IReadOnlyDictionary<string, FormatterOperand> parameters,
+        FormatterContext context)
+    {
+        return spellout.Format(decimalParser.Parse(value));
+    }
 }

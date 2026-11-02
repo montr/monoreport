@@ -1,0 +1,57 @@
+using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
+using MonoReport.Core.Diagnostics;
+using Xunit;
+using MonoReport.Tests.Integration;
+using System.IO;
+using System.Linq;
+using System;
+
+namespace MonoReport.Tests.Xlsx;
+
+public sealed class XlsxTransportTests
+{
+    [Fact]
+    public void Test_owned_xlsx_generates_through_public_core()
+    {
+        var fixture = new XlsxTransportFixture();
+        var source = fixture.Source;
+        using var services = new XlsxFixture().Services();
+        using var input = new MemoryStream(source);
+        using var data = JsonDocument.Parse(fixture.Data);
+        var engine = services.GetRequiredService<DocumentGenerator>();
+        var result = engine.Generate(input, data);
+        Assert.Empty(result.Warnings);
+        fixture.AssertGenerated(result.Document);
+        Assert.Equal(source, fixture.Source);
+    }
+
+    [Theory]
+    [InlineData(false, 0)]
+    [InlineData(false, 1)]
+    [InlineData(false, 3)]
+    [InlineData(true, 0)]
+    [InlineData(true, 1)]
+    [InlineData(true, 3)]
+    public void Core_success_retains_original_order_and_context_across_containers(bool spreadsheet, int count)
+    {
+        var fixture = new TransportFixture();
+        var source = fixture.Create(spreadsheet, count);
+        var result = fixture.Generate(source);
+        Assert.Equal(count, result.Warnings.Count);
+        Assert.Equal(spreadsheet ? DocumentFormat.Xlsx : DocumentFormat.Docx, result.Format);
+        Assert.Equal(new[] {"First", "Second", "Third"}.Take(count), result.Warnings.Select(warning =>
+            new[] {"First", "Second", "Third"}.Single(name => warning.Field.Contains(name, StringComparison.Ordinal))));
+        Assert.All(result.Warnings, warning =>
+        {
+            Assert.NotEmpty(warning.Message);
+            Assert.NotNull(warning.FieldCode);
+            Assert.NotNull(warning.Location);
+            Assert.NotNull(warning.Part);
+            Assert.NotNull(warning.DataPath);
+            Assert.Equal(spreadsheet ? DiagnosticCodes.XlsxMissingValue : null, warning.Code);
+        });
+        if (count == 3) Assert.NotEqual(result.Warnings[0].Part, result.Warnings[2].Part);
+        fixture.AssertPackage(result.Document, spreadsheet);
+    }
+}

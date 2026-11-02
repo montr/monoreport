@@ -1,12 +1,16 @@
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
-using MonoReport.Models;
+using MonoReport.Core.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace MonoReport.Api.Services;
 
 public sealed class ApiOperationTransformer : IOpenApiOperationTransformer
 {
-    public Task TransformAsync(OpenApiOperation operation, OpenApiOperationTransformerContext context, CancellationToken cancellationToken)
+    public Task TransformAsync(OpenApiOperation operation, OpenApiOperationTransformerContext context,
+        CancellationToken cancellationToken)
     {
         var generation = context.Description.RelativePath == "api/documents/generate";
         var requestCodes = generation
@@ -36,24 +40,40 @@ public sealed class ApiOperationTransformer : IOpenApiOperationTransformer
         };
         var properties = new Dictionary<string, IOpenApiSchema>
         {
-            ["template"] = new OpenApiSchema { Type = JsonSchemaType.String, Format = "binary", Description = "Required nonempty Word or ordinary XLSX template. Actual OOXML content selects the handler; filename and upload MIME are not authoritative." }
+            ["template"] = new OpenApiSchema
+            {
+                Type = JsonSchemaType.String, Format = "binary",
+                Description =
+                    "Required nonempty Word or ordinary XLSX template. Actual OOXML content selects the handler; filename and upload MIME are not authoritative."
+            }
         };
         if (generation)
         {
-            properties["data"] = new OpenApiSchema { Type = JsonSchemaType.String, Description = "Required text field containing one raw JSON value." };
-            properties["culture"] = new OpenApiSchema { Type = JsonSchemaType.String, Description = "Optional culture name; invariant when omitted or blank. Accept-Language is ignored." };
+            properties["data"] = new OpenApiSchema
+                {Type = JsonSchemaType.String, Description = "Required text field containing one raw JSON value."};
+            properties["culture"] = new OpenApiSchema
+            {
+                Type = JsonSchemaType.String,
+                Description = "Optional culture name; invariant when omitted or blank. Accept-Language is ignored."
+            };
         }
+
         operation.RequestBody = new OpenApiRequestBody
         {
             Required = true,
             Content = new Dictionary<string, OpenApiMediaType>
             {
-                ["multipart/form-data"] = new() { Schema = new OpenApiSchema
+                ["multipart/form-data"] = new()
                 {
-                    Type = JsonSchemaType.Object, Properties = properties,
-                    Required = generation ? new HashSet<string> { "template", "data" } : new HashSet<string> { "template" },
-                    AdditionalPropertiesAllowed = generation
-                } }
+                    Schema = new OpenApiSchema
+                    {
+                        Type = JsonSchemaType.Object, Properties = properties,
+                        Required = generation
+                            ? new HashSet<string> {"template", "data"}
+                            : new HashSet<string> {"template"},
+                        AdditionalPropertiesAllowed = generation
+                    }
+                }
             }
         };
         operation.Summary = generation ? "Generate a Word or XLSX document" : "Analyze a Word or XLSX template";
@@ -66,47 +86,75 @@ public sealed class ApiOperationTransformer : IOpenApiOperationTransformer
             operation.Parameters.Add(new OpenApiParameter
             {
                 Name = "Accept", In = ParameterLocation.Header, Required = false,
-                Description = "Explicit multipart/mixed opts in to two attachments. Quality zero excludes multipart; higher explicit quality wins, binary wins ties. Wildcards alone and unsupported values retain binary fallback.",
-                Schema = new OpenApiSchema { Type = JsonSchemaType.String }
+                Description =
+                    "Explicit multipart/mixed opts in to two attachments. Quality zero excludes multipart; higher explicit quality wins, binary wins ties. Wildcards alone and unsupported values retain binary fallback.",
+                Schema = new OpenApiSchema {Type = JsonSchemaType.String}
             });
-            var success = (OpenApiResponse)operation.Responses!["200"];
+            var success = (OpenApiResponse) operation.Responses!["200"];
             var warningProperties = new Dictionary<string, IOpenApiSchema>();
-            foreach (var name in new[] { "message", "field", "fieldCode", "part", "location", "dataPath", "code" })
+            foreach (var name in new[] {"message", "field", "fieldCode", "part", "location", "dataPath", "code"})
                 warningProperties[name] = new OpenApiSchema
                 {
-                    Type = name is "message" or "field" ? JsonSchemaType.String : JsonSchemaType.String | JsonSchemaType.Null,
-                    Description = name == "code" ? "Optional stable XLSX diagnostic code; omitted when unset. DOCX warnings need no code." : null
+                    Type = name is "message" or "field"
+                        ? JsonSchemaType.String
+                        : JsonSchemaType.String | JsonSchemaType.Null,
+                    Description = name == "code"
+                        ? "Optional stable XLSX diagnostic code; omitted when unset. DOCX warnings need no code."
+                        : null
                 };
-            success.Description = "Generated document; warnings do not make generation fail. Multipart has two attachments from the same merge, without base64 encoding.";
+            success.Description =
+                "Generated document; warnings do not make generation fail. Multipart has two attachments from the same merge, without base64 encoding.";
             success.Content = new Dictionary<string, OpenApiMediaType>
             {
-                ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"] = new() { Schema = new OpenApiSchema { Type = JsonSchemaType.String, Format = "binary" } },
-                ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"] = new() { Schema = new OpenApiSchema { Type = JsonSchemaType.String, Format = "binary" } },
+                ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"] = new()
+                    {Schema = new OpenApiSchema {Type = JsonSchemaType.String, Format = "binary"}},
+                ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"] = new()
+                    {Schema = new OpenApiSchema {Type = JsonSchemaType.String, Format = "binary"}},
                 ["multipart/mixed"] = new()
                 {
                     Encoding = new Dictionary<string, OpenApiEncoding>
                     {
-                        ["document"] = new() { ContentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
-                        ["diagnostics"] = new() { ContentType = "application/json" }
+                        ["document"] = new()
+                        {
+                            ContentType =
+                                "application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        },
+                        ["diagnostics"] = new() {ContentType = "application/json"}
                     },
                     Schema = new OpenApiSchema
                     {
-                        Type = JsonSchemaType.Object, Required = new HashSet<string> { "document", "diagnostics" },
+                        Type = JsonSchemaType.Object, Required = new HashSet<string> {"document", "diagnostics"},
                         Properties = new Dictionary<string, IOpenApiSchema>
                         {
-                            ["document"] = new OpenApiSchema { Type = JsonSchemaType.String, Format = "binary", Description = "Attachment document.docx or document.xlsx with the corresponding binary MIME type." },
+                            ["document"] = new OpenApiSchema
+                            {
+                                Type = JsonSchemaType.String, Format = "binary",
+                                Description =
+                                    "Attachment document.docx or document.xlsx with the corresponding binary MIME type."
+                            },
                             ["diagnostics"] = new OpenApiSchema
                             {
-                                Type = JsonSchemaType.Object, Description = "application/json attachment named diagnostics.json.",
-                                Required = new HashSet<string> { "format", "fileName", "warnings" },
+                                Type = JsonSchemaType.Object,
+                                Description = "application/json attachment named diagnostics.json.",
+                                Required = new HashSet<string> {"format", "fileName", "warnings"},
                                 Properties = new Dictionary<string, IOpenApiSchema>
                                 {
-                                    ["format"] = new OpenApiSchema { Type = JsonSchemaType.String, Description = "docx or xlsx" },
-                                    ["fileName"] = new OpenApiSchema { Type = JsonSchemaType.String, Description = "document.docx or document.xlsx" },
+                                    ["format"] = new OpenApiSchema
+                                        {Type = JsonSchemaType.String, Description = "docx or xlsx"},
+                                    ["fileName"] = new OpenApiSchema
+                                        {Type = JsonSchemaType.String, Description = "document.docx or document.xlsx"},
                                     ["warnings"] = new OpenApiSchema
                                     {
-                                        Type = JsonSchemaType.Array, Description = "Original ordered MergeResult.Warnings, including an explicit empty array.",
-                                        Items = new OpenApiSchema { Type = JsonSchemaType.Object, Required = new HashSet<string> { "message", "field", "fieldCode", "part", "location", "dataPath" }, Properties = warningProperties }
+                                        Type = JsonSchemaType.Array,
+                                        Description =
+                                            "Original ordered GenerationResult.Warnings, including an explicit empty array.",
+                                        Items = new OpenApiSchema
+                                        {
+                                            Type = JsonSchemaType.Object,
+                                            Required = new HashSet<string>
+                                                {"message", "field", "fieldCode", "part", "location", "dataPath"},
+                                            Properties = warningProperties
+                                        }
                                     }
                                 }
                             }
@@ -116,11 +164,22 @@ public sealed class ApiOperationTransformer : IOpenApiOperationTransformer
             };
             success.Headers = new Dictionary<string, IOpenApiHeader>
             {
-                ["Content-Disposition"] = new OpenApiHeader { Description = "Binary response only: attachment with deterministic document.docx or document.xlsx filename selected from actual package content.", Schema = new OpenApiSchema { Type = JsonSchemaType.String } },
-                ["Vary"] = new OpenApiHeader { Description = "Accept", Schema = new OpenApiSchema { Type = JsonSchemaType.String } },
-                ["X-MonoReport-Warning-Count"] = new OpenApiHeader { Description = "Present only when generation warnings exist.", Schema = new OpenApiSchema { Type = JsonSchemaType.Integer } }
+                ["Content-Disposition"] = new OpenApiHeader
+                {
+                    Description =
+                        "Binary response only: attachment with deterministic document.docx or document.xlsx filename selected from actual package content.",
+                    Schema = new OpenApiSchema {Type = JsonSchemaType.String}
+                },
+                ["Vary"] = new OpenApiHeader
+                    {Description = "Accept", Schema = new OpenApiSchema {Type = JsonSchemaType.String}},
+                ["X-MonoReport-Warning-Count"] = new OpenApiHeader
+                {
+                    Description = "Present only when generation warnings exist.",
+                    Schema = new OpenApiSchema {Type = JsonSchemaType.Integer}
+                }
             };
         }
+
         foreach (var (status, response) in operation.Responses!)
         {
             if (status == "200") continue;
@@ -128,52 +187,62 @@ public sealed class ApiOperationTransformer : IOpenApiOperationTransformer
             response.Description = status switch
             {
                 "400" => string.Join(", ", requestCodes),
-                "413" => ApiDiagnosticCodes.RequestTooLarge + " (pre-application host/proxy rejection may use a host-owned response)",
+                "413" => ApiDiagnosticCodes.RequestTooLarge +
+                         " (pre-application host/proxy rejection may use a host-owned response)",
                 "415" => ApiDiagnosticCodes.RequestUnsupportedMediaType,
                 "422" => string.Join(", ", generationCodes),
                 _ => ApiDiagnosticCodes.ServerInternalError
             };
             concrete.Content = new Dictionary<string, OpenApiMediaType>
             {
-                ["application/problem+json"] = new() { Schema = new OpenApiSchema
+                ["application/problem+json"] = new()
                 {
-                    Type = JsonSchemaType.Object, Required = new HashSet<string> { "type", "title", "status", "detail", "code", "traceId" },
-                    Properties = new Dictionary<string, IOpenApiSchema>
+                    Schema = new OpenApiSchema
                     {
-                        ["type"] = new OpenApiSchema { Type = JsonSchemaType.String }, ["title"] = new OpenApiSchema { Type = JsonSchemaType.String },
-                        ["status"] = new OpenApiSchema { Type = JsonSchemaType.Integer }, ["detail"] = new OpenApiSchema { Type = JsonSchemaType.String },
-                        ["code"] = new OpenApiSchema { Type = JsonSchemaType.String, Description = response.Description }, ["traceId"] = new OpenApiSchema { Type = JsonSchemaType.String },
-                        ["field"] = new OpenApiSchema { Type = JsonSchemaType.String | JsonSchemaType.Null }
+                        Type = JsonSchemaType.Object,
+                        Required = new HashSet<string> {"type", "title", "status", "detail", "code", "traceId"},
+                        Properties = new Dictionary<string, IOpenApiSchema>
+                        {
+                            ["type"] = new OpenApiSchema {Type = JsonSchemaType.String},
+                            ["title"] = new OpenApiSchema {Type = JsonSchemaType.String},
+                            ["status"] = new OpenApiSchema {Type = JsonSchemaType.Integer},
+                            ["detail"] = new OpenApiSchema {Type = JsonSchemaType.String},
+                            ["code"] = new OpenApiSchema
+                                {Type = JsonSchemaType.String, Description = response.Description},
+                            ["traceId"] = new OpenApiSchema {Type = JsonSchemaType.String},
+                            ["field"] = new OpenApiSchema {Type = JsonSchemaType.String | JsonSchemaType.Null}
+                        }
                     }
-                } }
+                }
             };
             if (generation && status == "422")
             {
-                var schema = (OpenApiSchema)concrete.Content["application/problem+json"].Schema!;
+                var schema = (OpenApiSchema) concrete.Content["application/problem+json"].Schema!;
                 schema.Required!.Add("errors");
                 schema.Required.Add("limitReached");
-                schema.Properties!["limitReached"] = new OpenApiSchema { Type = JsonSchemaType.Boolean };
+                schema.Properties!["limitReached"] = new OpenApiSchema {Type = JsonSchemaType.Boolean};
                 schema.Properties["errors"] = new OpenApiSchema
                 {
                     Type = JsonSchemaType.Array,
                     Items = new OpenApiSchema
                     {
                         Type = JsonSchemaType.Object,
-                        Required = new HashSet<string> { "code", "message" },
+                        Required = new HashSet<string> {"code", "message"},
                         Properties = new Dictionary<string, IOpenApiSchema>
                         {
-                            ["code"] = new OpenApiSchema { Type = JsonSchemaType.String },
-                            ["message"] = new OpenApiSchema { Type = JsonSchemaType.String },
-                            ["field"] = new OpenApiSchema { Type = JsonSchemaType.String | JsonSchemaType.Null },
-                            ["part"] = new OpenApiSchema { Type = JsonSchemaType.String | JsonSchemaType.Null },
-                            ["location"] = new OpenApiSchema { Type = JsonSchemaType.String | JsonSchemaType.Null },
-                            ["formatter"] = new OpenApiSchema { Type = JsonSchemaType.String | JsonSchemaType.Null },
-                            ["dataPath"] = new OpenApiSchema { Type = JsonSchemaType.String | JsonSchemaType.Null }
+                            ["code"] = new OpenApiSchema {Type = JsonSchemaType.String},
+                            ["message"] = new OpenApiSchema {Type = JsonSchemaType.String},
+                            ["field"] = new OpenApiSchema {Type = JsonSchemaType.String | JsonSchemaType.Null},
+                            ["part"] = new OpenApiSchema {Type = JsonSchemaType.String | JsonSchemaType.Null},
+                            ["location"] = new OpenApiSchema {Type = JsonSchemaType.String | JsonSchemaType.Null},
+                            ["formatter"] = new OpenApiSchema {Type = JsonSchemaType.String | JsonSchemaType.Null},
+                            ["dataPath"] = new OpenApiSchema {Type = JsonSchemaType.String | JsonSchemaType.Null}
                         }
                     }
                 };
             }
         }
+
         return Task.CompletedTask;
     }
 }

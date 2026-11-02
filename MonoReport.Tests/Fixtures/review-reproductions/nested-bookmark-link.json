@@ -1,1 +1,10 @@
-{"Items":[{"Children":["A","B"]}]}
+{
+  "Items": [
+    {
+      "Children": [
+        "A",
+        "B"
+      ]
+    }
+  ]
+}

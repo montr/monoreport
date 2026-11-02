@@ -3,8 +3,12 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.Extensions.DependencyInjection;
-using MonoReport.Models;
-using MonoReport.Services;
+using MonoReport.Core.Formatting;
+using MonoReport.Core.Templates;
+using Xunit;
+using System;
+using System.IO;
+using System.Linq;
 
 namespace MonoReport.Formatter.Spellout.Tests;
 
@@ -19,21 +23,21 @@ public sealed class SpelloutRegistrationTests
             .AddMonoReportSpelloutFormatter("amount_words")
             .BuildServiceProvider();
 
-        foreach (var key in new[] { "spellout", "rub_words", "amount_words" })
+        foreach (var key in new[] {"spellout", "rub_words", "amount_words"})
         {
             var docx = SpelloutBehaviorTests.CreateDocx("{Value " + key + "}");
             using var docxInput = new MemoryStream(docx);
             Assert.True(provider.GetRequiredService<TemplateAnalyzer>().Analyze(docxInput).Valid);
-            Assert.Equal("Один рубль 00 копеек", ReadDocx(Merge(provider, docx, """{"Value":1}""")));
+            Assert.Equal("Один рубль 00 копеек", ReadDocx(Generate(provider, docx, """{"Value":1}""")));
 
             var xlsx = CreateXlsx("{Value " + key + "}");
             using var xlsxInput = new MemoryStream(xlsx);
             Assert.True(provider.GetRequiredService<TemplateAnalyzer>().Analyze(xlsxInput).Valid);
-            Assert.Equal("Один рубль 00 копеек", ReadXlsx(Merge(provider, xlsx, """{"Value":1}""")));
+            Assert.Equal("Один рубль 00 копеек", ReadXlsx(Generate(provider, xlsx, """{"Value":1}""")));
         }
 
         var invalid = SpelloutBehaviorTests.CreateDocx("{Value rub_words}");
-        var error = Assert.Throws<TemplateException>(() => Merge(provider, invalid, """{"Value":true}"""));
+        var error = Assert.Throws<TemplateException>(() => Generate(provider, invalid, """{"Value":true}"""));
         Assert.Equal("rub_words", Assert.Single(error.Errors).Formatter);
     }
 
@@ -88,11 +92,11 @@ public sealed class SpelloutRegistrationTests
         Assert.Throws<ArgumentException>(() => new ServiceCollection().AddMonoReportSpelloutFormatter(key));
     }
 
-    private static byte[] Merge(IServiceProvider provider, byte[] template, string json)
+    private static byte[] Generate(IServiceProvider provider, byte[] template, string json)
     {
         using var input = new MemoryStream(template);
         using var data = JsonDocument.Parse(json);
-        return provider.GetRequiredService<MergeEngine>().Merge(input, data).Document;
+        return provider.GetRequiredService<DocumentGenerator>().Generate(input, data).Document;
     }
 
     private static string ReadDocx(byte[] source)
@@ -122,8 +126,8 @@ public sealed class SpelloutRegistrationTests
             {
                 CellReference = "B3",
                 DataType = CellValues.InlineString,
-                InlineString = new InlineString(new Text(expression) { Space = SpaceProcessingModeValues.Preserve })
-            }) { RowIndex = 3 }));
+                InlineString = new InlineString(new Text(expression) {Space = SpaceProcessingModeValues.Preserve})
+            }) {RowIndex = 3}));
             workbook.Workbook.Append(new Sheets(new Sheet
             {
                 Name = "Report",
@@ -136,6 +140,7 @@ public sealed class SpelloutRegistrationTests
                 LocalSheetId = 0
             }));
         }
+
         return output.ToArray();
     }
 }

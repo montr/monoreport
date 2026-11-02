@@ -1,4 +1,10 @@
 using Microsoft.Net.Http.Headers;
+using Microsoft.AspNetCore.Http;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using System.IO;
+using System.Linq;
 
 namespace MonoReport.Api.Services;
 
@@ -12,7 +18,10 @@ public sealed class MultipartRequestReader
         if (!media.Boundary.HasValue)
             throw new RequestInputException(400, ApiDiagnosticCodes.RequestInvalidMultipart);
         IFormCollection form;
-        try { form = await request.ReadFormAsync(cancellation); }
+        try
+        {
+            form = await request.ReadFormAsync(cancellation);
+        }
         catch (IOException error) when (ContainsStatus(error, StatusCodes.Status413PayloadTooLarge))
         {
             throw new RequestInputException(413, ApiDiagnosticCodes.RequestTooLarge);
@@ -21,6 +30,7 @@ public sealed class MultipartRequestReader
         {
             throw new RequestInputException(400, ApiDiagnosticCodes.RequestInvalidMultipart);
         }
+
         RequireFile(form, "template");
         if (analysis && (form.Keys.Any(key => key != "template") || form.Files.Any(f => f.Name != "template")))
             throw new RequestInputException(400, ApiDiagnosticCodes.RequestUnexpectedInput);
@@ -29,12 +39,13 @@ public sealed class MultipartRequestReader
             RequireText(form, "data", true);
             RequireText(form, "culture", false);
         }
+
         return form;
     }
 
     private static bool ContainsStatus(Exception error, int status)
     {
-        for (Exception? current = error; current is not null; current = current.InnerException)
+        for (var current = error; current is not null; current = current.InnerException)
             if (current is BadHttpRequestException requestError && requestError.StatusCode == status)
                 return true;
         return false;
@@ -58,6 +69,7 @@ public sealed class MultipartRequestReader
         if (required && count == 0) throw new RequestInputException(400, ApiDiagnosticCodes.RequestMissingInput, name);
         if (count > 1) throw new RequestInputException(400, ApiDiagnosticCodes.RequestDuplicateInput, name);
         if (files != 0) throw new RequestInputException(400, ApiDiagnosticCodes.RequestInvalidInput, name);
-        if (required && string.IsNullOrWhiteSpace(values.ToString())) throw new RequestInputException(400, ApiDiagnosticCodes.RequestEmptyInput, name);
+        if (required && string.IsNullOrWhiteSpace(values.ToString()))
+            throw new RequestInputException(400, ApiDiagnosticCodes.RequestEmptyInput, name);
     }
 }

@@ -1,9 +1,16 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using MonoReport.Services;
-using MonoReport.Services.Xlsx;
-using MonoReport.Models;
+using MonoReport.Core.Formatting;
+using MonoReport.Core.Templates;
+using MonoReport.Docx;
+using MonoReport.Docx.Planning;
+using MonoReport.Xlsx;
+using MonoReport.Xlsx.Planning;
+using XlsxGeometryPlanner = MonoReport.Xlsx.Planning.XlsxGeometryPlanner;
+using XlsxTemplatePlanner = MonoReport.Xlsx.Planning.XlsxTemplatePlanner;
+using System;
 
-namespace Microsoft.Extensions.DependencyInjection;
+namespace MonoReport;
 
 /// <summary>Registers the MonoReport template engine.</summary>
 public static class MonoReportServiceCollectionExtensions
@@ -12,14 +19,13 @@ public static class MonoReportServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.TryAddTransient(provider => new MergeEngine(provider.GetRequiredService<DocumentRenderer>(),
-            provider.GetRequiredService<DocxStoryReader>(), provider.GetRequiredService<TemplateAnalyzer>(),
-            provider.GetRequiredService<PackageFormatDetector>(), provider.GetRequiredService<XlsxTemplateHandler>()));
-        services.TryAddTransient(provider => new TemplateAnalyzer(provider.GetRequiredService<DocxStoryReader>(),
-            provider.GetRequiredService<DocxTemplatePlanner>(), provider.GetRequiredService<PackageFormatDetector>(),
-            provider.GetRequiredService<XlsxTemplateHandler>()));
+        services.TryAddTransient<DocumentGenerator>();
+        services.TryAddTransient<TemplateAnalyzer>();
         services.TryAddTransient<PackageFormatDetector>();
-        services.TryAddTransient<XlsxTemplateHandler>();
+        services.TryAddTransient<DocxGenerator>();
+        services.TryAddTransient<DocxTemplateAnalyzer>();
+        services.TryAddTransient<XlsxGenerator>();
+        services.TryAddTransient<XlsxTemplateAnalyzer>();
         services.TryAddTransient<XlsxPackageReader>();
         services.TryAddTransient<XlsxGeometryPlanner>();
         services.TryAddTransient<XlsxTemplatePlanner>();
@@ -29,10 +35,11 @@ public static class MonoReportServiceCollectionExtensions
         services.TryAddTransient<DocxStoryReader>();
         services.TryAddTransient<TemplateLanguageParser>();
         services.TryAddTransient<DocxTemplatePlanner>();
-        services.TryAddTransient<DocumentRenderer>();
+        services.TryAddTransient<DocxRenderer>();
         services.TryAddTransient<DataResolver>();
         services.TryAddTransient<ValueFormatter>();
         services.TryAddSingleton<InvariantDecimalParser>();
+        
         services.TryAdd(ServiceDescriptor.KeyedSingleton<IFormatter, UpperFormatter>("upper"));
         services.TryAdd(ServiceDescriptor.KeyedSingleton<IFormatter, LowerFormatter>("lower"));
         services.TryAdd(ServiceDescriptor.KeyedSingleton<IFormatter, CapsFormatter>("caps"));

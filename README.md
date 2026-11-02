@@ -61,7 +61,7 @@ MonoReport generates DOCX reports, contracts, acts, protocols, invoices, and sim
 3. `If` accepts a JSON Boolean. Missing or null structural values select zero iterations or the false branch; incompatible non-null structural values are errors.
 4. A scalar expression supports at most one formatter. Formatter arguments are double-quoted strings: one optional leading positional argument and named arguments such as `pattern="N2"`. Names and keys are ordinal and case-sensitive. Colon patterns, bare values, single-quoted values, chaining, and formatter pipelines are invalid.
 5. `number` and `spellout` accept JSON numbers or invariant numeric strings. `date` accepts `YYYY-MM-DD` or an ISO date-time with `Z` or an explicit offset.
-6. Explicit null and empty strings render empty. Missing scalar values follow `MergeOptions.MissingValues`.
+6. Explicit null and empty strings render empty. Missing scalar values follow `GenerationOptions.MissingValues`.
 7. Inserted JSON text and emitted literal braces are never reinterpreted as template syntax.
 8. Raw markers occupy dedicated sibling paragraphs or dedicated sibling table rows under the same parent. Content between them is preserved literally without expression parsing, dependency extraction, brace unescaping, or data evaluation. Raw does not nest.
 
@@ -87,7 +87,7 @@ For the support, preservation, and rejection policy for Microsoft Word features,
 
 ## Core API
 
-1. Register services and inject `MergeEngine` and, when needed, `TemplateAnalyzer`:
+1. Register services and inject `DocumentGenerator` and, when needed, `TemplateAnalyzer`:
 
    ```csharp
    services.AddMonoReport();
@@ -95,15 +95,15 @@ For the support, preservation, and rejection policy for Microsoft Word features,
 
    using var template = File.OpenRead("template.docx");
    using var data = JsonDocument.Parse(json);
-   MergeResult result = engine.Merge(template, data, new MergeOptions
+   GenerationResult result = generator.Generate(template, data, new GenerationOptions
    {
        Culture = CultureInfo.GetCultureInfo("en-GB"),
        MissingValues = MissingValueBehavior.Error
    });
    ```
 
-2. `Merge` reads from the template stream's current position and leaves caller-owned inputs open. A successful result contains independent document bytes, warnings and format metadata. `AddMonoReport()` composes both Word and XLSX handlers; existing manually composed Word constructors remain supported. A failed merge throws `TemplateException`, aggregates up to 100 ordered diagnostics, and returns no partial document.
-3. `MergeOptions.Culture` controls output casing, decimal formatting, and date formatting. It does not change invariant numeric input parsing, ISO date interpretation, or Russian RUB `spellout` behavior.
+2. `Generate` reads from the template stream's current position and leaves caller-owned inputs open. A successful result contains independent document bytes, warnings and format metadata. `AddMonoReport()` composes both Word and XLSX handlers; existing manually composed Word constructors remain supported. A failed generation throws `TemplateException`, aggregates up to 100 ordered diagnostics, and returns no partial document.
+3. `GenerationOptions.Culture` controls output casing, decimal formatting, and date formatting. It does not change invariant numeric input parsing, ISO date interpretation, or Russian RUB `spellout` behavior.
 4. Core registers the six simple formatters. Spellout is an optional external formatter; register it explicitly with `services.AddMonoReportSpelloutFormatter()` when templates use `{Amount spellout}`. A custom registration key can be used in a template by passing that key to the extension.
 5. Add a project reference to `MonoReport.Formatter.Spellout` in applications that use its registration extension; this Feature does not distribute it as a NuGet package.
 6. Custom formatters implement Core's `IFormatter` contract and register as keyed services. The service key becomes the template name; the selected formatter supplies its own parameter metadata and validation.

@@ -1,16 +1,28 @@
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using MonoReport;
 using MonoReport.Api.Services;
-using MonoReport.Models;
+using MonoReport.Core.Templates;
+using MonoReport.Formatter.Spellout;
+using System;
+using System.IO;
 
 var builder = WebApplication.CreateBuilder(args);
 var requestLimit = builder.Configuration.GetValue<long?>("MonoReport:MaxRequestBytes") ?? 50L * 1024 * 1024;
-if (requestLimit <= 0 || requestLimit > int.MaxValue) throw new InvalidOperationException("MonoReport:MaxRequestBytes must be positive and no greater than Int32.MaxValue.");
+if (requestLimit <= 0 || requestLimit > int.MaxValue)
+    throw new InvalidOperationException(
+        "MonoReport:MaxRequestBytes must be positive and no greater than Int32.MaxValue.");
 builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = requestLimit);
 builder.Services.Configure<FormOptions>(options =>
 {
     options.MultipartBodyLengthLimit = requestLimit;
-    options.ValueLengthLimit = (int)requestLimit;
+    options.ValueLengthLimit = (int) requestLimit;
 });
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
@@ -40,23 +52,41 @@ app.Use(async (context, next) =>
         if (context.Request.ContentLength > requestLimit)
             throw new RequestInputException(413, ApiDiagnosticCodes.RequestTooLarge);
         var feature = context.Features.Get<IHttpMaxRequestBodySizeFeature>();
-        if (feature is { IsReadOnly: false }) feature.MaxRequestBodySize = requestLimit;
+        if (feature is {IsReadOnly: false}) feature.MaxRequestBodySize = requestLimit;
         await next(context);
     }
-    catch (RequestInputException error) { await problems.Create(context, error.Status, error.Code, error.Field).ExecuteAsync(context); }
-    catch (BadHttpRequestException error) { await problems.Create(context, error.StatusCode == 413 ? 413 : 400, error.StatusCode == 413 ? ApiDiagnosticCodes.RequestTooLarge : ApiDiagnosticCodes.RequestInvalidMultipart).ExecuteAsync(context); }
-    catch (TemplateException error) { await problems.Create(context, error).ExecuteAsync(context); }
-    catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested) { }
+    catch (RequestInputException error)
+    {
+        await problems.Create(context, error.Status, error.Code, error.Field).ExecuteAsync(context);
+    }
+    catch (BadHttpRequestException error)
+    {
+        await problems
+            .Create(context, error.StatusCode == 413 ? 413 : 400,
+                error.StatusCode == 413
+                    ? ApiDiagnosticCodes.RequestTooLarge
+                    : ApiDiagnosticCodes.RequestInvalidMultipart).ExecuteAsync(context);
+    }
+    catch (TemplateException error)
+    {
+        await problems.Create(context, error).ExecuteAsync(context);
+    }
+    catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+    {
+    }
     catch (Exception error)
     {
         app.Logger.LogError(error, "Document request failed ({TraceId})", context.TraceIdentifier);
-        if (!context.Response.HasStarted) await problems.Create(context, 500, ApiDiagnosticCodes.ServerInternalError).ExecuteAsync(context);
+        if (!context.Response.HasStarted)
+            await problems.Create(context, 500, ApiDiagnosticCodes.ServerInternalError).ExecuteAsync(context);
     }
 });
 app.UseDefaultFiles();
 app.UseStaticFiles();
-app.MapPost("/api/documents/generate", (HttpContext context, DocumentEndpoints endpoints) => endpoints.Generate(context))
-    .WithName("GenerateDocument").Produces(200, contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+app.MapPost("/api/documents/generate",
+        (HttpContext context, DocumentEndpoints endpoints) => endpoints.Generate(context))
+    .WithName("GenerateDocument").Produces(200,
+        contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
     .Produces(200, contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     .Produces(200, contentType: "multipart/mixed")
     .ProducesProblem(400).ProducesProblem(413).ProducesProblem(415).ProducesProblem(422).ProducesProblem(500);
@@ -74,15 +104,16 @@ if (builder.Configuration.GetValue<bool?>("MonoReport:DocumentationEnabled") ?? 
         options.DocumentTitle = "MonoReport API";
     });
 }
+
 app.MapFallback(async context =>
 {
     var path = context.Request.Path.Value ?? string.Empty;
     var reserved = path.Equals("/api", StringComparison.OrdinalIgnoreCase)
-        || path.StartsWith("/api/", StringComparison.OrdinalIgnoreCase)
-        || path.Equals("/docs", StringComparison.OrdinalIgnoreCase)
-        || path.StartsWith("/docs/", StringComparison.OrdinalIgnoreCase)
-        || path.Equals("/openapi", StringComparison.OrdinalIgnoreCase)
-        || path.StartsWith("/openapi/", StringComparison.OrdinalIgnoreCase);
+                   || path.StartsWith("/api/", StringComparison.OrdinalIgnoreCase)
+                   || path.Equals("/docs", StringComparison.OrdinalIgnoreCase)
+                   || path.StartsWith("/docs/", StringComparison.OrdinalIgnoreCase)
+                   || path.Equals("/openapi", StringComparison.OrdinalIgnoreCase)
+                   || path.StartsWith("/openapi/", StringComparison.OrdinalIgnoreCase);
     if (reserved || Path.HasExtension(path))
     {
         context.Response.StatusCode = StatusCodes.Status404NotFound;
@@ -101,4 +132,7 @@ app.MapFallback(async context =>
 });
 app.Run();
 
-public partial class Program;
+namespace MonoReport.Api
+{
+    public class Program;
+}

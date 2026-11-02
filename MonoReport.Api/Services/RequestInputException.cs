@@ -1,3 +1,6 @@
+
+using System;
+
 namespace MonoReport.Api.Services;
 
 public sealed class RequestInputException(int status, string code, string? field = null) : Exception
