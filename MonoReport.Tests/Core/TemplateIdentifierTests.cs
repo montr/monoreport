@@ -1,5 +1,5 @@
-using TemplateIdentifier = MonoReport.Core.Templates.TemplateIdentifier;
 using Xunit;
+using TemplateIdentifier = MonoReport.Core.Templates.TemplateIdentifier;
 
 namespace MonoReport.Tests.Core;
 

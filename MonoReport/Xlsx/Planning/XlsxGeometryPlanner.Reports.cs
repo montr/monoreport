@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
+using System.Linq;
 using System.Xml.Linq;
 using MonoReport.Core.Templates;
-using System.Linq;
 
 namespace MonoReport.Xlsx.Planning;
 

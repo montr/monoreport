@@ -1,6 +1,6 @@
+using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Collections.Generic;
 
 namespace MonoReport.Core.Formatting;
 

@@ -1,4 +1,7 @@
+using System;
 using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
@@ -7,9 +10,6 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using MonoReport.Core.Diagnostics;
 using MonoReport.Xlsx.Planning;
-using System;
-using System.IO;
-using System.Linq;
 
 namespace MonoReport.Xlsx;
 

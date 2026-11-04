@@ -1,6 +1,6 @@
+using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
-using System.Linq;
 
 namespace MonoReport.Tests.Integration;
 
@@ -21,11 +21,9 @@ public sealed class DependencyInjectionTests
         Assert.IsType<TemplateAnalyzer>(provider.GetRequiredService<TemplateAnalyzer>());
 
         foreach (var registration in registrations)
-        {
             if (registration.IsKeyedService)
                 provider.GetRequiredKeyedService(registration.ServiceType, registration.ServiceKey);
             else
                 provider.GetRequiredService(registration.ServiceType);
-        }
     }
 }

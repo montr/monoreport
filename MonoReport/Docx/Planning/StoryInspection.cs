@@ -1,7 +1,7 @@
+using System.Collections.Generic;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using MonoReport.Core.Diagnostics;
-using System.Collections.Generic;
 
 namespace MonoReport.Docx.Planning;
 

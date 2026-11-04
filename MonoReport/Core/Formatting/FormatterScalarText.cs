@@ -1,5 +1,5 @@
-using System.Text.Json;
 using System;
+using System.Text.Json;
 
 namespace MonoReport.Core.Formatting;
 

@@ -1,9 +1,9 @@
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
 using MonoReport.Core.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 
 namespace MonoReport.Api.Services;
 

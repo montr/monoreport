@@ -1,11 +1,11 @@
+using System;
+using System.IO;
+using System.Linq;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using MonoReport.Core.Diagnostics;
-using Xunit;
 using MonoReport.Tests.Integration;
-using System.IO;
-using System.Linq;
-using System;
+using Xunit;
 
 namespace MonoReport.Tests.Xlsx;
 

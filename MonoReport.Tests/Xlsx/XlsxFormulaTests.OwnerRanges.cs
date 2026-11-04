@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
@@ -5,12 +9,8 @@ using Microsoft.Extensions.DependencyInjection;
 using MonoReport.Core.Diagnostics;
 using MonoReport.Core.Templates;
 using MonoReport.Xlsx.Planning;
-using XlsxGeometryPlanner = MonoReport.Xlsx.Planning.XlsxGeometryPlanner;
 using Xunit;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+using XlsxGeometryPlanner = MonoReport.Xlsx.Planning.XlsxGeometryPlanner;
 
 namespace MonoReport.Tests.Xlsx;
 

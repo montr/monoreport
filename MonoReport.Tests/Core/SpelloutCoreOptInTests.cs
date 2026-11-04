@@ -1,9 +1,9 @@
+using System;
+using System.IO;
 using Microsoft.Extensions.DependencyInjection;
 using MonoReport.Cli.Tests;
 using MonoReport.Core.Templates;
 using Xunit;
-using System;
-using System.IO;
 
 namespace MonoReport.Tests.Core;
 

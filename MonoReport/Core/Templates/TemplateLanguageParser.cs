@@ -1,9 +1,9 @@
-using Microsoft.Extensions.DependencyInjection;
-using MonoReport.Core.Diagnostics;
-using MonoReport.Core.Formatting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
+using MonoReport.Core.Diagnostics;
+using MonoReport.Core.Formatting;
 
 namespace MonoReport.Core.Templates;
 

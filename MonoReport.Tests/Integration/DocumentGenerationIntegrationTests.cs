@@ -1,17 +1,16 @@
+using System;
 using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Text.Json;
+using System.Threading.Tasks;
 using System.Xml.Linq;
 using Microsoft.Extensions.DependencyInjection;
+using MonoReport.Cli.Tests;
 using MonoReport.Docx;
 using MonoReport.Formatter.Spellout;
-using Xunit;
 using MonoReport.Tests.Docx;
-
-using MonoReport.Cli.Tests;
-using System;
-using System.IO;
-using System.Threading.Tasks;
-using System.Linq;
+using Xunit;
 
 namespace MonoReport.Tests.Integration;
 

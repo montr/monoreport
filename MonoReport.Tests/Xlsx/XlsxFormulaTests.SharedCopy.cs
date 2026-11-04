@@ -1,3 +1,6 @@
+using System;
+using System.IO;
+using System.Linq;
 using System.Text.Json;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -7,12 +10,9 @@ using MonoReport.Core.Diagnostics;
 using MonoReport.Core.Templates;
 using MonoReport.Xlsx;
 using MonoReport.Xlsx.Planning;
+using Xunit;
 using XlsxGeometryPlanner = MonoReport.Xlsx.Planning.XlsxGeometryPlanner;
 using XlsxTemplatePlanner = MonoReport.Xlsx.Planning.XlsxTemplatePlanner;
-using Xunit;
-using System;
-using System.IO;
-using System.Linq;
 
 namespace MonoReport.Tests.Xlsx;
 

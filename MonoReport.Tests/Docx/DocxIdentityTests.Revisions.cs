@@ -1,12 +1,11 @@
-using System.Xml.Linq;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using Xunit;
-
-using MonoReport.Cli.Tests;
 using System;
 using System.IO;
 using System.Linq;
+using System.Xml.Linq;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using MonoReport.Cli.Tests;
+using Xunit;
 
 namespace MonoReport.Tests.Docx;
 

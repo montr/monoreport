@@ -1,8 +1,10 @@
+using System;
+using System.IO;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -10,8 +12,6 @@ using MonoReport;
 using MonoReport.Api.Services;
 using MonoReport.Core.Templates;
 using MonoReport.Formatter.Spellout;
-using System;
-using System.IO;
 
 var builder = WebApplication.CreateBuilder(args);
 var requestLimit = builder.Configuration.GetValue<long?>("MonoReport:MaxRequestBytes") ?? 50L * 1024 * 1024;

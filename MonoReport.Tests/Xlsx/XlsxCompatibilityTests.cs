@@ -1,21 +1,20 @@
+using System;
+using System.IO;
 using System.IO.Packaging;
+using System.Linq;
 using System.Text.Json;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using Microsoft.Extensions.DependencyInjection;
+using MonoReport.Cli.Tests;
 using MonoReport.Core.Diagnostics;
 using MonoReport.Core.Templates;
 using MonoReport.Docx;
 using MonoReport.Formatter.Spellout;
-using MonoReport.Xlsx;
-using DocumentKind = MonoReport.DocumentFormat;
-using Xunit;
 using MonoReport.Tests.Docx;
-
-using MonoReport.Cli.Tests;
-using System.IO;
-using System;
-using System.Linq;
+using MonoReport.Xlsx;
+using Xunit;
+using DocumentKind = MonoReport.DocumentFormat;
 
 namespace MonoReport.Tests.Xlsx;
 

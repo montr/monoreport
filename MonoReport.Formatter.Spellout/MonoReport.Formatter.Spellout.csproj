@@ -8,10 +8,10 @@
         <ProjectReference Include="../MonoReport/MonoReport.csproj"/>
     </ItemGroup>
     <ItemGroup>
-        <EmbeddedResource Include="Resources/spell-en.json" />
-        <EmbeddedResource Include="Resources/spell-ru.json" />
+        <EmbeddedResource Include="Resources/spell-en.json"/>
+        <EmbeddedResource Include="Resources/spell-ru.json"/>
     </ItemGroup>
     <ItemGroup>
-        <InternalsVisibleTo Include="MonoReport.Formatter.Spellout.Tests" />
+        <InternalsVisibleTo Include="MonoReport.Formatter.Spellout.Tests"/>
     </ItemGroup>
 </Project>

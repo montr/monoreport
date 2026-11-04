@@ -1,4 +1,3 @@
-
 using System;
 
 namespace MonoReport.Api.Services;

@@ -1,10 +1,10 @@
+using System;
+using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using DocumentFormat.OpenXml.Packaging;
 using MonoReport.Core.Templates;
-using System.IO;
-using System;
-using System.Linq;
 
 namespace MonoReport.Cli;
 

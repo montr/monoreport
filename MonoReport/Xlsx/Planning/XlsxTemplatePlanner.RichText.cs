@@ -1,7 +1,7 @@
+using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Xml.Linq;
-using System.Collections.Generic;
-using System;
 
 namespace MonoReport.Xlsx.Planning;
 

@@ -1,5 +1,5 @@
-using MonoReport.Core.Diagnostics;
 using System.Collections.Generic;
+using MonoReport.Core.Diagnostics;
 
 namespace MonoReport;
 

@@ -1,11 +1,11 @@
+using System;
+using System.IO;
 using System.IO.Packaging;
+using System.Linq;
 using System.Xml;
 using MonoReport.Core.Diagnostics;
 using MonoReport.Core.Templates;
 using DocumentKind = MonoReport.DocumentFormat;
-using System.IO;
-using System;
-using System.Linq;
 
 namespace MonoReport;
 

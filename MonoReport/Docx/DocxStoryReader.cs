@@ -1,12 +1,12 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Xml;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using MonoReport.Core.Diagnostics;
 using MonoReport.Docx.Planning;
-using System.Collections.Generic;
-using System.IO;
-using System;
-using System.Linq;
 
 namespace MonoReport.Docx;
 

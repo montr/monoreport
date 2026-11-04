@@ -9,10 +9,9 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using Microsoft.AspNetCore.Mvc.Testing;
+using MonoReport.Cli.Tests;
 using MonoReport.Docx;
 using Xunit;
-
-using MonoReport.Cli.Tests;
 
 namespace MonoReport.Api.Tests;
 

@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using MonoReport.Core.Formatting;
@@ -8,7 +9,6 @@ using MonoReport.Xlsx;
 using MonoReport.Xlsx.Planning;
 using XlsxGeometryPlanner = MonoReport.Xlsx.Planning.XlsxGeometryPlanner;
 using XlsxTemplatePlanner = MonoReport.Xlsx.Planning.XlsxTemplatePlanner;
-using System;
 
 namespace MonoReport;
 
@@ -39,7 +39,7 @@ public static class MonoReportServiceCollectionExtensions
         services.TryAddTransient<DataResolver>();
         services.TryAddTransient<ValueFormatter>();
         services.TryAddSingleton<InvariantDecimalParser>();
-        
+
         services.TryAdd(ServiceDescriptor.KeyedSingleton<IFormatter, UpperFormatter>("upper"));
         services.TryAdd(ServiceDescriptor.KeyedSingleton<IFormatter, LowerFormatter>("lower"));
         services.TryAdd(ServiceDescriptor.KeyedSingleton<IFormatter, CapsFormatter>("caps"));

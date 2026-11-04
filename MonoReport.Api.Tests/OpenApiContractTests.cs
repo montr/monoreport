@@ -1,15 +1,13 @@
-using System;
-using System.Net;
 using System.Linq;
+using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using MonoReport.Api.Services;
+using MonoReport.Cli.Tests;
 using MonoReport.Core.Diagnostics;
 using Xunit;
-
-using MonoReport.Cli.Tests;
 
 namespace MonoReport.Api.Tests;
 

@@ -1,5 +1,9 @@
+using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -9,13 +13,9 @@ using MonoReport.Core.Diagnostics;
 using MonoReport.Core.Templates;
 using MonoReport.Xlsx;
 using MonoReport.Xlsx.Planning;
+using Xunit;
 using XlsxGeometryPlanner = MonoReport.Xlsx.Planning.XlsxGeometryPlanner;
 using XlsxTemplatePlanner = MonoReport.Xlsx.Planning.XlsxTemplatePlanner;
-using Xunit;
-using System.Collections.Generic;
-using System;
-using System.IO;
-using System.Linq;
 
 namespace MonoReport.Tests.Xlsx;
 

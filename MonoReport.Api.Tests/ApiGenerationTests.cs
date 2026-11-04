@@ -12,11 +12,10 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
-using MonoReport.Core.Diagnostics;
-using Xunit;
-using MonoReport.Tests.Xlsx;
-
 using MonoReport.Cli.Tests;
+using MonoReport.Core.Diagnostics;
+using MonoReport.Tests.Xlsx;
+using Xunit;
 
 namespace MonoReport.Api.Tests;
 

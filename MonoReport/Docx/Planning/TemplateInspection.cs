@@ -1,6 +1,6 @@
+using System.Collections.Generic;
 using MonoReport.Core.Diagnostics;
 using MonoReport.Core.Templates;
-using System.Collections.Generic;
 
 namespace MonoReport.Docx.Planning;
 

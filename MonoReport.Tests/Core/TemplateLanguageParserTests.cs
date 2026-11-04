@@ -1,7 +1,7 @@
-using MonoReport.Core.Templates;
-using Xunit;
-using MonoReport.Tests.Integration;
 using System.Linq;
+using MonoReport.Core.Templates;
+using MonoReport.Tests.Integration;
+using Xunit;
 
 namespace MonoReport.Tests.Core;
 

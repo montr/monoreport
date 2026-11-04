@@ -1,12 +1,12 @@
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using MonoReport.Core.Diagnostics;
 using MonoReport.Core.Templates;
 using MonoReport.Xlsx.Planning;
-using XlsxTemplatePlanner = MonoReport.Xlsx.Planning.XlsxTemplatePlanner;
 using Xunit;
-using System.Linq;
-using System.Collections.Generic;
+using XlsxTemplatePlanner = MonoReport.Xlsx.Planning.XlsxTemplatePlanner;
 
 namespace MonoReport.Tests.Xlsx;
 

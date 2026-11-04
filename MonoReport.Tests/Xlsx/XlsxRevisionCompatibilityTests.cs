@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Text.Json;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -6,10 +10,6 @@ using Microsoft.Extensions.DependencyInjection;
 using MonoReport.Core.Diagnostics;
 using MonoReport.Core.Templates;
 using Xunit;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 
 namespace MonoReport.Tests.Xlsx;
 

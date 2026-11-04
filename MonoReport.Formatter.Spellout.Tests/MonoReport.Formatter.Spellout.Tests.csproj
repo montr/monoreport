@@ -22,8 +22,8 @@
         <ProjectReference Include="../MonoReport.Formatter.Spellout/MonoReport.Formatter.Spellout.csproj"/>
     </ItemGroup>
     <ItemGroup>
-        <EmbeddedResource Include="../MonoReport.Formatter.Spellout/Resources/spell-en.json" Link="Languages/spell-en.json" />
-        <EmbeddedResource Include="Resources/spell-test.json" />
+        <EmbeddedResource Include="../MonoReport.Formatter.Spellout/Resources/spell-en.json" Link="Languages/spell-en.json"/>
+        <EmbeddedResource Include="Resources/spell-test.json"/>
     </ItemGroup>
 
 </Project>

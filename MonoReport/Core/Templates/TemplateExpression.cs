@@ -1,6 +1,6 @@
+using System.Collections.Generic;
 using MonoReport.Core.Diagnostics;
 using MonoReport.Core.Formatting;
-using System.Collections.Generic;
 
 namespace MonoReport.Core.Templates;
 

@@ -1,5 +1,9 @@
+using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
@@ -7,10 +11,6 @@ using DocumentFormat.OpenXml.Packaging;
 using MonoReport.Core.Diagnostics;
 using MonoReport.Core.Templates;
 using MonoReport.Xlsx.Planning;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 
 namespace MonoReport.Xlsx;
 

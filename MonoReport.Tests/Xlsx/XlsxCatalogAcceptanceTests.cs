@@ -1,11 +1,11 @@
+using System;
+using System.IO;
+using System.Linq;
 using System.Text.Json;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
-using System;
-using System.IO;
-using System.Linq;
 
 namespace MonoReport.Tests.Xlsx;
 

@@ -1,5 +1,5 @@
-using System.Collections.Immutable;
 using System;
+using System.Collections.Immutable;
 using System.Linq;
 
 namespace MonoReport.Xlsx.Planning;

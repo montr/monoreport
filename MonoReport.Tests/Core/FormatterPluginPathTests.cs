@@ -1,20 +1,19 @@
+using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Text.Json;
+using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.Extensions.DependencyInjection;
+using MonoReport.Cli.Tests;
 using MonoReport.Core.Formatting;
+using MonoReport.Tests.Xlsx;
+using Xunit;
 using CapsFormatter = MonoReport.Core.Formatting.CapsFormatter;
 using FirstCapFormatter = MonoReport.Core.Formatting.FirstCapFormatter;
-using Xunit;
-using MonoReport.Tests.Xlsx;
-
-using MonoReport.Cli.Tests;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.IO;
-using System.Linq;
 
 namespace MonoReport.Tests.Core;
 

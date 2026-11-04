@@ -1,16 +1,15 @@
-using System.Text.Json;
-using System.Xml.Linq;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using MonoReport.Docx;
-using Xunit;
-
-using MonoReport.Cli.Tests;
-using System.Threading.Tasks;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
+using System.Threading.Tasks;
+using System.Xml.Linq;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using MonoReport.Cli.Tests;
+using MonoReport.Docx;
+using Xunit;
 
 namespace MonoReport.Tests.Docx;
 

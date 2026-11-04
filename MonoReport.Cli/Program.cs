@@ -1,6 +1,6 @@
+using System;
 using Microsoft.Extensions.DependencyInjection;
 using MonoReport.Formatter.Spellout;
-using System;
 
 namespace MonoReport.Cli;
 

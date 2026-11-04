@@ -1,3 +1,6 @@
+using System;
+using System.IO;
+using System.Linq;
 using System.Text.Json;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -6,9 +9,6 @@ using DocumentFormat.OpenXml.Validation;
 using MonoReport.Core.Diagnostics;
 using MonoReport.Core.Templates;
 using Xunit;
-using System;
-using System.IO;
-using System.Linq;
 
 namespace MonoReport.Tests.Xlsx;
 

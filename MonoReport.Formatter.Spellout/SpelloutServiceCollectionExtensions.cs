@@ -8,7 +8,8 @@ namespace MonoReport.Formatter.Spellout;
 
 public static class SpelloutServiceCollectionExtensions
 {
-    public static IServiceCollection AddMonoReportSpelloutFormatter(this IServiceCollection services, string key = "spellout")
+    public static IServiceCollection AddMonoReportSpelloutFormatter(this IServiceCollection services,
+        string key = "spellout")
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentException.ThrowIfNullOrWhiteSpace(key);

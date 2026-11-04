@@ -1,15 +1,14 @@
+using System;
+using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
+using MonoReport.Cli.Tests;
 using MonoReport.Docx;
 using Xunit;
-
-using MonoReport.Cli.Tests;
-using System;
-using System.IO;
-using System.Linq;
 
 namespace MonoReport.Tests.Docx;
 

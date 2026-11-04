@@ -1,12 +1,12 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Text.Json;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
 using Xunit;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 
 namespace MonoReport.Tests.Xlsx;
 

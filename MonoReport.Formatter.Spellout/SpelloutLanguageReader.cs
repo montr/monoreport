@@ -44,7 +44,8 @@ internal sealed class SpelloutLanguageReader
                            ?? throw new FormatException($"Invalid spellout resource filename: {resourceName}.");
         var language = Read(stream);
         if (!StringComparer.Ordinal.Equals(language.Language, fileLanguage))
-            throw new FormatException($"Spellout language '{language.Language}' does not match resource '{resourceName}'.");
+            throw new FormatException(
+                $"Spellout language '{language.Language}' does not match resource '{resourceName}'.");
         return language;
     }
 
@@ -75,32 +76,40 @@ internal sealed class SpelloutLanguageReader
                ValidWordTable(language.Ones, 1) && ValidWordTable(language.Teens, 0) &&
                ValidWordTable(language.Tens, 2) && ValidWordTable(language.Hundreds, 1) &&
                ValidGenderVariants(language.GenderVariants) &&
-               language.Scales is { Length: >= 5 } && language.Scales.All(ValidUnit) &&
+               language.Scales is {Length: >= 5} && language.Scales.All(ValidUnit) &&
                HasCurrencies(language.Currencies);
     }
 
-    private static bool ValidWordTable(string[]? words, int firstUsedIndex) =>
-        words is { Length: 10 } && words.All(word => word is not null) &&
-        words.Skip(firstUsedIndex).All(word => !string.IsNullOrWhiteSpace(word));
+    private static bool ValidWordTable(string[]? words, int firstUsedIndex)
+    {
+        return words is {Length: 10} && words.All(word => word is not null) &&
+               words.Skip(firstUsedIndex).All(word => !string.IsNullOrWhiteSpace(word));
+    }
 
-    private static bool ValidGenderVariants(Dictionary<string, Dictionary<string, string>>? variants) =>
-        variants is not null && variants.All(gender =>
+    private static bool ValidGenderVariants(Dictionary<string, Dictionary<string, string>>? variants)
+    {
+        return variants is not null && variants.All(gender =>
             gender.Key is Genders.Masculine or Genders.Feminine or Genders.Neuter && gender.Value is not null &&
             gender.Value.All(variant => variant.Key.Length == 1 && variant.Key[0] is >= '1' and <= '9' &&
                                         !string.IsNullOrEmpty(variant.Value)));
+    }
 
     private static bool HasCurrencies(Dictionary<string, SpelloutCurrency>? currencies)
     {
-        return currencies is { Count: > 0 } && currencies.All(currency =>
+        return currencies is {Count: > 0} && currencies.All(currency =>
             !string.IsNullOrWhiteSpace(currency.Key) && ValidCurrency(currency.Value));
     }
 
-    private static bool ValidCurrency(SpelloutCurrency? currency) =>
-        currency is not null && ValidUnit(currency.Major) && ValidUnit(currency.Minor);
+    private static bool ValidCurrency(SpelloutCurrency? currency)
+    {
+        return currency is not null && ValidUnit(currency.Major) && ValidUnit(currency.Minor);
+    }
 
-    private static bool ValidUnit(SpelloutUnit? unit) =>
-        unit is { Forms.Length: 3 } && unit.Forms.All(form => !string.IsNullOrEmpty(form)) &&
-        unit.Gender is Genders.Masculine or Genders.Feminine or Genders.Neuter;
+    private static bool ValidUnit(SpelloutUnit? unit)
+    {
+        return unit is {Forms.Length: 3} && unit.Forms.All(form => !string.IsNullOrEmpty(form)) &&
+               unit.Gender is Genders.Masculine or Genders.Feminine or Genders.Neuter;
+    }
 
     private static string? GetResourceLanguage(string resource)
     {

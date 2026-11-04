@@ -1,8 +1,8 @@
+using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using System;
-using System.Collections.Generic;
 
 namespace MonoReport.Core.Formatting;
 

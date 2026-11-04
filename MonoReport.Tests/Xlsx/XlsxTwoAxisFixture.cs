@@ -1,4 +1,8 @@
+using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
+using System.Linq;
 using System.Text.Json;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -6,10 +10,6 @@ using Microsoft.Extensions.DependencyInjection;
 using MonoReport.Xlsx;
 using MonoReport.Xlsx.Planning;
 using XlsxTemplatePlanner = MonoReport.Xlsx.Planning.XlsxTemplatePlanner;
-using System;
-using System.IO;
-using System.Linq;
-using System.Collections.Generic;
 
 namespace MonoReport.Tests.Xlsx;
 

@@ -1,14 +1,17 @@
+using System;
+using System.IO;
+using System.Linq;
 using System.Text.Json;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.Extensions.DependencyInjection;
 using MonoReport.Core.Formatting;
 using MonoReport.Core.Templates;
 using Xunit;
-using System;
-using System.IO;
-using System.Linq;
+using Run = DocumentFormat.OpenXml.Wordprocessing.Run;
+using Text = DocumentFormat.OpenXml.Wordprocessing.Text;
 
 namespace MonoReport.Formatter.Spellout.Tests;
 
@@ -101,11 +104,11 @@ public sealed class SpelloutRegistrationTests
         using (var document = WordprocessingDocument.Create(output, WordprocessingDocumentType.Document))
         {
             var main = document.AddMainDocumentPart();
-            main.Document = new global::DocumentFormat.OpenXml.Wordprocessing.Document(
-                new global::DocumentFormat.OpenXml.Wordprocessing.Body(
-                    new global::DocumentFormat.OpenXml.Wordprocessing.Paragraph(
-                        new global::DocumentFormat.OpenXml.Wordprocessing.Run(
-                            new global::DocumentFormat.OpenXml.Wordprocessing.Text(expression)))));
+            main.Document = new Document(
+                new Body(
+                    new Paragraph(
+                        new Run(
+                            new Text(expression)))));
         }
 
         return output.ToArray();

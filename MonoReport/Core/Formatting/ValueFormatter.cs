@@ -1,8 +1,8 @@
+using System;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using MonoReport.Core.Diagnostics;
 using MonoReport.Core.Templates;
-using System;
 
 namespace MonoReport.Core.Formatting;
 

@@ -14,7 +14,9 @@ internal static class Modes
 internal sealed class SpelloutService
 {
     private const string FallbackLanguageCode = "en";
+    
     private const decimal Limit = 1_000_000_000_000_000_000m;
+    
     private readonly IReadOnlyDictionary<string, SpelloutLanguage> _languages;
 
     public SpelloutService(SpelloutLanguageReader reader)
@@ -31,13 +33,20 @@ internal sealed class SpelloutService
         return _languages.ContainsKey(code) ? code : FallbackLanguageCode;
     }
 
-    public bool SupportsLanguage(string languageCode) => _languages.ContainsKey(languageCode);
+    public bool SupportsLanguage(string languageCode)
+    {
+        return _languages.ContainsKey(languageCode);
+    }
 
-    public bool SupportsCurrency(string languageCode, string currencyCode) =>
-        _languages.TryGetValue(languageCode, out var language) && language.Currencies.ContainsKey(currencyCode);
+    public bool SupportsCurrency(string languageCode, string currencyCode)
+    {
+        return _languages.TryGetValue(languageCode, out var language) && language.Currencies.ContainsKey(currencyCode);
+    }
 
-    public bool SupportsCurrency(string currencyCode) =>
-        _languages.Values.Any(language => language.Currencies.ContainsKey(currencyCode));
+    public bool SupportsCurrency(string currencyCode)
+    {
+        return _languages.Values.Any(language => language.Currencies.ContainsKey(currencyCode));
+    }
 
     public string Format(decimal value, string mode, string languageCode, string? currency, string gender,
         bool includeMinor, bool capitalize)
@@ -55,16 +64,20 @@ internal sealed class SpelloutService
             value = decimal.Round(value, 2, MidpointRounding.AwayFromZero);
         }
         else if (decimal.Truncate(value) != value)
+        {
             throw new FormatException("Number spellout supports integers only.");
+        }
         else if (gender is not (Genders.Masculine or Genders.Feminine or Genders.Neuter))
+        {
             throw new ArgumentException($"Unsupported gender: {gender}", nameof(gender));
+        }
 
         if (value <= -Limit || value >= Limit)
             throw new FormatException("Spellout supports absolute values below 10^18.");
 
         var absolute = Math.Abs(value);
-        var whole = (long)decimal.Truncate(absolute);
-        var minor = mode == Modes.Money ? (int)((absolute - whole) * 100m) : 0;
+        var whole = (long) decimal.Truncate(absolute);
+        var minor = mode == Modes.Money ? (int) ((absolute - whole) * 100m) : 0;
         var words = SpellInteger(whole, language, mode == Modes.Money ? currencyData!.Major.Gender : gender);
         var parts = new List<string>();
         if (value < 0) parts.Add(language.Minus);
@@ -78,6 +91,7 @@ internal sealed class SpelloutService
                 parts.Add(ChooseForm(minor, currencyData.Minor.Forms, language.PluralRule));
             }
         }
+
         var result = string.Join(" ", parts);
         return capitalize ? char.ToUpperInvariant(result[0]) + result[1..] : result;
     }
@@ -88,7 +102,7 @@ internal sealed class SpelloutService
         var groups = new List<string>();
         for (var scale = 0; value != 0; scale++, value /= 1000)
         {
-            var chunk = (int)(value % 1000);
+            var chunk = (int) (value % 1000);
             if (chunk == 0) continue;
             var groupGender = scale == 0 ? gender : language.Scales[scale - 1].Gender;
             var words = SpellGroup(chunk, groupGender, language);
@@ -96,15 +110,22 @@ internal sealed class SpelloutService
                 words += " " + ChooseForm(chunk, language.Scales[scale - 1].Forms, language.PluralRule);
             groups.Insert(0, words);
         }
+
         return string.Join(" ", groups);
     }
 
     private static string SpellGroup(int chunk, string gender, SpelloutLanguage language)
     {
         var words = new List<string>();
+        
         if (chunk / 100 != 0) words.Add(language.Hundreds[chunk / 100]);
+        
         var rest = chunk % 100;
-        if (rest is >= 10 and <= 19) words.Add(language.Teens[rest - 10]);
+        
+        if (rest is >= 10 and <= 19)
+        {
+            words.Add(language.Teens[rest - 10]);
+        }
         else
         {
             var digit = rest % 10;
@@ -118,6 +139,7 @@ internal sealed class SpelloutService
                 if (digit != 0) words.Add(GetOne(digit, gender, language));
             }
         }
+
         return string.Join(" ", words);
     }
 
@@ -134,6 +156,6 @@ internal sealed class SpelloutService
         if (rule == PluralRules.OneOther) return value == 1 ? forms[0] : forms[2];
         var lastHundred = value % 100;
         if (lastHundred is >= 11 and <= 14) return forms[2];
-        return (value % 10) switch { 1 => forms[0], >= 2 and <= 4 => forms[1], _ => forms[2] };
+        return (value % 10) switch {1 => forms[0], >= 2 and <= 4 => forms[1], _ => forms[2]};
     }
 }

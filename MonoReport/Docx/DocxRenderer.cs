@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
@@ -5,9 +8,6 @@ using MonoReport.Core.Diagnostics;
 using MonoReport.Core.Formatting;
 using MonoReport.Core.Templates;
 using MonoReport.Docx.Planning;
-using System.Collections.Generic;
-using System;
-using System.Linq;
 
 namespace MonoReport.Docx;
 

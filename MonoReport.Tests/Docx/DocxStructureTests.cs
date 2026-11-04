@@ -1,17 +1,16 @@
+using System;
 using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using DocumentFormat.OpenXml.Packaging;
+using MonoReport.Cli.Tests;
 using MonoReport.Core.Templates;
 using MonoReport.Docx;
-using Xunit;
 using MonoReport.Tests.Integration;
-
-using MonoReport.Cli.Tests;
-using System;
-using System.IO;
-using System.Linq;
+using Xunit;
 
 namespace MonoReport.Tests.Docx;
 

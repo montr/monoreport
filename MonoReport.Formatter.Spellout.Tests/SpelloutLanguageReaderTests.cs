@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using MonoReport.Formatter.Spellout;
 using Xunit;
 
 namespace MonoReport.Formatter.Spellout.Tests;

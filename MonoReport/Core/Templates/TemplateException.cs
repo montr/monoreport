@@ -1,7 +1,7 @@
-using MonoReport.Core.Diagnostics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using MonoReport.Core.Diagnostics;
 
 namespace MonoReport.Core.Templates;
 

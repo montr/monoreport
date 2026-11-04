@@ -1,6 +1,6 @@
+using System.Collections.Generic;
 using System.Text.Json;
 using MonoReport.Core.Templates;
-using System.Collections.Generic;
 
 namespace MonoReport;
 

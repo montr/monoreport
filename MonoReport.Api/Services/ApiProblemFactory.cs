@@ -1,7 +1,7 @@
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Http;
 using MonoReport.Core.Diagnostics;
 using MonoReport.Core.Templates;
-using Microsoft.AspNetCore.Http;
-using System.Collections.Generic;
 
 namespace MonoReport.Api.Services;
 

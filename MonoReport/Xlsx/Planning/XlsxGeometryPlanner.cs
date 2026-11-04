@@ -1,6 +1,6 @@
+using System;
 using MonoReport.Core.Diagnostics;
 using MonoReport.Core.Templates;
-using System;
 
 namespace MonoReport.Xlsx.Planning;
 

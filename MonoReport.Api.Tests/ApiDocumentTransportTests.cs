@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Globalization;
+using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
@@ -14,9 +14,9 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using MonoReport.Core.Diagnostics;
-using Xunit;
-using MonoReport.Tests.Xlsx;
 using MonoReport.Tests.Integration;
+using MonoReport.Tests.Xlsx;
+using Xunit;
 
 namespace MonoReport.Api.Tests;
 
