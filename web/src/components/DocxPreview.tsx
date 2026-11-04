@@ -17,7 +17,7 @@ export function DocxPreview({ source, label }: Props) {
     const renderHost = document.createElement("div");
     container.replaceChildren(renderHost);
     setWarning(undefined);
-    void renderAsync(source, renderHost, undefined, { inWrapper: true, ignoreWidth: false, ignoreHeight: false })
+    void renderAsync(source, renderHost, undefined, { inWrapper: true, ignoreWidth: false, ignoreHeight: false, renderAltChunks: false })
       .catch(() => { if (current) setWarning(`${label} preview could not be rendered.`); });
     return () => {
       current = false;
