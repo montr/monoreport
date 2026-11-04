@@ -69,15 +69,13 @@ describe("generation client", () => {
       .toMatchObject({ traceId: "trace-1", limitReached: true });
   });
 
-  it("uses safe fallbacks for malformed problems and unsafe filenames", async () => {
+  it("uses safe diagnostics for malformed problems and rejects unsafe or mismatched filenames", async () => {
     expect(normalizeProblem("<html>failure</html>", 500)).toEqual([{ title: "Request failed", detail: "The server returned HTTP 500." }]);
     const responseBlob = new Blob([new Uint8Array([1])], { type: xlsxMime });
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(success(responseBlob, xlsxMime)));
-    const result = await generateDocument(new File([new Uint8Array([1])], "template.docx"), "{}");
-    expect(result.filename).toBe("document.xlsx");
-    expect(result.format).toBe("xlsx");
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(success(responseBlob, xlsxMime)));
-    expect((await generateDocument(new File([], "template.xlsx"), "{}")).filename).toBe("document.xlsx");
+    for (const filename of ["../document.xlsx", "document.docx"]) {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(success(responseBlob, xlsxMime, filename)));
+      await expect(generateDocument(new File([], "template.xlsx"), "{}")).rejects.toBeInstanceOf(GenerationFailure);
+    }
   });
 
   it("preserves ordered warning metadata and exact binary bytes from multipart", async () => {

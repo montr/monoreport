@@ -41,6 +41,7 @@
 1. Write tests for meaningful behavior, critical requirements, and regression risks. Avoid redundant tests and coverage-driven testing.
 2. Organize and name tests by the components or subsystems they verify, not by Feature IDs. Use scenario-based names for integration tests spanning multiple components.
 3. Run relevant tests first and expand verification according to change impact and risk. Verify the requested behavior, not just successful compilation or passing tests. Avoid unnecessary repeated runs and report any significant unverified behavior.
+4. Do not write tests for tooltips, hover effects, icons, cosmetic styling, element positioning, or standard UI framework behavior unless explicitly requested by the Product Owner. Avoid assertions coupled to incidental DOM structure or implementation details.
 
 ## Documentation Rules
 

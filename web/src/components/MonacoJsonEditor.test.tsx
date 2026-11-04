@@ -37,7 +37,7 @@ describe("Monaco JSON editor", () => {
     expect(monaco.createModel).toHaveBeenCalledWith('{\n    "value": 1\n}', "json");
     expect(monaco.model.updateOptions).toHaveBeenCalledWith({ tabSize: 2, insertSpaces: true });
     expect(monaco.model.detectIndentation).toHaveBeenCalledWith(true, 2);
-    expect(monaco.create).toHaveBeenCalledWith(expect.any(HTMLDivElement), expect.objectContaining({ model: monaco.model, glyphMargin: false, pasteAs: { enabled: false } }));
+    expect(monaco.create).toHaveBeenCalledWith(expect.any(HTMLDivElement), expect.objectContaining({ model: monaco.model, pasteAs: { enabled: false } }));
   });
 
   it("uses the local editor for value updates and disposes only its owned resources", () => {
