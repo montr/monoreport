@@ -104,6 +104,40 @@ public sealed class CliDocumentTransportTests
         }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Successful_sanitization_warnings_reach_cli_stderr_with_valid_document(bool spreadsheet)
+    {
+        var fixture = new TransportFixture();
+        var source = fixture.CreateSanitization(spreadsheet);
+        var core = fixture.Generate(source, TransportFixture.SanitizationData);
+        var path = Path.Combine(Path.GetTempPath(), "m5-sanitize-" + Guid.NewGuid().ToString("N"));
+        File.WriteAllBytes(path, source);
+        try
+        {
+            using var services = new XlsxFixture().Services();
+            var app = new CliApplication(new CliOptionsParser(), services.GetRequiredService<DocumentGenerator>(),
+                services.GetRequiredService<TemplateAnalyzer>());
+            using var output = new DocumentOutputStream();
+            using var errors = new StringWriter();
+
+            Assert.Equal(0, app.Run(["--template", path, "--json", TransportFixture.SanitizationData], Stream.Null,
+                output, errors));
+
+            var warning = Assert.Single(core.Warnings);
+            Assert.Contains(warning.Code!, errors.ToString());
+            Assert.Contains("Removed 2", errors.ToString());
+            Assert.Contains("dataPath=$.Name", errors.ToString());
+            Assert.Equal(Assert.Single(output.Writes), output.ToArray());
+            fixture.AssertPackage(output.ToArray(), spreadsheet);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
     // Record the generated document supplied to stdout, without relying on ZIP timestamps from another merge.
     private sealed class DocumentOutputStream : MemoryStream
     {

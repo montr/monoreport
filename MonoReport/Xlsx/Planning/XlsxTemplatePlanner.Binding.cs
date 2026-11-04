@@ -3,7 +3,6 @@ using System.Collections.Immutable;
 using System.Globalization;
 using System.Linq;
 using System.Text.Json;
-using System.Xml;
 using MonoReport.Core.Diagnostics;
 using MonoReport.Core.Templates;
 
@@ -43,22 +42,6 @@ public sealed partial class XlsxTemplatePlanner
 
         context.ThrowIfErrors();
         return result.ToImmutable();
-    }
-
-    private static string SafeText(string value, TemplateExpression expression, string location)
-    {
-        try
-        {
-            return XmlConvert.VerifyXmlChars(value);
-        }
-        catch (XmlException)
-        {
-            throw new StructuralDiagnostic(DiagnosticCodes.GenerationInvalidData,
-                    "The field contains characters that XML cannot store.",
-                    expression.Source, Location: location,
-                    Explanation: "Remove XML control characters from the field value before generating the workbook.")
-                .ToException();
-        }
     }
 
     private static string DecodeScalarString(JsonElement value, TemplateExpression expression, string location)

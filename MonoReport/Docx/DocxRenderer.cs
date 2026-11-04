@@ -186,7 +186,21 @@ public sealed class DocxRenderer(DataResolver resolver, ValueFormatter formatter
 
         try
         {
-            return _formatter.Format(resolution.Value, expression, context.Options, location);
+            var formatted = _formatter.Format(resolution.Value, expression, context.Options, location,
+                out var removedCharacterCount);
+            if (removedCharacterCount > 0)
+            {
+                context.Warnings.Add(new GenerationWarning(
+                    $"Removed {removedCharacterCount} prohibited XML 1.0 {CharacterWord(removedCharacterCount)}.", expression.Source,
+                    expression.Source, location, Part(location),
+                    _resolver.DataPath(expression.Path!, Scope(context)))
+                {
+                    Code = DiagnosticCodes.GenerationXmlCharactersRemoved,
+                    RemovedCharacterCount = removedCharacterCount
+                });
+            }
+
+            return formatted;
         }
         catch (TemplateException error)
         {
@@ -201,6 +215,11 @@ public sealed class DocxRenderer(DataResolver resolver, ValueFormatter formatter
             if (offset >= spans[index].Start && offset < spans[index].Start + spans[index].Length)
                 return index;
         return Math.Max(0, spans.Count - 1);
+    }
+
+    private static string CharacterWord(int count)
+    {
+        return count == 1 ? "character" : "characters";
     }
 
     private static bool Contains(BlockPlan block, XElement element)

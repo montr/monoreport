@@ -126,9 +126,14 @@ public sealed class ApiOperationTransformer : IOpenApiOperationTransformer
                         ? JsonSchemaType.String
                         : JsonSchemaType.String | JsonSchemaType.Null,
                     Description = name == "code"
-                        ? "Optional stable XLSX diagnostic code; omitted when unset. DOCX warnings need no code."
+                        ? "Optional stable generation warning code; omitted when unset."
                         : null
                 };
+            warningProperties["removedCharacterCount"] = new OpenApiSchema
+            {
+                Type = JsonSchemaType.Integer | JsonSchemaType.Null,
+                Description = "Number of prohibited XML 1.0 characters removed from this replacement."
+            };
             success.Description =
                 "Generated document; warnings do not make generation fail. Multipart has two attachments from the same merge, without base64 encoding.";
             success.Content = new Dictionary<string, OpenApiMediaType>

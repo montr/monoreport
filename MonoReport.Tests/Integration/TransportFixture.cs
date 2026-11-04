@@ -21,6 +21,7 @@ namespace MonoReport.Tests.Integration;
 internal sealed class TransportFixture
 {
     internal const string Data = "{\"Items\":[{\"$level\":10,\"Name\":\"Ada\"}]}";
+    internal const string SanitizationData = "{\"Name\":\"a\\u0001Café 😀\\uFFFE\"}";
     private readonly XlsxFixture _xlsx = new();
 
     internal byte[] Create(bool spreadsheet, int warningCount)
@@ -70,11 +71,27 @@ internal sealed class TransportFixture
         });
     }
 
+    internal byte[] CreateSanitization(bool spreadsheet)
+    {
+        if (!spreadsheet) return DocxFixture.Create(DocxFixture.P(DocxFixture.Run("{Name upper}")));
+        return _xlsx.Create((_, part) =>
+        {
+            var row = part.Worksheet!.Descendants<Row>().Single();
+            row.RemoveAllChildren();
+            row.Append(_xlsx.Text("B3", "{Name upper}"));
+        });
+    }
+
     internal GenerationResult Generate(byte[] source)
+    {
+        return Generate(source, Data);
+    }
+
+    internal GenerationResult Generate(byte[] source, string json)
     {
         using var services = _xlsx.Services();
         using var input = new MemoryStream(source);
-        using var data = JsonDocument.Parse(Data);
+        using var data = JsonDocument.Parse(json);
         return services.GetRequiredService<DocumentGenerator>().Generate(input, data);
     }
 

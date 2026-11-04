@@ -147,16 +147,41 @@ public sealed class XlsxStaticRenderingTests
     [InlineData("[]")]
     [InlineData("null")]
     [InlineData("1")]
-    public void Static_Nonobject_data_and_invalid_xml_text_reject_without_partial_result(string json)
+    public void Static_Nonobject_data_is_rejected(string json)
     {
         var error = Assert.Throws<TemplateException>(() => RenderPrivate(_fixture.Create(), json));
         Assert.Contains("JSON object", error.Errors[0].Message);
-        var textError =
-            Assert.Throws<TemplateException>(() => RenderPrivate(_fixture.Create(), "{\"Name\":\"secret\\u0001\"}"));
-        Assert.Equal(DiagnosticCodes.GenerationInvalidData, textError.Code);
-        Assert.Equal("$.Name", textError.Errors[0].DataPath);
-        Assert.DoesNotContain("secret", JsonSerializer.Serialize(textError.Errors));
-        Assert.Contains("XML control characters", textError.Errors[0].Message);
+    }
+
+    [Theory]
+    [InlineData("{Name}", "a\\u0001café 😀\\u000Bz\\uFFFE", "acafé 😀z", 3)]
+    [InlineData("{Name upper}", "a\\u0001café 😀\\u000Bz\\uFFFE", "ACAFÉ 😀Z", 3)]
+    [InlineData("{Name}", "café 😀", "café 😀", 0)]
+    public void Static_replacements_sanitize_xml_10_text_and_preserve_valid_unicode(string expression, string jsonValue,
+        string expected, int removedCharacterCount)
+    {
+        var source = _fixture.Create((_, worksheet) =>
+            worksheet.Worksheet!.Descendants<Cell>().Single().InlineString =
+                new InlineString(new Run(new Text(expression))));
+        var original = source.ToArray();
+        var json = "{\"Name\":\"" + jsonValue + "\"}";
+        var (output, context) = RenderPrivate(source, json);
+        using var result = SpreadsheetDocument.Open(new MemoryStream(output), false);
+        var cell = result.WorkbookPart!.WorksheetParts.Single().Worksheet!.Descendants<Cell>().Single();
+        Assert.Equal(expected, cell.InlineString!.InnerText);
+        Assert.Equal(removedCharacterCount, context.Warnings.Sum(warning => warning.RemovedCharacterCount ?? 0));
+        if (removedCharacterCount > 0)
+        {
+            var warning = Assert.Single(context.Warnings);
+            Assert.Equal(DiagnosticCodes.GenerationXmlCharactersRemoved, warning.Code);
+            Assert.Equal(removedCharacterCount, warning.RemovedCharacterCount);
+            Assert.Equal("$.Name", warning.DataPath);
+            Assert.Equal(expression, warning.FieldCode);
+            Assert.NotNull(warning.Location);
+        }
+
+        AssertValid(result);
+        Assert.Equal(original, source);
     }
 
     private (byte[] Output, XlsxOperationContext Context) RenderPrivate(byte[] source, string json)

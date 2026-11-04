@@ -119,6 +119,56 @@ public sealed class ApiDocumentTransportTests
         Assert.NotEqual(response.Content.Headers.ContentType.ToString(), fresh.Content.Headers.ContentType!.ToString());
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Multipart_preserves_sanitized_document_bytes_and_warning_metadata(bool spreadsheet)
+    {
+        var fixture = new TransportFixture();
+        var source = fixture.CreateSanitization(spreadsheet);
+        var core = fixture.Generate(source, TransportFixture.SanitizationData);
+        var expected = Assert.Single(core.Warnings);
+        using var factory = new WebApplicationFactory<Program>();
+        using var client = factory.CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/documents/generate")
+        {
+            Content = HttpApiTests.Form(source, TransportFixture.SanitizationData)
+        };
+        request.Headers.Accept.ParseAdd("multipart/mixed");
+        using var response = await client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("multipart/mixed", response.Content.Headers.ContentType!.MediaType);
+        AssertCount(response, 1);
+        var boundary = response.Content.Headers.ContentType.Parameters.Single(p => p.Name == "boundary").Value!.Trim('"');
+        var reader = new MultipartReader(boundary, new MemoryStream(await response.Content.ReadAsByteArrayAsync()));
+        var document = (await reader.ReadNextSectionAsync())!;
+        using var documentBody = new MemoryStream();
+        await document.Body.CopyToAsync(documentBody);
+        AssertPackageEntriesEqual(core.Document, documentBody.ToArray());
+        fixture.AssertPackage(documentBody.ToArray(), spreadsheet);
+        var diagnostics = (await reader.ReadNextSectionAsync())!;
+        using var diagnosticsBody = new MemoryStream();
+        await diagnostics.Body.CopyToAsync(diagnosticsBody);
+        using var json = JsonDocument.Parse(diagnosticsBody.ToArray());
+        var warning = Assert.Single(json.RootElement.GetProperty("warnings").EnumerateArray());
+        Assert.Equal(expected.Code, warning.GetProperty("code").GetString());
+        Assert.Equal(expected.Field, warning.GetProperty("field").GetString());
+        Assert.Equal(expected.FieldCode, warning.GetProperty("fieldCode").GetString());
+        Assert.Equal(expected.Location, warning.GetProperty("location").GetString());
+        Assert.Equal(expected.DataPath, warning.GetProperty("dataPath").GetString());
+        Assert.Equal(2, warning.GetProperty("removedCharacterCount").GetInt32());
+        Assert.Contains("Removed 2", warning.GetProperty("message").GetString());
+
+        using var binaryForm = HttpApiTests.Form(source, TransportFixture.SanitizationData);
+        using var binary = await client.PostAsync("/api/documents/generate", binaryForm);
+        Assert.Equal(HttpStatusCode.OK, binary.StatusCode);
+        Assert.Equal(spreadsheet ? Excel : Word, binary.Content.Headers.ContentType!.MediaType);
+        AssertCount(binary, 1);
+        var binaryDocument = await binary.Content.ReadAsByteArrayAsync();
+        AssertPackageEntriesEqual(core.Document, binaryDocument);
+        fixture.AssertPackage(binaryDocument, spreadsheet);
+    }
+
     public static IEnumerable<object?[]> NegotiationCases()
     {
         foreach (var spreadsheet in new[] {false, true})

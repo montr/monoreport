@@ -12,4 +12,7 @@ public sealed record GenerationWarning(
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Code { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? RemovedCharacterCount { get; init; }
 }

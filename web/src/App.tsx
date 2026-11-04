@@ -656,9 +656,12 @@ export default function App() {
       const generated = await generateDocument(template, json, controller.signal);
       if (operationId.current !== operation || contentRevision.current !== expectedRevision) return;
       setResult({ ...generated, filename: resultFilename(template.name) });
+      const warnings = (generated.warnings ?? []).map(item => ({ ...item, action: "Generate" as const, severity: "Warning" as const }));
+      setErrors(warnings);
       setResultInputs({ datasetId, json, template, templateSource: selectedTemplate?.exampleId ? "Example file" : "Local file" });
       setActive("result");
       finishOperation("success");
+      if (warnings.length) openDiagnostics("problems");
     } catch (error) {
       if (operationId.current !== operation || contentRevision.current !== expectedRevision) return;
       if (error instanceof DOMException && error.name === "AbortError") { finishOperation("cancelled"); return; }
@@ -1019,7 +1022,7 @@ export default function App() {
                   return <div className="issue" key={`${code}-${index}`}>
                     <div className="issue-content">
                       <div className="issue-heading"><div role="img" aria-label={severity} className="issue-icon" style={{ color: severity === "Warning" ? token.colorWarning : token.colorError }}><Icon aria-hidden="true" /></div><strong>{code}</strong>{title && <span>{title}</span>}</div>
-                      <p>{[error.field, error.dataPath, error.part, error.location, error.formatter, error.detail].filter(Boolean).join(" · ")}</p>
+                      <p>{[error.field, error.fieldCode, error.dataPath, error.part, error.location, error.formatter, error.removedCharacterCount === undefined ? undefined : `removed ${error.removedCharacterCount}`, error.traceId === undefined ? undefined : `trace ${error.traceId}`, error.limitReached ? "error limit reached" : undefined, error.detail].filter(Boolean).join(" · ")}</p>
                     </div>
                   </div>;
                 })}</div> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No problems" />}

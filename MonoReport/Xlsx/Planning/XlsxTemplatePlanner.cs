@@ -228,9 +228,16 @@ public sealed partial class XlsxTemplatePlanner(
                     ? DecodeScalarString(value.Value, expression, cell.Location)
                     : null;
                 if (cell.NativeField)
+                {
+                    if (scalarString is not null)
+                    {
+                        scalarString = _formatter.SanitizeXmlText(scalarString, out var removedCharacterCount);
+                        WarnRemovedXmlCharacters(expression, cell.Location, dataPath, removedCharacterCount, context);
+                    }
+
                     return value.Value.ValueKind switch
                     {
-                        JsonValueKind.String => TextValue(cell, SafeText(scalarString!, expression, cell.Location),
+                        JsonValueKind.String => TextValue(cell, scalarString!,
                             [new XlsxTextEdit(0, cell.Source.Text.Length, scalarString!)]),
                         JsonValueKind.Number => new XlsxPreparedValue("n",
                             SafeNumber(value.Value.GetRawText(), expression, cell.Location)),
@@ -240,8 +247,12 @@ public sealed partial class XlsxTemplatePlanner(
                             expression.Source,
                             location: cell.Location)
                     };
-                text.Append(SafeText(_formatter.Format(value.Value, expression, context.Options, cell.Location),
-                    expression, cell.Location));
+                }
+
+                var formatted = _formatter.Format(value.Value, expression, context.Options, cell.Location,
+                    out var removedCount);
+                text.Append(formatted);
+                WarnRemovedXmlCharacters(expression, cell.Location, dataPath, removedCount, context);
             }
             catch (TemplateException error)
             {
@@ -256,5 +267,23 @@ public sealed partial class XlsxTemplatePlanner(
 
         text.Append(cell.Source.Text, offset, cell.Source.Text.Length - offset);
         return TextValue(cell, text.ToString(), edits);
+    }
+
+    private static void WarnRemovedXmlCharacters(TemplateExpression expression, string location, string dataPath,
+        int removedCharacterCount, XlsxOperationContext context)
+    {
+        if (removedCharacterCount == 0) return;
+        context.Warnings.Add(new GenerationWarning(
+            $"Removed {removedCharacterCount} prohibited XML 1.0 {CharacterWord(removedCharacterCount)}.", expression.Source,
+            expression.Source, location, location.Split(',', 2)[0], dataPath)
+        {
+            Code = DiagnosticCodes.GenerationXmlCharactersRemoved,
+            RemovedCharacterCount = removedCharacterCount
+        });
+    }
+
+    private static string CharacterWord(int count)
+    {
+        return count == 1 ? "character" : "characters";
     }
 }

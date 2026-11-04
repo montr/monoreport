@@ -45,9 +45,22 @@ const manifest = {
 };
 const sampleData = '{"Project":{"Name":"Riverside"}}';
 const xlsxMime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-const success = (bytes = new Uint8Array([80, 75, 7, 8]), mediaType = mime, filename = mediaType === xlsxMime ? "generated.xlsx" : "generated.docx") => {
-  const blob = new Blob([bytes], { type: mediaType });
-  return { ok: true, status: 200, blob: async () => blob, headers: new Headers({ "Content-Type": mediaType, "Content-Disposition": `attachment; filename=${filename}` }) } as Response;
+const success = (bytes = new Uint8Array([80, 75, 7, 8]), mediaType = mime, filename = mediaType === xlsxMime ? "document.xlsx" : "document.docx", warnings: unknown[] = []) => {
+  const boundary = "playground-test-boundary";
+  const encoder = new TextEncoder();
+  const format = mediaType === xlsxMime ? "xlsx" : "docx";
+  const warningBytes = encoder.encode(JSON.stringify({ format, fileName: filename, warnings }));
+  const parts = [
+    encoder.encode(`--${boundary}\r\nContent-Type: ${mediaType}\r\nContent-Disposition: attachment; filename="${filename}"\r\n\r\n`),
+    bytes,
+    encoder.encode(`\r\n--${boundary}\r\nContent-Type: application/json\r\nContent-Disposition: attachment; filename="diagnostics.json"\r\n\r\n`),
+    warningBytes,
+    encoder.encode(`\r\n--${boundary}--\r\n`)
+  ];
+  const body = new Uint8Array(parts.reduce((total, part) => total + part.length, 0));
+  let offset = 0;
+  for (const part of parts) { body.set(part, offset); offset += part.length; }
+  return new Response(body.buffer, { status: 200, headers: { "Content-Type": `multipart/mixed; boundary="${boundary}"` } });
 };
 const analysis = (requirements: unknown[] = [{ name: "Company", type: "object", fields: [{ name: "Name", type: "value" }] }], valid = true) =>
   new Response(JSON.stringify({ valid, errors: valid ? [] : [{ code: "template.invalid_structure", message: "Invalid block" }], warnings: [], requirements, occurrences: [] }), { status: 200, headers: { "Content-Type": "application/json" } });
@@ -658,7 +671,7 @@ describe("MonoReport playground", () => {
     const one = localHandle("one.docx", "one"), two = localHandle("two.xlsx", "two");
     const picker = nativeFiles([one.handle], [two.handle], [one.handle], [two.handle]);
     const response = success();
-    const blob = await response.blob();
+    const expectedDocumentBytes = new Uint8Array([80, 75, 7, 8]);
     mockPlaygroundFetch(async () => response);
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     await screen.findByText("Template preview");
@@ -681,11 +694,11 @@ describe("MonoReport playground", () => {
     expect(screen.getByText("Select a DOCX or XLSX template")).toBeInTheDocument();
     expect(screen.getByLabelText("Dataset")).toHaveValue(sampleData);
     await user.click(screen.getByRole("radio", { name: "Result" }).closest("label")!);
-    expect(previewSources.at(-1)).toBe(blob);
+    expect(new Uint8Array(await previewSources.at(-1)!.arrayBuffer())).toEqual(expectedDocumentBytes);
     let downloadedFilename = "";
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) { downloadedFilename = this.download; });
     await documentCommand(user, "Download");
-    expect(URL.createObjectURL).toHaveBeenCalledWith(blob);
+    expect(URL.createObjectURL).toHaveBeenCalledWith(previewSources.at(-1));
     expect(downloadedFilename).toBe("one-result.docx");
   });
 
@@ -696,7 +709,6 @@ describe("MonoReport playground", () => {
     vi.mocked(opened.handle.getFile).mockImplementationOnce(() => new Promise<File>(resolve => { finish = resolve; }));
     nativeFiles([opened.handle]);
     const response = success();
-    const blob = await response.blob();
     const { apiMock } = mockPlaygroundFetch(async () => response);
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     await screen.findByText("Template preview");
@@ -710,12 +722,12 @@ describe("MonoReport playground", () => {
     expect(screen.getByRole("radio", { name: "Template" })).toBeChecked();
     expect(screen.getByLabelText("Dataset")).toHaveValue(sampleData);
     await user.click(screen.getByRole("radio", { name: "Result" }).closest("label")!);
-    expect(previewSources.at(-1)).toBe(blob);
+    expect(new Uint8Array(await previewSources.at(-1)!.arrayBuffer())).toEqual(new Uint8Array([80, 75, 7, 8]));
 
     await selectTemplate(user, new File(["fallback"], "uploaded.docx"));
     expect(screen.getByRole("radio", { name: "Template" })).toBeChecked();
     await user.click(screen.getByRole("radio", { name: "Result" }).closest("label")!);
-    expect(previewSources.at(-1)).toBe(blob);
+    expect(new Uint8Array(await previewSources.at(-1)!.arrayBuffer())).toEqual(new Uint8Array([80, 75, 7, 8]));
     expect(apiMock).toHaveBeenCalledOnce();
   });
 
@@ -1236,14 +1248,14 @@ describe("MonoReport playground", () => {
     expect(generate).toBeDisabled();
     await user.click(generate);
     expect(apiMock).toHaveBeenCalledTimes(1);
-    resolve({ ok: true, status: 200, blob: async () => responseBlob, headers: new Headers({ "Content-Type": mime, "Content-Disposition": "attachment; filename=generated.docx" }) } as Response);
+    resolve(success(new Uint8Array(await responseBlob.arrayBuffer()), mime, "document.docx"));
     await screen.findByText("Result preview");
     expect(screen.getByText("sample.docx")).toBeInTheDocument();
     await user.hover(screen.getByText("sample.docx"));
     expect(await screen.findByRole("tooltip")).toHaveTextContent("Example file");
     await user.unhover(screen.getByText("sample.docx"));
     expect(screen.queryByText("sample.template.docx")).not.toBeInTheDocument();
-    expect(previewSources.at(-1)).toBe(responseBlob);
+    expect(new Uint8Array(await previewSources.at(-1)!.arrayBuffer())).toEqual(new Uint8Array(await responseBlob.arrayBuffer()));
     let downloadName = "";
     const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) { downloadName = this.download; });
     await documentCommand(user, "Download");
@@ -1252,11 +1264,50 @@ describe("MonoReport playground", () => {
     expect(downloadName).toBe("sample.docx");
   });
 
+  it("shows ordered generation warnings as Problems while keeping successful status and document", async () => {
+    const user = userEvent.setup();
+    const warnings = [
+      { message: "Removed 2 prohibited XML 1.0 characters.", field: "{Name}", fieldCode: "{Name}", location: "A1", part: "/xl/worksheets/sheet1.xml", dataPath: "$.Name", code: "generation.xml_characters_removed", removedCharacterCount: 2 },
+      { message: "Another warning.", field: "{Other}", dataPath: "$.Other" }
+    ];
+    mockPlaygroundFetch(async () => success(new Uint8Array([80, 75, 1, 2, 255]), mime, "document.docx", warnings));
+    render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
+    await screen.findByText("Template preview");
+
+    await user.click(screen.getByRole("button", { name: "Generate document" }));
+
+    expect(await screen.findByRole("tab", { name: "Problems 2" })).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Success");
+    expect(screen.getByText(/removed 2/)).toBeInTheDocument();
+    const issues = [...document.querySelectorAll(".issue-heading strong")].map(node => node.textContent);
+    expect(issues).toEqual(["generation.xml_characters_removed", "Generation warning"]);
+    expect(screen.getByText("Result preview")).toBeInTheDocument();
+  });
+
+  it("keeps the previous successful document when a later multipart response is malformed", async () => {
+    const user = userEvent.setup();
+    const responses = [success(), new Response("--broken", { status: 200, headers: { "Content-Type": "multipart/mixed; boundary=broken" } })];
+    const { apiMock } = mockPlaygroundFetch(async () => responses.shift()!);
+    render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
+    await screen.findByText("Template preview");
+    await user.click(screen.getByRole("button", { name: "Generate document" }));
+    await screen.findByText("Result preview");
+    const previousBytes = new Uint8Array(await previewSources.at(-1)!.arrayBuffer());
+    fireEvent.change(screen.getByLabelText("Dataset"), { target: { value: '{"Project":{"Name":"changed"}}' } });
+
+    await user.click(screen.getByRole("button", { name: "Generate document" }));
+
+    expect(await screen.findByText(/invalid document and diagnostics response/)).toBeInTheDocument();
+    expect(screen.getByText("Result preview")).toBeInTheDocument();
+    expect(new Uint8Array(await previewSources.at(-1)!.arrayBuffer())).toEqual(previousBytes);
+    expect(apiMock).toHaveBeenCalledTimes(2);
+  });
+
   it("manually generates XLSX without analysis, previews the response format, and keeps the original download after preview failure", async () => {
     const user = userEvent.setup();
     previewTestState.failResultPreview = true;
     const resultBlob = new Blob([new Uint8Array([80, 75, 7, 8, 9])], { type: xlsxMime });
-    const { apiMock } = mockPlaygroundFetch(async () => ({ ok: true, status: 200, blob: async () => resultBlob, headers: new Headers({ "Content-Type": `${xlsxMime}; charset=binary`, "Content-Disposition": "attachment; filename=result.xlsx" }) } as Response));
+    const { apiMock } = mockPlaygroundFetch(async () => success(new Uint8Array(await resultBlob.arrayBuffer()), xlsxMime, "document.xlsx"));
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     const sourceFile = new File([new Uint8Array([1, 2])], "manual.xlsx", { type: xlsxMime });
     await selectTemplate(user, sourceFile);
@@ -1264,8 +1315,7 @@ describe("MonoReport playground", () => {
     await user.click(screen.getByRole("button", { name: "Generate document" }));
     expect(await screen.findByText("Result XLSX preview failed")).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Result" })).toBeChecked();
-    expect(xlsxSources.at(-1)).toBe(resultBlob);
-    expect(previewSources).not.toContain(resultBlob);
+    expect(new Uint8Array(await xlsxSources.at(-1)!.arrayBuffer())).toEqual(new Uint8Array(await resultBlob.arrayBuffer()));
     expect(apiMock).toHaveBeenCalledOnce();
     expect(String((apiMock.mock.calls[0] as [string])[0])).toBe("/api/documents/generate");
     const requestBody = (apiMock.mock.calls[0] as [string, RequestInit])[1].body as FormData;
@@ -1282,7 +1332,7 @@ describe("MonoReport playground", () => {
 
   it("renders real API diagnostics and multiple issues without mock content", async () => {
     const user = userEvent.setup();
-    mockPlaygroundFetch(async () => new Response(JSON.stringify({ errors: [{ code: "first", message: "First issue", field: "Amount", dataPath: "Items[3].Amount", part: "/xl/worksheets/sheet2.xml", location: "C14" }, { code: "second", detail: "Second issue" }] }), { status: 422, headers: { "Content-Type": "application/problem+json" } }));
+    mockPlaygroundFetch(async () => new Response(JSON.stringify({ traceId: "trace-123", limitReached: true, errors: [{ code: "first", message: "First issue", field: "Amount", dataPath: "Items[3].Amount", part: "/xl/worksheets/sheet2.xml", location: "C14" }, { code: "second", detail: "Second issue" }] }), { status: 422, headers: { "Content-Type": "application/problem+json" } }));
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     await selectTemplate(user, new File([new Uint8Array([80, 75])], "source.xlsx", { type: xlsxMime }));
     await user.click(screen.getByRole("button", { name: "Generate document" }));
@@ -1292,13 +1342,15 @@ describe("MonoReport playground", () => {
     expect(screen.getByText(/Second issue/)).toBeInTheDocument();
     expect(screen.getByText(/Items\[3\]\.Amount/)).toBeInTheDocument();
     expect(screen.getByText(/\/xl\/worksheets\/sheet2\.xml · C14/)).toBeInTheDocument();
+    expect(screen.getAllByText(/trace trace-123/)).toHaveLength(2);
+    expect(screen.getAllByText(/error limit reached/)).toHaveLength(2);
     expect(screen.queryByText("Unmatched collection region")).not.toBeInTheDocument();
   });
 
   it("retains exact successful bytes after edits, invalid JSON, and API failure while reporting freshness", async () => {
     const user = userEvent.setup();
     const response = success();
-    const blob = await response.blob();
+    const expectedDocumentBytes = new Uint8Array([80, 75, 7, 8]);
     const responses = [response, new Response(JSON.stringify({ title: "Failed", detail: "Incompatible", code: "generation.invalid_data" }), { status: 422, headers: { "Content-Type": "application/problem+json" } })];
     const { apiMock } = mockPlaygroundFetch(async () => responses.shift()!);
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
@@ -1325,16 +1377,15 @@ describe("MonoReport playground", () => {
     expectResultOutdated(false);
     expect(screen.getByRole("status")).toHaveTextContent("Error");
     expect(screen.getByRole("radio", { name: "Result" })).toBeChecked();
-    expect(previewSources.at(-1)).toBe(blob);
+    expect(new Uint8Array(await previewSources.at(-1)!.arrayBuffer())).toEqual(expectedDocumentBytes);
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
     await documentCommand(user, "Download");
-    expect(URL.createObjectURL).toHaveBeenCalledWith(blob);
+    expect(URL.createObjectURL).toHaveBeenCalledWith(previewSources.at(-1));
   });
 
   it("retains XLSX result format and download bytes after switching and closing the template", async () => {
     const user = userEvent.setup();
     const response = success(undefined, xlsxMime);
-    const blob = await response.blob();
     mockPlaygroundFetch(async () => response);
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     await screen.findByText("Template preview");
@@ -1357,11 +1408,11 @@ describe("MonoReport playground", () => {
     expect(screen.getByText("Select a DOCX or XLSX template")).toBeInTheDocument();
     await user.click(screen.getByRole("radio", { name: "Result" }).closest("label")!);
     expect(screen.getByText("Result XLSX preview")).toBeInTheDocument();
-    expect(xlsxSources.at(-1)).toBe(blob);
+    expect(new Uint8Array(await xlsxSources.at(-1)!.arrayBuffer())).toEqual(new Uint8Array([80, 75, 7, 8]));
     let downloadedFilename = "";
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) { downloadedFilename = this.download; });
     await documentCommand(user, "Download");
-    expect(URL.createObjectURL).toHaveBeenCalledWith(blob);
+    expect(URL.createObjectURL).toHaveBeenCalledWith(xlsxSources.at(-1));
     expect(downloadedFilename).toBe("book-result.xlsx");
     expect(screen.getByLabelText("Dataset")).toHaveValue(sampleData);
   });
@@ -1412,8 +1463,8 @@ describe("MonoReport playground", () => {
 
   it("keeps the newer XLSX generation when an older request resolves afterward", async () => {
     const user = userEvent.setup();
-    const older = success(new Uint8Array([1]), xlsxMime, "older.xlsx");
-    const newer = success(new Uint8Array([2]), xlsxMime, "newer.xlsx");
+    const older = success(new Uint8Array([1]), xlsxMime);
+    const newer = success(new Uint8Array([2]), xlsxMime);
     const resolvers: Array<(response: Response) => void> = [];
     const { apiMock } = mockPlaygroundFetch(() => new Promise<Response>(resolve => resolvers.push(resolve)));
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
@@ -1428,7 +1479,7 @@ describe("MonoReport playground", () => {
     expect(await screen.findByText("Result XLSX preview")).toBeInTheDocument();
     resolvers[0](older);
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Success"));
-    expect(xlsxSources.at(-1)).toBe(await newer.blob());
+    expect(new Uint8Array(await xlsxSources.at(-1)!.arrayBuffer())).toEqual(new Uint8Array([2]));
     expect(screen.getByRole("radio", { name: "Result" })).toBeChecked();
   });
 
@@ -2101,7 +2152,6 @@ describe("MonoReport playground", () => {
     const user = userEvent.setup();
     const { apiMock } = mockPlaygroundFetch();
     const response = success();
-    const resultBlob = await response.blob();
     const warning = { code: "template.notice", message: "Review this field", part: "/word/document.xml", location: "paragraph 2" };
     apiMock.mockResolvedValueOnce(response).mockResolvedValueOnce(new Response(JSON.stringify({ valid: true, errors: [], warnings: [warning], requirements: [], occurrences: [] })));
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
@@ -2125,7 +2175,7 @@ describe("MonoReport playground", () => {
     expect(screen.getByText("Result preview")).toBeInTheDocument();
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
     await documentCommand(user, "Download");
-    expect(URL.createObjectURL).toHaveBeenCalledWith(resultBlob);
+    expect(URL.createObjectURL).toHaveBeenCalledWith(previewSources.at(-1));
     await diagnosticsTab(user, "Analysis");
     expect(screen.getByText("Valid", { exact: true })).toBeInTheDocument();
     expect(screen.getByText("Review this field")).toBeInTheDocument();

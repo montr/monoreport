@@ -9,12 +9,17 @@ export interface Diagnostic {
   location?: string;
   formatter?: string;
   dataPath?: string;
+  fieldCode?: string;
+  removedCharacterCount?: number;
+  traceId?: string;
+  limitReached?: boolean;
 }
 
 export interface GeneratedDocument {
   blob: Blob;
   filename: string;
   format: DocumentFormat;
+  warnings?: Diagnostic[];
 }
 
 export interface TemplateRequirement {
