@@ -7,17 +7,21 @@ namespace MonoReport.Api.Services;
 
 public sealed class ApiProblemFactory
 {
-    public IResult Create(HttpContext context, int status, string code, string? field = null)
+    public IResult Create(HttpContext context, int status, string code, string? field = null,
+        IReadOnlyList<string>? errors = null)
     {
+        var extensions = new Dictionary<string, object?>
+        {
+            ["code"] = code, ["traceId"] = context.TraceIdentifier, ["field"] = field
+        };
+        if (errors is not null) extensions["errors"] = errors;
         return Results.Problem(
             statusCode: status, type: $"urn:monoreport:error:{code}", title: status switch
             {
-                400 => "Invalid request", 413 => "Request too large", 415 => "Unsupported media type",
+                400 => "Invalid request", 404 => "Formatter not found", 413 => "Request too large", 415 => "Unsupported media type",
+                422 when code == ApiDiagnosticCodes.FormatterInvalidValue => "Formatter execution failed",
                 422 => "Document generation failed", _ => "Internal server error"
-            }, detail: SafeMessage(code), extensions: new Dictionary<string, object?>
-            {
-                ["code"] = code, ["traceId"] = context.TraceIdentifier, ["field"] = field
-            });
+            }, detail: SafeMessage(code), extensions: extensions);
     }
 
     public IResult Create(HttpContext context, TemplateException error)
@@ -45,9 +49,11 @@ public sealed class ApiProblemFactory
             ApiDiagnosticCodes.RequestUnexpectedInput => "Validation accepts only the template file.",
             ApiDiagnosticCodes.RequestInvalidMultipart => "The multipart request is malformed.",
             ApiDiagnosticCodes.RequestTooLarge => "The whole request exceeds the configured size limit.",
-            ApiDiagnosticCodes.RequestUnsupportedMediaType => "Use multipart/form-data.",
+            ApiDiagnosticCodes.RequestUnsupportedMediaType => "The request content type is not supported.",
             ApiDiagnosticCodes.DataInvalidJson => "The data field must contain one valid JSON value.",
             ApiDiagnosticCodes.CultureInvalid => "The culture name is invalid.",
+            ApiDiagnosticCodes.FormatterNotFound => "The requested formatter is not registered.",
+            ApiDiagnosticCodes.FormatterInvalidValue => "The value cannot be formatted as requested.",
             DiagnosticCodes.TemplateInvalidPackage =>
                 "The content is not a readable supported Word or ordinary XLSX package. Re-save the document; for Excel, use an ordinary .xlsx workbook.",
             DiagnosticCodes.TemplateInvalidXml => "A document part contains invalid XML.",

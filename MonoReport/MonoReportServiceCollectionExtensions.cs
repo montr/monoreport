@@ -38,6 +38,7 @@ public static class MonoReportServiceCollectionExtensions
         services.TryAddTransient<DocxRenderer>();
         services.TryAddTransient<DataResolver>();
         services.TryAddTransient<ValueFormatter>();
+        services.TryAddTransient<FormatterParameterBinder>();
         services.TryAddSingleton<InvariantDecimalParser>();
 
         services.TryAdd(ServiceDescriptor.KeyedSingleton<IFormatter, UpperFormatter>("upper"));

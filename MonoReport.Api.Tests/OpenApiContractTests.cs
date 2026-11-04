@@ -1,5 +1,7 @@
 using System.Linq;
 using System.Net;
+using System.Net.Http;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
@@ -13,6 +15,67 @@ namespace MonoReport.Api.Tests;
 
 public sealed class OpenApiContractTests
 {
+    [Fact]
+    public async Task Formatter_problem_responses_document_diagnostic_fields_codes_and_validation_errors()
+    {
+        using var factory = new WebApplicationFactory<Program>();
+        using var client = factory.CreateClient();
+        using var response = await client.GetAsync("/openapi/v1.json");
+        response.EnsureSuccessStatusCode();
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var paths = json.RootElement.GetProperty("paths");
+        var execute = paths.GetProperty("/api/formatters/{name}/execute").GetProperty("post").GetProperty("responses");
+        var expectedCodes = new[]
+        {
+            ("400", new[]
+            {
+                ApiDiagnosticCodes.RequestMissingInput, ApiDiagnosticCodes.RequestInvalidInput,
+                ApiDiagnosticCodes.CultureInvalid
+            }),
+            ("404", new[] {ApiDiagnosticCodes.FormatterNotFound}),
+            ("413", new[] {ApiDiagnosticCodes.RequestTooLarge}),
+            ("415", new[] {ApiDiagnosticCodes.RequestUnsupportedMediaType}),
+            ("422", new[] {ApiDiagnosticCodes.FormatterInvalidValue}),
+            ("500", new[] {ApiDiagnosticCodes.ServerInternalError})
+        };
+        foreach (var (status, codes) in expectedCodes)
+        {
+            var documented = execute.GetProperty(status);
+            var schema = documented.GetProperty("content").GetProperty("application/problem+json").GetProperty("schema");
+            var properties = schema.GetProperty("properties");
+            foreach (var name in new[] {"type", "title", "status", "detail", "code", "traceId", "field"})
+                Assert.True(properties.TryGetProperty(name, out _), $"{status} is missing {name}.");
+            foreach (var code in codes)
+            {
+                Assert.Contains(code, documented.GetProperty("description").GetString());
+                Assert.Contains(code, properties.GetProperty("code").GetProperty("description").GetString());
+            }
+
+            Assert.Contains(schema.GetProperty("required").EnumerateArray(), item => item.GetString() == "code");
+            Assert.Contains(schema.GetProperty("required").EnumerateArray(), item => item.GetString() == "traceId");
+        }
+
+        var badRequest = execute.GetProperty("400").GetProperty("content").GetProperty("application/problem+json")
+            .GetProperty("schema");
+        var errors = badRequest.GetProperty("properties").GetProperty("errors");
+        Assert.Equal("array", errors.GetProperty("type").GetString());
+        Assert.Equal("string", errors.GetProperty("items").GetProperty("type").GetString());
+        Assert.DoesNotContain(badRequest.GetProperty("required").EnumerateArray(), item => item.GetString() == "errors");
+        var listFailure = paths.GetProperty("/api/formatters").GetProperty("get").GetProperty("responses")
+            .GetProperty("500").GetProperty("content").GetProperty("application/problem+json").GetProperty("schema");
+        Assert.Contains(ApiDiagnosticCodes.ServerInternalError,
+            listFailure.GetProperty("properties").GetProperty("code").GetProperty("description").GetString());
+
+        using var request = new StringContent("""{"value":1}""", Encoding.UTF8, "application/json");
+        using var failure = await client.PostAsync("/api/formatters/number/execute", request);
+        Assert.Equal(HttpStatusCode.BadRequest, failure.StatusCode);
+        using var problem = JsonDocument.Parse(await failure.Content.ReadAsStringAsync());
+        Assert.All(problem.RootElement.EnumerateObject(), property =>
+            Assert.True(badRequest.GetProperty("properties").TryGetProperty(property.Name, out _)));
+        Assert.All(problem.RootElement.GetProperty("errors").EnumerateArray(), item =>
+            Assert.Equal(JsonValueKind.String, item.ValueKind));
+    }
+
     [Fact]
     public async Task OpenApi_exposes_the_minimal_analyzer_contract_and_generation_diagnostics()
     {
@@ -110,7 +173,7 @@ public sealed class OpenApiContractTests
     }
 
     [Fact]
-    public async Task OpenApi_documents_both_binary_formats_on_existing_routes_only()
+    public async Task OpenApi_documents_both_binary_formats_and_formatter_routes()
     {
         using var factory =
             new WebApplicationFactory<Program>().WithWebHostBuilder(builder => builder.UseEnvironment("Development"));
@@ -119,8 +182,16 @@ public sealed class OpenApiContractTests
         response.EnsureSuccessStatusCode();
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         var paths = json.RootElement.GetProperty("paths");
-        Assert.Equal(new[] {"/api/documents/analyze", "/api/documents/generate"},
+        Assert.Equal(new[] {"/api/documents/analyze", "/api/documents/generate", "/api/formatters", "/api/formatters/{name}/execute"},
             paths.EnumerateObject().Select(item => item.Name).Order());
+        var list = paths.GetProperty("/api/formatters").GetProperty("get");
+        Assert.False(list.TryGetProperty("requestBody", out _));
+        Assert.True(list.GetProperty("responses").GetProperty("200").GetProperty("content")
+            .TryGetProperty("application/json", out _));
+        var execute = paths.GetProperty("/api/formatters/{name}/execute").GetProperty("post");
+        Assert.Equal(new[] {"application/json"}, execute.GetProperty("requestBody").GetProperty("content")
+            .EnumerateObject().Select(item => item.Name));
+        Assert.True(execute.GetProperty("responses").TryGetProperty("404", out _));
         var operation = paths.GetProperty("/api/documents/generate").GetProperty("post");
         var content = operation.GetProperty("responses").GetProperty("200").GetProperty("content");
         Assert.Equal(

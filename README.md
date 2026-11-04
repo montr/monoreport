@@ -146,6 +146,8 @@ For the support, preservation, and rejection policy for Microsoft Word features,
 4. `POST /api/documents/analyze` accepts only multipart file field `template`; success returns the Analyzer contract even when `valid` is false.
 5. Swagger UI is available at `/docs` and OpenAPI at `/openapi/v1.json` when documentation is enabled.
 6. The browser playground loads the authoritative assets from `Samples`, can analyze a template to propose dependency-based JSON, and does not persist user data.
+7. `GET /api/formatters` returns an array of registered formatter metadata: `name`, `parameters` (each with `name`, CLR type name in `type`, and `required`), and `positionalParameter`. Discovery uses keyed `IFormatter` registrations, including custom keys and replacements; names are ordinal and case-sensitive.
+8. `POST /api/formatters/{name}/execute` accepts a JSON object with required `value`, optional `parameters` mapping parameter names to string literals, and optional `culture` (invariant when omitted or blank). Success returns a JSON object with `result`. Parameter binding, formatter validation, execution, and empty-value behavior are shared with document formatting. Invalid requests or parameters return 400, unknown formatter names return 404, unsupported content types return 415, and incompatible values return 422, using Problem Details. Parameter validation errors include an `errors` array.
 
 ## Sample and migration
 

@@ -13,5 +13,7 @@ public static class ApiDiagnosticCodes
     public const string RequestUnsupportedMediaType = "request.unsupported_media_type";
     public const string DataInvalidJson = "data.invalid_json";
     public const string CultureInvalid = "culture.invalid";
+    public const string FormatterNotFound = "formatter.not_found";
+    public const string FormatterInvalidValue = "formatter.invalid_value";
     public const string ServerInternalError = "server.internal_error";
 }

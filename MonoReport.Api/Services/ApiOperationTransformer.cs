@@ -3,15 +3,42 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
+using MonoReport.Api.Models;
 using MonoReport.Core.Diagnostics;
 
 namespace MonoReport.Api.Services;
 
 public sealed class ApiOperationTransformer : IOpenApiOperationTransformer
 {
-    public Task TransformAsync(OpenApiOperation operation, OpenApiOperationTransformerContext context,
+    public async Task TransformAsync(OpenApiOperation operation, OpenApiOperationTransformerContext context,
         CancellationToken cancellationToken)
     {
+        if (context.Description.RelativePath == "api/formatters/{name}/execute")
+        {
+            operation.RequestBody = new OpenApiRequestBody
+            {
+                Required = true,
+                Content = new Dictionary<string, OpenApiMediaType>
+                {
+                    ["application/json"] = new()
+                    {
+                        Schema = await context.GetOrCreateSchemaAsync(typeof(FormatterExecutionRequest),
+                            cancellationToken: cancellationToken)
+                    }
+                }
+            };
+            DescribeFormatterResponses(operation);
+            return;
+        }
+
+        if (context.Description.RelativePath == "api/formatters")
+        {
+            DescribeFormatterResponses(operation);
+            return;
+        }
+
+        if (context.Description.RelativePath is not ("api/documents/generate" or "api/documents/analyze"))
+            return;
         var generation = context.Description.RelativePath == "api/documents/generate";
         var requestCodes = generation
             ? new[]
@@ -184,7 +211,7 @@ public sealed class ApiOperationTransformer : IOpenApiOperationTransformer
         {
             if (status == "200") continue;
             if (response is not OpenApiResponse concrete) continue;
-            response.Description = status switch
+            var schema = DescribeProblemResponse(concrete, status switch
             {
                 "400" => string.Join(", ", requestCodes),
                 "413" => ApiDiagnosticCodes.RequestTooLarge +
@@ -192,32 +219,9 @@ public sealed class ApiOperationTransformer : IOpenApiOperationTransformer
                 "415" => ApiDiagnosticCodes.RequestUnsupportedMediaType,
                 "422" => string.Join(", ", generationCodes),
                 _ => ApiDiagnosticCodes.ServerInternalError
-            };
-            concrete.Content = new Dictionary<string, OpenApiMediaType>
-            {
-                ["application/problem+json"] = new()
-                {
-                    Schema = new OpenApiSchema
-                    {
-                        Type = JsonSchemaType.Object,
-                        Required = new HashSet<string> {"type", "title", "status", "detail", "code", "traceId"},
-                        Properties = new Dictionary<string, IOpenApiSchema>
-                        {
-                            ["type"] = new OpenApiSchema {Type = JsonSchemaType.String},
-                            ["title"] = new OpenApiSchema {Type = JsonSchemaType.String},
-                            ["status"] = new OpenApiSchema {Type = JsonSchemaType.Integer},
-                            ["detail"] = new OpenApiSchema {Type = JsonSchemaType.String},
-                            ["code"] = new OpenApiSchema
-                                {Type = JsonSchemaType.String, Description = response.Description},
-                            ["traceId"] = new OpenApiSchema {Type = JsonSchemaType.String},
-                            ["field"] = new OpenApiSchema {Type = JsonSchemaType.String | JsonSchemaType.Null}
-                        }
-                    }
-                }
-            };
+            });
             if (generation && status == "422")
             {
-                var schema = (OpenApiSchema) concrete.Content["application/problem+json"].Schema!;
                 schema.Required!.Add("errors");
                 schema.Required.Add("limitReached");
                 schema.Properties!["limitReached"] = new OpenApiSchema {Type = JsonSchemaType.Boolean};
@@ -242,7 +246,57 @@ public sealed class ApiOperationTransformer : IOpenApiOperationTransformer
                 };
             }
         }
+    }
 
-        return Task.CompletedTask;
+    private void DescribeFormatterResponses(OpenApiOperation operation)
+    {
+        foreach (var (status, response) in operation.Responses!)
+        {
+            if (status == "200" || response is not OpenApiResponse concrete) continue;
+            var schema = DescribeProblemResponse(concrete, status switch
+            {
+                "400" => string.Join(", ", ApiDiagnosticCodes.RequestMissingInput,
+                    ApiDiagnosticCodes.RequestInvalidInput, ApiDiagnosticCodes.CultureInvalid),
+                "404" => ApiDiagnosticCodes.FormatterNotFound,
+                "413" => ApiDiagnosticCodes.RequestTooLarge +
+                         " (pre-application host/proxy rejection may use a host-owned response)",
+                "415" => ApiDiagnosticCodes.RequestUnsupportedMediaType,
+                "422" => ApiDiagnosticCodes.FormatterInvalidValue,
+                _ => ApiDiagnosticCodes.ServerInternalError
+            });
+            schema.Required!.Add("field");
+            if (status == "400")
+                schema.Properties!["errors"] = new OpenApiSchema
+                {
+                    Type = JsonSchemaType.Array,
+                    Description = "Parameter validation errors; omitted for other request failures.",
+                    Items = new OpenApiSchema {Type = JsonSchemaType.String}
+                };
+        }
+    }
+
+    private OpenApiSchema DescribeProblemResponse(OpenApiResponse response, string description)
+    {
+        response.Description = description;
+        var schema = new OpenApiSchema
+        {
+            Type = JsonSchemaType.Object,
+            Required = new HashSet<string> {"type", "title", "status", "detail", "code", "traceId"},
+            Properties = new Dictionary<string, IOpenApiSchema>
+            {
+                ["type"] = new OpenApiSchema {Type = JsonSchemaType.String},
+                ["title"] = new OpenApiSchema {Type = JsonSchemaType.String},
+                ["status"] = new OpenApiSchema {Type = JsonSchemaType.Integer},
+                ["detail"] = new OpenApiSchema {Type = JsonSchemaType.String},
+                ["code"] = new OpenApiSchema {Type = JsonSchemaType.String, Description = description},
+                ["traceId"] = new OpenApiSchema {Type = JsonSchemaType.String},
+                ["field"] = new OpenApiSchema {Type = JsonSchemaType.String | JsonSchemaType.Null}
+            }
+        };
+        response.Content = new Dictionary<string, OpenApiMediaType>
+        {
+            ["application/problem+json"] = new() {Schema = schema}
+        };
+        return schema;
     }
 }

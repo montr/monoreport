@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using MonoReport.Core.Diagnostics;
@@ -19,12 +20,7 @@ public sealed class ValueFormatter(IServiceProvider provider)
         var active = registration?.Name ?? "value";
         try
         {
-            var empty = value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined ||
-                        (value.ValueKind == JsonValueKind.String && value.GetString() == string.Empty);
-            if (empty) return string.Empty;
-            if (registration is null) return FormatterScalarText.Read(value);
-            var formatter = _formatters.GetRequiredKeyedService<IFormatter>(registration.Name);
-            return formatter.Format(value, registration.Arguments, new FormatterContext(options.Culture));
+            return Format(value, registration?.Name, registration?.Arguments, new FormatterContext(options.Culture));
         }
         catch (Exception exception) when (exception is FormatException or ArgumentException or OverflowException
                                               or InvalidOperationException)
@@ -35,5 +31,16 @@ public sealed class ValueFormatter(IServiceProvider provider)
             throw new TemplateException($"Cannot format '{expression.Source}' using '{active}'. {exception.Message}",
                 expression.Source, expression.Source, location, active, exception, code);
         }
+    }
+
+    public string Format(JsonElement value, string? name, IReadOnlyDictionary<string, FormatterOperand>? parameters,
+        FormatterContext context)
+    {
+        var empty = value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined ||
+                    (value.ValueKind == JsonValueKind.String && value.GetString() == string.Empty);
+        if (empty) return string.Empty;
+        if (name is null) return FormatterScalarText.Read(value);
+        var formatter = _formatters.GetRequiredKeyedService<IFormatter>(name);
+        return formatter.Format(value, parameters!, context);
     }
 }

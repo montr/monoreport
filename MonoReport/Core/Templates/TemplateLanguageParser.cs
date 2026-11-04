@@ -7,7 +7,7 @@ using MonoReport.Core.Formatting;
 
 namespace MonoReport.Core.Templates;
 
-public sealed class TemplateLanguageParser(IServiceProvider provider)
+public sealed class TemplateLanguageParser(IServiceProvider provider, FormatterParameterBinder parameterBinder)
 {
     private readonly IKeyedServiceProvider _formatters = provider as IKeyedServiceProvider ??
                                                          throw new ArgumentException(
@@ -247,32 +247,7 @@ public sealed class TemplateLanguageParser(IServiceProvider provider)
             }
         }
 
-        var known = metadata.Parameters.ToDictionary(parameter => parameter.Name, StringComparer.Ordinal);
-        var bound = new Dictionary<string, FormatterOperand>(StringComparer.Ordinal);
-        foreach (var (parameter, value) in supplied)
-        {
-            if (!known.ContainsKey(parameter))
-            {
-                reason = $"Formatter '{name}' does not declare parameter '{parameter}'.";
-                return false;
-            }
-
-            if (!bound.TryAdd(parameter, value))
-            {
-                reason = $"Formatter '{name}' parameter '{parameter}' was supplied more than once.";
-                return false;
-            }
-        }
-
-        var missing =
-            metadata.Parameters.FirstOrDefault(parameter => parameter.Required && !bound.ContainsKey(parameter.Name));
-        if (missing is not null)
-        {
-            reason = $"Formatter '{name}' requires parameter '{missing.Name}'.";
-            return false;
-        }
-
-        var validation = selected.Validate(bound);
+        var validation = parameterBinder.Bind(name, selected, supplied, out var bound);
         if (validation.Errors.Count > 0)
         {
             reason = validation.Errors[0];

@@ -9,7 +9,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MonoReport;
+using MonoReport.Api.Models;
 using MonoReport.Api.Services;
+using MonoReport.Core;
 using MonoReport.Core.Templates;
 using MonoReport.Formatter.Spellout;
 
@@ -34,6 +36,8 @@ builder.Services.AddMonoReport();
 builder.Services.AddMonoReportSpelloutFormatter();
 builder.Services.AddTransient<MultipartRequestReader>();
 builder.Services.AddTransient<DocumentEndpoints>();
+builder.Services.AddServiceKeyProvider();
+builder.Services.AddTransient<FormatterEndpoints>();
 builder.Services.AddTransient<GenerationOptionsFactory>();
 builder.Services.AddSingleton<ApiProblemFactory>();
 builder.Services.AddProblemDetails();
@@ -93,6 +97,16 @@ app.MapPost("/api/documents/generate",
 app.MapPost("/api/documents/analyze", (HttpContext context, DocumentEndpoints endpoints) => endpoints.Analyze(context))
     .WithName("AnalyzeTemplate").Produces<TemplateAnalysisResult>()
     .ProducesProblem(400).ProducesProblem(413).ProducesProblem(415).ProducesProblem(500);
+
+app.MapGet("/api/formatters", (FormatterEndpoints endpoints) => endpoints.List())
+    .WithName("ListFormatters").WithSummary("List registered formatters and their parameter metadata")
+    .Produces<FormatterDescription[]>().ProducesProblem(500);
+app.MapPost("/api/formatters/{name}/execute",
+        (HttpContext context, string name, FormatterEndpoints endpoints) => endpoints.Execute(context, name))
+    .WithName("ExecuteFormatter").WithSummary("Format a JSON value using a registered formatter")
+    .Produces<FormatterExecutionResult>()
+    .ProducesProblem(400).ProducesProblem(404).ProducesProblem(413).ProducesProblem(415).ProducesProblem(422)
+    .ProducesProblem(500);
 
 if (builder.Configuration.GetValue<bool?>("MonoReport:DocumentationEnabled") ?? true)
 {
