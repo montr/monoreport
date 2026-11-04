@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=22.15.0"
   },
   "scripts": {
     "dev": "webpack serve --mode development",
@@ -12,15 +12,15 @@
     "build": "node ./scripts/check-node-version.mjs && webpack --mode production"
   },
   "dependencies": {
-    "@silurus/ooxml": "0.89.6",
-    "antd": "6.6.8",
+    "@silurus/ooxml": "0.89.7",
+    "antd": "6.7.0",
     "docx-preview": "0.4.1",
     "monaco-editor": "0.57.0",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },
   "devDependencies": {
-    "@swc/core": "1.16.20",
+    "@swc/core": "1.16.21",
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.3",
     "@testing-library/user-event": "14.6.8",
@@ -34,9 +34,9 @@
     "style-loader": "4.0.0",
     "swc-loader": "0.2.7",
     "typescript": "7.0.2",
-    "vitest": "5.0.5",
+    "vitest": "5.1.0",
     "webpack": "5.112.2",
-    "webpack-cli": "7.2.3",
-    "webpack-dev-server": "5.2.7"
+    "webpack-cli": "7.3.1",
+    "webpack-dev-server": "6.1.0"
   }
 }

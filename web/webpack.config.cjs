@@ -42,7 +42,7 @@ module.exports = {
     publicPath: "/"
   },
   resolve: { extensions: [".tsx", ".ts", ".js"] },
-  // @silurus/ooxml 0.89.6's optional legacyXls loader uses a runtime import URL.
+  // @silurus/ooxml 0.89.7's optional legacyXls loader uses a runtime import URL.
   // MonoReport never configures legacyXls; suppress only this known warning.
   // Reassess on viewer upgrades or legacy support: Feature 013 plan, section 11.
   ignoreWarnings: [{
