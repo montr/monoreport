@@ -20,15 +20,12 @@ Potential work for MonoReport. Items are not approved Features; scope and priori
 2. **UI quality and Ant Design** — confirm and fix remaining visual issues; audit CSS overrides and component usage, and evaluate Ant Design MCP for agent-assisted UI work.
 3. **Dependency audit and compliance** — assess npm audit findings for production relevance; check dependency licenses and required notices.
 4. **C# formatting and code style** — establish and automate consistent rules.
-5. **UI performance** — measure bundle size and loading before optimizing.
-6. **API documentation** — verify OpenAPI and interactive documentation coverage; address confirmed gaps only.
-7. **Optional template data schema and Sample JSON** — revisit the existing Sample JSON generation, which needs improvement. Explore an optional JSON Schema supplied alongside a DOCX/XLSX template to validate input data and generate representative sample JSON from the same schema. When no schema is supplied, retain template-based analysis and sample generation. Assess compatibility between an explicit schema and Analyzer-derived template requirements without conflating their responsibilities. No mandatory schema or separate manually maintained duplicate data definition.
-8. **Configurable diagnostic severity** — allow individual diagnostic codes to be configured as warnings or errors, similar to compiler diagnostics.
-9. **CI build performance** — measure Docker build stages and optimize layer caching, npm/NuGet reuse, COPY ordering, and redundant builds where justified.
-10. **Regression coverage** — review DOCX/XLSX fixtures and Analyzer/Sample JSON scenarios, especially `requirements`, `occurrences`, `verticalLevels`, `$level`, and nested collections.
-11. **Observability** — assess whether structured logs (Serilog/Seq), metrics, or tracing (OpenTelemetry) are needed before introducing them.
-12. **GitHub Actions compatibility** — review warnings about Node.js 24 and Ubuntu 26 separately from test fixes.
-13. **Examples repository split** — evaluate separating user-facing examples from stable Core test fixtures without losing integration coverage.
+5. **Optional template data schema and Sample JSON** — revisit the existing Sample JSON generation, which needs improvement, including Analyzer-to-Sample JSON scenarios involving `requirements`, `occurrences`, `verticalLevels`, `$level`, and nested collections. Review relevant regression coverage as part of that work. Explore an optional JSON Schema supplied alongside a DOCX/XLSX template to validate input data and generate representative sample JSON from the same schema. When no schema is supplied, retain template-based analysis and sample generation. Assess compatibility between an explicit schema and Analyzer-derived template requirements without conflating their responsibilities. No mandatory schema or separate manually maintained duplicate data definition.
+6. **Configurable diagnostic severity** — allow individual diagnostic codes to be configured as warnings or errors, similar to compiler diagnostics.
+7. **CI build performance** — measure Docker build stages and optimize layer caching, npm/NuGet reuse, COPY ordering, and redundant builds where justified.
+8. **Observability** — assess whether structured logs (Serilog/Seq), metrics, or tracing (OpenTelemetry) are needed before introducing them.
+9. **GitHub Actions compatibility** — verify whether Node.js 24 deprecation and Ubuntu 26 runner migration warnings still occur in current MonoReport workflow runs; address only confirmed issues separately from test fixes.
+10. **Examples repository split** — evaluate separating user-facing examples from stable Core test fixtures without losing integration coverage.
 
 ## Data Source Catalog
 
