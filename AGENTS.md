@@ -1,5 +1,10 @@
 # Project Rules
 
+## Product Rules
+
+1. Treat `docs/docx-template-compatibility.md` and `docs/xlsx-template-compatibility.md` as the product compatibility contracts for DOCX and XLSX engine development, respectively. Consult the applicable contract before changing engine behavior or supported template features.
+2. Preserve the documented support boundaries and guarantees. Report material discrepancies between a contract, implementation, and tests to the Product Owner before changing the approved behavior or the contract.
+
 ## Development Workflow
 
 1. Use the Feature workflow only when explicitly requested by the Product Owner. Otherwise, handle work as a regular task without creating Feature artifacts. Store Feature artifacts under `.docs/features/<NNN>-<slug>/`, using sequential, never-reused IDs. Read only relevant rules, code, documentation, and ADRs.

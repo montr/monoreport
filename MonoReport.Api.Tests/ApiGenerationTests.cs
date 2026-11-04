@@ -198,7 +198,6 @@ public sealed class ApiGenerationTests
     [InlineData("part", DiagnosticCodes.XlsxInvalidPackage)]
     [InlineData("precision", DiagnosticCodes.XlsxUnsafeNumber)]
     [InlineData("root", DiagnosticCodes.GenerationInvalidData)]
-    [InlineData("text", DiagnosticCodes.GenerationInvalidData)]
     [InlineData("high-surrogate", DiagnosticCodes.GenerationInvalidData)]
     [InlineData("low-surrogate", DiagnosticCodes.GenerationInvalidData)]
     [InlineData("formula", DiagnosticCodes.XlsxUnsafeFormula)]
@@ -219,7 +218,7 @@ public sealed class ApiGenerationTests
                 xml => xml.Replace("worksheets/sheet1.xml", "worksheets/missing.xml", StringComparison.Ordinal));
         var data = scenario switch
         {
-            "precision" => "{\"Name\":10000000000000001}", "root" => "[]", "text" => "{\"Name\":\"private\\u0001\"}",
+            "precision" => "{\"Name\":10000000000000001}", "root" => "[]",
             "high-surrogate" => "{\"Name\":\"private\\uD800\"}", "low-surrogate" => "{\"Name\":\"private\\uDC00\"}",
             _ => "{}"
         };

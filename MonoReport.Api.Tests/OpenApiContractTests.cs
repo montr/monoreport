@@ -228,7 +228,8 @@ public sealed class OpenApiContractTests
             diagnostics.GetProperty("required").EnumerateArray().Select(p => p.GetString()).Order());
         var warnings = diagnostics.GetProperty("properties").GetProperty("warnings");
         Assert.Contains("empty array", warnings.GetProperty("description").GetString());
-        Assert.Equal(new[] {"code", "dataPath", "field", "fieldCode", "location", "message", "part"},
+        Assert.Equal(new[]
+            {"code", "dataPath", "field", "fieldCode", "location", "message", "part", "removedCharacterCount"},
             warnings.GetProperty("items").GetProperty("properties").EnumerateObject().Select(p => p.Name).Order());
         Assert.DoesNotContain("code",
             warnings.GetProperty("items").GetProperty("required").EnumerateArray().Select(p => p.GetString()));

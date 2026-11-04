@@ -27,10 +27,9 @@ public sealed class DocxStoryReader
             diagnostic = null;
             return WordprocessingDocument.Open(stream, editable);
         }
-        catch (Exception error) when (error is OpenXmlPackageException or InvalidDataException or FileFormatException)
+        catch (Exception error) when (IsPackageReadFailure(error) || error is XmlException)
         {
-            diagnostic =
-                new StructuralDiagnostic(DiagnosticCodes.TemplateInvalidPackage, "DOCX package is unreadable.");
+            diagnostic = PackageDiagnostic();
             return null;
         }
     }
@@ -44,7 +43,17 @@ public sealed class DocxStoryReader
 
     internal StoryInspection Inspect(WordprocessingDocument document)
     {
-        var main = document.MainDocumentPart;
+        MainDocumentPart? main;
+        try
+        {
+            main = document.MainDocumentPart;
+        }
+        catch (Exception error) when (IsPackageReadFailure(error) || error is XmlException)
+        {
+            return new StoryInspection([], [PackageDiagnostic()],
+                new Dictionary<string, int>(StringComparer.Ordinal), []);
+        }
+
         if (main is null)
             return new StoryInspection([],
                 [
@@ -55,7 +64,17 @@ public sealed class DocxStoryReader
         var stories = new List<(OpenXmlPart, XDocument)>();
         var diagnostics = new List<StructuralDiagnostic>();
         var partOrder = new Dictionary<string, int>(StringComparer.Ordinal);
-        foreach (var part in Parts(main))
+        OpenXmlPart[] storyParts;
+        try
+        {
+            storyParts = Parts(main).ToArray();
+        }
+        catch (Exception error) when (IsPackageReadFailure(error) || error is XmlException)
+        {
+            return new StoryInspection([], [PackageDiagnostic()], partOrder, []);
+        }
+
+        foreach (var part in storyParts)
         {
             partOrder.Add(part.Uri.ToString(), partOrder.Count);
             try
@@ -85,17 +104,33 @@ public sealed class DocxStoryReader
                 diagnostics.Add(new StructuralDiagnostic(DiagnosticCodes.TemplateInvalidXml, "Invalid DOCX story XML.",
                     Location: part.Uri.ToString()));
             }
+            catch (Exception error) when (IsPackageReadFailure(error))
+            {
+                diagnostics.Add(PackageDiagnostic(part.Uri.ToString()));
+            }
         }
 
         var packageXml = new List<(OpenXmlPart Part, XDocument Xml)>(stories);
-        foreach (var part in PackageParts(document).OrderBy(part => part.Uri.ToString(), StringComparer.Ordinal))
+        OpenXmlPart[] packageParts;
+        try
+        {
+            packageParts = PackageParts(document).OrderBy(part => part.Uri.ToString(), StringComparer.Ordinal)
+                .ToArray();
+        }
+        catch (Exception error) when (IsPackageReadFailure(error) || error is XmlException)
+        {
+            diagnostics.Add(PackageDiagnostic());
+            return new StoryInspection(stories, diagnostics, partOrder, packageXml);
+        }
+
+        foreach (var part in packageParts)
         {
             if (partOrder.ContainsKey(part.Uri.ToString())) continue;
             partOrder.Add(part.Uri.ToString(), partOrder.Count);
-            if (!part.ContentType.EndsWith("xml", StringComparison.OrdinalIgnoreCase) &&
-                !part.ContentType.EndsWith("+xml", StringComparison.OrdinalIgnoreCase)) continue;
             try
             {
+                if (!part.ContentType.EndsWith("xml", StringComparison.OrdinalIgnoreCase) &&
+                    !part.ContentType.EndsWith("+xml", StringComparison.OrdinalIgnoreCase)) continue;
                 using var input = part.GetStream(FileMode.Open, FileAccess.Read);
                 using var reader =
                     XmlReader.Create(input, new XmlReaderSettings {DtdProcessing = DtdProcessing.Prohibit});
@@ -105,6 +140,10 @@ public sealed class DocxStoryReader
             {
                 diagnostics.Add(new StructuralDiagnostic(DiagnosticCodes.TemplateInvalidXml,
                     "Invalid DOCX auxiliary XML.", Location: part.Uri.ToString()));
+            }
+            catch (Exception error) when (IsPackageReadFailure(error))
+            {
+                diagnostics.Add(PackageDiagnostic(part.Uri.ToString()));
             }
         }
 
@@ -132,5 +171,17 @@ public sealed class DocxStoryReader
             yield return part;
         if (main.FootnotesPart is not null) yield return main.FootnotesPart;
         if (main.EndnotesPart is not null) yield return main.EndnotesPart;
+    }
+
+    private static bool IsPackageReadFailure(Exception error)
+    {
+        return error is OpenXmlPackageException or InvalidDataException or FileFormatException or
+            InvalidOperationException or KeyNotFoundException or ArgumentException or UriFormatException;
+    }
+
+    private static StructuralDiagnostic PackageDiagnostic(string? location = null)
+    {
+        return new StructuralDiagnostic(DiagnosticCodes.TemplateInvalidPackage, "DOCX package is unreadable.",
+            Location: location);
     }
 }

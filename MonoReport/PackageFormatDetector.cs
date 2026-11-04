@@ -46,7 +46,7 @@ public sealed class PackageFormatDetector
 
     private static TemplateException Invalid()
     {
-        return new TemplateException("Use a readable Word or ordinary XLSX OOXML package.",
+        return new TemplateException("Use a readable DOCX or XLSX OOXML package.",
             code: DiagnosticCodes.TemplateInvalidPackage);
     }
 }
