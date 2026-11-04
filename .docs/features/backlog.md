@@ -6,19 +6,29 @@ Potential work for MonoReport. Items are not approved Features; scope and priori
 
 1. **Extended formatting** — additional field formats and currency support.
 2. **MCP integration** — revisit when concrete consumers and use cases are identified.
-3. **AI-Powered Template Generation** - Automatically convert an existing DOCX/XLSX report into a fully functional MonoReport template and JSON containing the original data, with AI generating all fields, loops, and conditions while preserving the original document’s structure, layout, and formatting.
+3. **AI-powered template generation** — convert existing DOCX/XLSX reports into MonoReport templates and JSON, using AI to infer fields, loops, and conditions while preserving layout and formatting.
+4. **Playground settings and Auto Generate** — settings for Word wrap and opt-in automatic generation after valid Dataset changes; debounce requests and prevent stale results.
+5. **Analyze Dataset** — validate JSON against the current template without generating a document; reuse existing analysis and generation checks rather than duplicating Monaco syntax validation.
+6. **Examples experience** — define DOCX/XLSX groups in `examples.json`; consider a drawer or side library instead of a permanent dropdown.
+7. **Diagnostics endpoint** — `/debug/` with application diagnostics as JSON and a generated DOCX report.
+8. **Product positioning and adoption** — validate target audiences, competitors, paid use cases, and the first-use flow from template analysis to document generation.
+9. **Russian name inflection (Feature 017)** — planned, schedule TBD; resume from the existing Feature Spec after resolving Morphos integration decisions.
 
 ## Engineering Backlog
 
 1. **Release automation** — GitHub Releases and automatic release notes from commits.
-2. **UI polish** — fix remaining minor visual issues, after confirming they still exist.
-3. **Ant Design review** — consistent and appropriate use of components.
-4. **Dependency audit** — review current npm audit findings.
-5. **C# formatting and code style** — establish and automate consistent rules.
-6. **UI performance** — measure bundle size and loading before optimizing.
-7. **API documentation** — verify OpenAPI and interactive documentation coverage; address confirmed gaps only.
-8. **Optional template data schema:** Allow templates to include an optional JSON data schema for validating input data and field references. Evaluate JSON Schema compatibility.
-9. **Configurable diagnostic severity:** Allow individual diagnostic codes to be configured as warnings or errors, similar to compiler diagnostics.
+2. **UI quality and Ant Design** — confirm and fix remaining visual issues; audit CSS overrides and component usage, and evaluate Ant Design MCP for agent-assisted UI work.
+3. **Dependency audit and compliance** — assess npm audit findings for production relevance; check dependency licenses and required notices.
+4. **C# formatting and code style** — establish and automate consistent rules.
+5. **UI performance** — measure bundle size and loading before optimizing.
+6. **API documentation** — verify OpenAPI and interactive documentation coverage; address confirmed gaps only.
+7. **Optional template data schema** — assess JSON Schema compatibility for validating input data and field references; keep distinct from template-specific Dataset analysis.
+8. **Configurable diagnostic severity** — allow individual diagnostic codes to be configured as warnings or errors, similar to compiler diagnostics.
+9. **CI build performance** — measure Docker build stages and optimize layer caching, npm/NuGet reuse, COPY ordering, and redundant builds where justified.
+10. **Regression coverage** — review DOCX/XLSX fixtures and Analyzer/Sample JSON scenarios, especially `requirements`, `occurrences`, `verticalLevels`, `$level`, and nested collections.
+11. **Observability** — assess whether structured logs (Serilog/Seq), metrics, or tracing (OpenTelemetry) are needed before introducing them.
+12. **GitHub Actions compatibility** — review warnings about Node.js 24 and Ubuntu 26 separately from test fixes.
+13. **Examples repository split** — evaluate separating user-facing examples from stable Core test fixtures without losing integration coverage.
 
 ## Data Source Catalog
 
