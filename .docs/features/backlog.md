@@ -4,28 +4,22 @@ Potential work for MonoReport. Items are not approved Features; scope and priori
 
 ## Product Direction
 
-1. **Extended formatting** — additional field formats and currency support.
-2. **MCP integration** — revisit when concrete consumers and use cases are identified.
-3. **AI-powered template generation** — convert existing DOCX/XLSX reports into MonoReport templates and JSON, using AI to infer fields, loops, and conditions while preserving layout and formatting.
-4. **Playground settings and Auto Generate** — settings for Word wrap and opt-in automatic generation after valid Dataset changes; debounce requests and prevent stale results.
-5. **Analyze Dataset** — validate JSON against the current template without generating a document; reuse existing analysis and generation checks rather than duplicating Monaco syntax validation.
-6. **Examples experience** — define DOCX/XLSX groups in `examples.json`; consider a drawer or side library instead of a permanent dropdown.
-7. **Diagnostics endpoint** — `/debug/` with application diagnostics as JSON and a generated DOCX report.
-8. **Product positioning and adoption** — validate target audiences, competitors, paid use cases, and the first-use flow from template analysis to document generation.
-9. **Russian name inflection (Feature 017)** — planned, schedule TBD; resume from the existing Feature Spec after resolving Morphos integration decisions.
+1. **MCP integration** — revisit when concrete consumers and use cases are identified.
+2. **AI-powered template generation** — convert existing DOCX/XLSX reports into MonoReport templates and JSON, using AI to infer fields, loops, and conditions while preserving layout and formatting.
+3. **Playground settings and Auto Generate** — settings for Word wrap and opt-in automatic generation after valid Dataset changes; debounce requests and prevent stale results.
+4. **Analyze Dataset** — validate JSON against the current template without generating a document; reuse existing analysis and generation checks rather than duplicating Monaco syntax validation.
+5. **Examples experience** — define DOCX/XLSX groups in `examples.json`; consider a drawer or side library instead of a permanent dropdown.
+6. **Diagnostics endpoint** — `/debug/` with application diagnostics as JSON and a generated DOCX report.
+7. **Russian name inflection (Feature 017)** — planned, schedule TBD; resume from the existing Feature Spec after resolving Morphos integration decisions.
 
 ## Engineering Backlog
 
 1. **Release automation** — GitHub Releases and automatic release notes from commits.
-2. **UI quality and Ant Design** — confirm and fix remaining visual issues; audit CSS overrides and component usage, and evaluate Ant Design MCP for agent-assisted UI work.
-3. **Dependency audit and compliance** — assess npm audit findings for production relevance; check dependency licenses and required notices.
-4. **C# formatting and code style** — establish and automate consistent rules.
-5. **Optional template data schema and Sample JSON** — revisit the existing Sample JSON generation, which needs improvement, including Analyzer-to-Sample JSON scenarios involving `requirements`, `occurrences`, `verticalLevels`, `$level`, and nested collections. Review relevant regression coverage as part of that work. Explore an optional JSON Schema supplied alongside a DOCX/XLSX template to validate input data and generate representative sample JSON from the same schema. When no schema is supplied, retain template-based analysis and sample generation. Assess compatibility between an explicit schema and Analyzer-derived template requirements without conflating their responsibilities. No mandatory schema or separate manually maintained duplicate data definition.
-6. **Configurable diagnostic severity** — allow individual diagnostic codes to be configured as warnings or errors, similar to compiler diagnostics.
-7. **CI build performance** — measure Docker build stages and optimize layer caching, npm/NuGet reuse, COPY ordering, and redundant builds where justified.
-8. **Observability** — assess whether structured logs (Serilog/Seq), metrics, or tracing (OpenTelemetry) are needed before introducing them.
-9. **GitHub Actions compatibility** — verify whether Node.js 24 deprecation and Ubuntu 26 runner migration warnings still occur in current MonoReport workflow runs; address only confirmed issues separately from test fixes.
-10. **Examples repository split** — evaluate separating user-facing examples from stable Core test fixtures without losing integration coverage.
+2. **Dependency audit and compliance** — assess npm audit findings for production relevance; check dependency licenses and required notices.
+3. **Optional template data schema and Sample JSON** — revisit the existing Sample JSON generation, which needs improvement, including Analyzer-to-Sample JSON scenarios involving `requirements`, `occurrences`, `verticalLevels`, `$level`, and nested collections. Review relevant regression coverage as part of that work. Explore an optional JSON Schema supplied alongside a DOCX/XLSX template to validate input data and generate representative sample JSON from the same schema. When no schema is supplied, retain template-based analysis and sample generation. Assess compatibility between an explicit schema and Analyzer-derived template requirements without conflating their responsibilities. No mandatory schema or separate manually maintained duplicate data definition.
+4. **Configurable diagnostic severity** — allow individual diagnostic codes to be configured as warnings or errors, similar to compiler diagnostics.
+5. **Observability** — assess whether structured logs (Serilog/Seq), metrics, or tracing (OpenTelemetry) are needed before introducing them.
+6. **Examples repository split** — evaluate separating user-facing examples from stable Core test fixtures without losing integration coverage.
 
 ## Data Source Catalog
 
@@ -42,7 +36,7 @@ Any system implementing this protocol can act as a Data Source. Consumers may in
 
 1. A Data Source is an independent HTTP API, with no dependency on MonoReport Core, Analyzer, or document generation.
 2. MonoReport Service will provide the initial Data Source implementation but is not a mandatory intermediary.
-3. Clients may connect directly to external Data Sources, such as iTender.
+3. Clients may connect directly to Data Sources provided by independent business systems.
 4. MonoReport Service may eventually connect to external Data Sources and expose them through its own API, acting as an optional proxy or aggregator.
 5. Data Definitions describe available datasets rather than specific document templates. Multiple DOCX or XLSX templates may consume the same definition.
 6. The protocol must support basic versioning and stable Data Definition identifiers.
@@ -73,7 +67,7 @@ Data Definition metadata describes what a source can provide. It is conceptually
 
 ### Future Extensions
 
-1. Independent Data Source implementation in iTender.
+1. Independent Data Source implementations in external business systems.
 2. Multiple Data Source connections per client.
 3. Parameterized real-data retrieval with authentication and authorization.
 4. External Data Source integration through MonoReport Service.
@@ -103,7 +97,7 @@ Word and Excel remain the document editors. MonoReport provides expression autho
 
 ### Core Capabilities
 
-1. **Data Source Connections:** Connect to one or more Data Sources, including direct connections to systems such as iTender or connections through MonoReport Service.
+1. **Data Source Connections:** Connect to one or more Data Sources, including direct connections to external business systems or connections through MonoReport Service.
 2. **Data Definitions:** Browse available datasets and their field structures.
 3. **Field Browser:** Search for fields and insert expressions such as `{Customer.Name}` into the current document.
 4. **Expression Helpers:** Assist with inserting formatters and `For`, `If`, and `Else` constructs while respecting DOCX/XLSX structural constraints.
@@ -123,7 +117,7 @@ Word and Excel remain the document editors. MonoReport provides expression autho
 5. The UI must adapt to each Data Source's discovered capabilities.
 6. Word and Excel should share the same conceptual experience and reusable UI components where practical, while allowing separate Office.js integrations.
 7. Native Office capabilities should handle document editing, rendering, navigation, and zoom.
-8. The Add-in must not depend on iTender or any other specific business system.
+8. The Add-in must not depend on any specific business system.
 9. Document generation must not overwrite or damage the original template.
 10. Authentication and authorization must follow the requirements of the selected Data Source.
 
