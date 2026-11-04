@@ -107,6 +107,15 @@ public sealed partial class XlsxNestedRenderingTests
             else part.Worksheet.GetFirstChild<MergeCells>()!.Append(new MergeCell {Reference = "F15:G15"});
         });
         var original = source.ToArray();
+        TemplateAnalysisResult? analysis = null;
+        if (scenario is "pane" or "break")
+        {
+            using var services = _fixture.Services();
+            using var input = new MemoryStream(source);
+            analysis = services.GetRequiredService<TemplateAnalyzer>().Analyze(input);
+            Assert.False(analysis.Valid);
+        }
+
         GenerationResult? result = null;
         var error = Assert.Throws<TemplateException>(() => result = _fixture.Generate(source, FullNestedData(3)));
         Assert.Null(result);
@@ -122,6 +131,12 @@ public sealed partial class XlsxNestedRenderingTests
             "autofilter" => "unsupported worksheet structure", "unsupported-formula" => "INDIRECT/OFFSET",
             _ => "partial merge"
         }, error.Message);
+        if (analysis is not null)
+        {
+            Assert.Equal(error.Errors.Select(item => (item.Code, item.Message, item.Location)),
+                analysis.Errors.Select(item => (item.Code, item.Message, item.Location)));
+        }
+
         var repeated = Assert.Throws<TemplateException>(() => _fixture.Generate(source, FullNestedData(3)));
         Assert.Equal(error.Code, repeated.Code);
         Assert.Equal(error.Message, repeated.Message);

@@ -18,6 +18,12 @@ public sealed partial class XlsxGeometryPlanner
             try
             {
                 ValidateFeatures(template.Source, sheet.Source);
+                if (sheet.Controls.Length > 0 && sheet.Source.Xml.Root!.Descendants().Any(element =>
+                        element.Name == S + "pane" || element.Name == S + "rowBreaks" ||
+                        element.Name == S + "colBreaks"))
+                    throw Unsupported(sheet.Source,
+                        "Remove panes/manual page breaks from repeated reports until their unique-boundary transformation is implemented in M4.");
+
                 var area = sheet.Source.RetentionArea;
                 var identity = new XlsxSheetGeometry(sheet.Source,
                     new XlsxRectangle(new XlsxAddress(1, 1), new XlsxAddress(area.Height, area.Width)),
@@ -64,10 +70,6 @@ public sealed partial class XlsxGeometryPlanner
             if (sheet.Controls.IsEmpty) CropMerges(output.Settings, geometry);
             else output = PlanHeaderOwners(sheet, ProjectMerges(sheet, output));
             // Expanded view/break reconstruction is later fidelity work; never reuse offset-only transforms for it.
-            if (sheet.Controls.Length > 0 && output.Settings.Descendants().Any(element =>
-                    element.Name == S + "pane" || element.Name == S + "rowBreaks" || element.Name == S + "colBreaks"))
-                throw Unsupported(sheet.Source,
-                    "Remove panes/manual page breaks from repeated reports until their unique-boundary transformation is implemented in M4.");
             CropViews(output.Settings, geometry);
             if (sheet.Controls.IsEmpty)
             {
