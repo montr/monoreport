@@ -1013,15 +1013,17 @@ public sealed class DocxStructureTests
     }
 
     [Theory]
-    [InlineData("\"1e2\"")]
-    [InlineData("\" -1.25 \"")]
-    [InlineData("12.50")]
-    public void Number_and_spellout_share_accepted_decimal_inputs(string literal)
+    [InlineData("\"1e2\"", "100.00|One hundred rubles 00 copecks")]
+    [InlineData("\" -1.25 \"", "-1.25|Minus one ruble 25 copecks")]
+    [InlineData("12.50", "12.50|Twelve rubles 50 copecks")]
+    public void Number_and_spellout_render_complete_output_for_accepted_decimal_inputs(string literal,
+        string expected)
     {
         var template = DocxFixture.Create(DocxFixture.P(DocxFixture.Run(
             "{Value number \"0.00\"}|{Value spellout mode=\"money\" currency=\"RUB\"}")));
-        var result = DocxFixture.Generate(template, $"{{\"Value\":{literal}}}");
-        Assert.Contains('|', DocxFixture.Text(DocxFixture.Read(result.Document)));
+        var result = DocxFixture.Generate(template, $"{{\"Value\":{literal}}}",
+            new GenerationOptions {Culture = CultureInfo.GetCultureInfo("en-US")});
+        Assert.Equal(expected, DocxFixture.Text(DocxFixture.Read(result.Document)));
     }
 
     [Theory]

@@ -19,6 +19,8 @@
 2. Implement services as instances with externally supplied dependencies. Prefer a single constructor, using a primary constructor where appropriate. Avoid static service methods and constructing dependencies internally.
 3. Separate feature-specific logic from shared functionality. Introduce abstractions only when justified by actual requirements.
 4. Prefer built-in platform, framework, and established library capabilities over custom implementations. Introduce custom infrastructure only when justified by concrete requirements or clear technical benefits.
+5. Avoid magic strings and numbers representing domain concepts, parameter names, configuration values, or protocol identifiers. Define shared identifiers once and reuse them consistently. Group related constants or enums within the component that owns them; introduce separate types only when justified by shared usage or responsibility. Keep standalone constants near their usage. Avoid generic constants containers, unnecessary abstractions, obvious literal extraction, and redundant identifier prefixes or suffixes.
+6. Use English exclusively in source code, including identifiers, comments, log messages, exceptions, and diagnostic text. Non-English text is allowed only in localization resources, language-specific data, and tests explicitly verifying localized content.
 
 ## C# Language Conventions
 

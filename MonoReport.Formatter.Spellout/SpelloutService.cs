@@ -1,23 +1,54 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 
 namespace MonoReport.Formatter.Spellout;
 
-internal sealed class SpelloutService(IReadOnlyDictionary<string, SpelloutLanguage> languages)
+internal static class Modes
 {
+    public const string Number = "number";
+    public const string Money = "money";
+}
+
+internal sealed class SpelloutService
+{
+    private const string FallbackLanguageCode = "en";
     private const decimal Limit = 1_000_000_000_000_000_000m;
+    private readonly IReadOnlyDictionary<string, SpelloutLanguage> _languages;
+
+    public SpelloutService(SpelloutLanguageReader reader)
+    {
+        ArgumentNullException.ThrowIfNull(reader);
+        _languages = reader.ReadEmbeddedLanguages();
+        if (!_languages.ContainsKey(FallbackLanguageCode))
+            throw new FormatException("Spellout requires an English language resource for culture fallback.");
+    }
+
+    public string ResolveLanguage(CultureInfo culture)
+    {
+        var code = culture.TwoLetterISOLanguageName;
+        return _languages.ContainsKey(code) ? code : FallbackLanguageCode;
+    }
+
+    public bool SupportsLanguage(string languageCode) => _languages.ContainsKey(languageCode);
+
+    public bool SupportsCurrency(string languageCode, string currencyCode) =>
+        _languages.TryGetValue(languageCode, out var language) && language.Currencies.ContainsKey(currencyCode);
+
+    public bool SupportsCurrency(string currencyCode) =>
+        _languages.Values.Any(language => language.Currencies.ContainsKey(currencyCode));
 
     public string Format(decimal value, string mode, string languageCode, string? currency, string gender,
         bool includeMinor, bool capitalize)
     {
-        if (!languages.TryGetValue(languageCode, out var language))
+        if (!_languages.TryGetValue(languageCode, out var language))
             throw new ArgumentException($"Unsupported spellout language: {languageCode}", nameof(languageCode));
-        if (mode is not ("money" or "number"))
+        if (mode is not (Modes.Money or Modes.Number))
             throw new ArgumentException($"Unsupported spellout mode: {mode}", nameof(mode));
 
         SpelloutCurrency? currencyData = null;
-        if (mode == "money")
+        if (mode == Modes.Money)
         {
             if (currency is null || !language.Currencies.TryGetValue(currency, out currencyData))
                 throw new ArgumentException($"Unsupported currency: {currency}", nameof(currency));
@@ -25,7 +56,7 @@ internal sealed class SpelloutService(IReadOnlyDictionary<string, SpelloutLangua
         }
         else if (decimal.Truncate(value) != value)
             throw new FormatException("Number spellout supports integers only.");
-        else if (gender is not ("m" or "f" or "n"))
+        else if (gender is not (Genders.Masculine or Genders.Feminine or Genders.Neuter))
             throw new ArgumentException($"Unsupported gender: {gender}", nameof(gender));
 
         if (value <= -Limit || value >= Limit)
@@ -33,12 +64,12 @@ internal sealed class SpelloutService(IReadOnlyDictionary<string, SpelloutLangua
 
         var absolute = Math.Abs(value);
         var whole = (long)decimal.Truncate(absolute);
-        var minor = mode == "money" ? (int)((absolute - whole) * 100m) : 0;
-        var words = SpellInteger(whole, language, mode == "money" ? currencyData!.Major.Gender : gender);
+        var minor = mode == Modes.Money ? (int)((absolute - whole) * 100m) : 0;
+        var words = SpellInteger(whole, language, mode == Modes.Money ? currencyData!.Major.Gender : gender);
         var parts = new List<string>();
         if (value < 0) parts.Add(language.Minus);
         parts.Add(words);
-        if (mode == "money")
+        if (mode == Modes.Money)
         {
             parts.Add(ChooseForm(whole, currencyData!.Major.Forms, language.PluralRule));
             if (includeMinor)
@@ -76,23 +107,31 @@ internal sealed class SpelloutService(IReadOnlyDictionary<string, SpelloutLangua
         if (rest is >= 10 and <= 19) words.Add(language.Teens[rest - 10]);
         else
         {
-            if (rest >= 20) words.Add(language.Tens[rest / 10]);
             var digit = rest % 10;
-            if (digit != 0)
+            if (rest >= 20 && digit != 0)
             {
-                var word = language.Ones[digit];
-                if (language.GenderVariants.TryGetValue(gender, out var variants) &&
-                    variants.TryGetValue(digit.ToString(CultureInfo.InvariantCulture), out var variant))
-                    word = variant;
-                words.Add(word);
+                words.Add(language.Tens[rest / 10] + language.TensAndOnesSeparator + GetOne(digit, gender, language));
+            }
+            else
+            {
+                if (rest >= 20) words.Add(language.Tens[rest / 10]);
+                if (digit != 0) words.Add(GetOne(digit, gender, language));
             }
         }
         return string.Join(" ", words);
     }
 
+    private static string GetOne(int digit, string gender, SpelloutLanguage language)
+    {
+        if (language.GenderVariants.TryGetValue(gender, out var variants) &&
+            variants.TryGetValue(digit.ToString(CultureInfo.InvariantCulture), out var variant))
+            return variant;
+        return language.Ones[digit];
+    }
+
     private static string ChooseForm(long value, string[] forms, string rule)
     {
-        if (rule == "english") return value == 1 ? forms[0] : forms[2];
+        if (rule == PluralRules.OneOther) return value == 1 ? forms[0] : forms[2];
         var lastHundred = value % 100;
         if (lastHundred is >= 11 and <= 14) return forms[2];
         return (value % 10) switch { 1 => forms[0], >= 2 and <= 4 => forms[1], _ => forms[2] };

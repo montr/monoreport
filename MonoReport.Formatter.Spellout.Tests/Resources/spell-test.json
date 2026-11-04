@@ -1,0 +1,25 @@
+{
+  "language": "test",
+  "zero": "zero",
+  "minus": "minus",
+  "pluralRule": "one-other",
+  "ones": ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"],
+  "teens": ["ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"],
+  "tens": ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"],
+  "hundreds": ["", "one hundred", "two hundred", "three hundred", "four hundred", "five hundred", "six hundred", "seven hundred", "eight hundred", "nine hundred"],
+  "genderVariants": {},
+  "tensAndOnesSeparator": "-",
+  "scales": [
+    {"forms": ["thousand", "thousand", "thousand"]},
+    {"forms": ["million", "million", "million"]},
+    {"forms": ["billion", "billion", "billion"]},
+    {"forms": ["trillion", "trillion", "trillion"]},
+    {"forms": ["quadrillion", "quadrillion", "quadrillion"]}
+  ],
+  "currencies": {
+    "TOK": {
+      "major": {"forms": ["token", "tokens", "tokens"]},
+      "minor": {"forms": ["tick", "ticks", "ticks"]}
+    }
+  }
+}

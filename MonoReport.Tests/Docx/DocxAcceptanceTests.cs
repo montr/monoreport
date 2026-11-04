@@ -155,7 +155,8 @@ public sealed class DocxAcceptanceTests
                         "Northwind Demo Company", "HELLO WORLD FROM MONOREPORT", "hello world from monoreport",
                         "HELLO WORLD From MonoReport", "HELLO wORLD from monoReport", "12,345.68", "-42.51",
                         "17 Oct 2026",
-                        "21 Oct 2026 14:30 +03:00", "Одна тысяча двести пятьдесят рублей 75 копеек"
+                        "21 Oct 2026 14:30 +03:00", "One thousand two hundred fifty dollars 75 cents",
+                        "Одна тысяча двести пятьдесят рублей 75 копеек"
                     },
                     showcaseTables[0].Elements(w + "tr").Skip(1).Select(row => Cells(row)[2]));
                 Assert.Equal(root.GetProperty("Products").EnumerateArray().Select(product => new[]

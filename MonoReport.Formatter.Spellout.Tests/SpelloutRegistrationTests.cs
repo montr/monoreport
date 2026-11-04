@@ -15,31 +15,25 @@ namespace MonoReport.Formatter.Spellout.Tests;
 public sealed class SpelloutRegistrationTests
 {
     [Fact]
-    public void Default_and_custom_keys_analyze_and_generate_in_docx_and_xlsx()
+    public void Default_formatter_renders_numbers_and_custom_key_renders_money_in_documents()
     {
         using var provider = new ServiceCollection().AddMonoReport()
             .AddMonoReportSpelloutFormatter()
-            .AddMonoReportSpelloutFormatter("rub_words")
-            .AddMonoReportSpelloutFormatter("amount_words")
+            .AddMonoReportSpelloutFormatter("euro_words")
             .BuildServiceProvider();
 
-        foreach (var key in new[] {"spellout", "rub_words", "amount_words"})
-        {
-            var expression = "{Value " + key + " mode=\"money\" currency=\"RUB\"}";
-            var docx = SpelloutBehaviorTests.CreateDocx(expression);
-            using var docxInput = new MemoryStream(docx);
-            Assert.True(provider.GetRequiredService<TemplateAnalyzer>().Analyze(docxInput).Valid);
-            Assert.Equal("One ruble 00 copecks", ReadDocx(Generate(provider, docx, """{"Value":1}""")));
+        var docx = CreateDocx("{Value spellout}");
+        using var docxInput = new MemoryStream(docx);
+        Assert.True(provider.GetRequiredService<TemplateAnalyzer>().Analyze(docxInput).Valid);
+        Assert.Equal("One", ReadDocx(Generate(provider, docx, """{"Value":1}""")));
 
-            var xlsx = CreateXlsx(expression);
-            using var xlsxInput = new MemoryStream(xlsx);
-            Assert.True(provider.GetRequiredService<TemplateAnalyzer>().Analyze(xlsxInput).Valid);
-            Assert.Equal("One ruble 00 copecks", ReadXlsx(Generate(provider, xlsx, """{"Value":1}""")));
-        }
+        var xlsx = CreateXlsx("{Value euro_words mode=\"money\" currency=\"EUR\"}");
+        using var xlsxInput = new MemoryStream(xlsx);
+        Assert.True(provider.GetRequiredService<TemplateAnalyzer>().Analyze(xlsxInput).Valid);
+        Assert.Equal("Two euros 01 cent", ReadXlsx(Generate(provider, xlsx, """{"Value":2.01}""")));
 
-        var invalid = SpelloutBehaviorTests.CreateDocx("{Value rub_words}");
-        var error = Assert.Throws<TemplateException>(() => Generate(provider, invalid, """{"Value":true}"""));
-        Assert.Equal("rub_words", Assert.Single(error.Errors).Formatter);
+        var error = Assert.Throws<TemplateException>(() => Generate(provider, docx, """{"Value":true}"""));
+        Assert.Equal("spellout", Assert.Single(error.Errors).Formatter);
     }
 
     [Fact]
@@ -51,8 +45,8 @@ public sealed class SpelloutRegistrationTests
 
         Assert.NotNull(provider.GetKeyedService<IFormatter>("only_here"));
         Assert.Null(provider.GetKeyedService<IFormatter>("spellout"));
-        using var customInput = new MemoryStream(SpelloutBehaviorTests.CreateDocx("{Value only_here}"));
-        using var defaultInput = new MemoryStream(SpelloutBehaviorTests.CreateDocx("{Value spellout}"));
+        using var customInput = new MemoryStream(CreateDocx("{Value only_here}"));
+        using var defaultInput = new MemoryStream(CreateDocx("{Value spellout}"));
         Assert.True(provider.GetRequiredService<TemplateAnalyzer>().Analyze(customInput).Valid);
         Assert.False(provider.GetRequiredService<TemplateAnalyzer>().Analyze(defaultInput).Valid);
     }
@@ -66,7 +60,7 @@ public sealed class SpelloutRegistrationTests
             .BuildServiceProvider();
 
         Assert.NotNull(provider.GetKeyedService<IFormatter>(key));
-        using var input = new MemoryStream(SpelloutBehaviorTests.CreateDocx("{Value " + key + "}"));
+        using var input = new MemoryStream(CreateDocx("{Value " + key + "}"));
         Assert.True(provider.GetRequiredService<TemplateAnalyzer>().Analyze(input).Valid);
     }
 
@@ -82,6 +76,7 @@ public sealed class SpelloutRegistrationTests
         Assert.Equal(2, defaults.Length);
         Assert.NotSame(defaults[0], defaults[1]);
         Assert.NotSame(defaults[1], provider.GetRequiredKeyedService<IFormatter>("custom"));
+        Assert.Same(provider.GetRequiredService<SpelloutService>(), provider.GetRequiredService<SpelloutService>());
     }
 
     [Theory]
@@ -98,6 +93,22 @@ public sealed class SpelloutRegistrationTests
         using var input = new MemoryStream(template);
         using var data = JsonDocument.Parse(json);
         return provider.GetRequiredService<DocumentGenerator>().Generate(input, data).Document;
+    }
+
+    private static byte[] CreateDocx(string expression)
+    {
+        using var output = new MemoryStream();
+        using (var document = WordprocessingDocument.Create(output, WordprocessingDocumentType.Document))
+        {
+            var main = document.AddMainDocumentPart();
+            main.Document = new global::DocumentFormat.OpenXml.Wordprocessing.Document(
+                new global::DocumentFormat.OpenXml.Wordprocessing.Body(
+                    new global::DocumentFormat.OpenXml.Wordprocessing.Paragraph(
+                        new global::DocumentFormat.OpenXml.Wordprocessing.Run(
+                            new global::DocumentFormat.OpenXml.Wordprocessing.Text(expression)))));
+        }
+
+        return output.ToArray();
     }
 
     private static string ReadDocx(byte[] source)
@@ -127,7 +138,8 @@ public sealed class SpelloutRegistrationTests
             {
                 CellReference = "B3",
                 DataType = CellValues.InlineString,
-                InlineString = new InlineString(new Text(expression) {Space = SpaceProcessingModeValues.Preserve})
+                InlineString = new InlineString(new global::DocumentFormat.OpenXml.Spreadsheet.Text(expression)
+                    {Space = SpaceProcessingModeValues.Preserve})
             }) {RowIndex = 3}));
             workbook.Workbook.Append(new Sheets(new Sheet
             {

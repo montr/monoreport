@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Text.Json;
 using MonoReport.Core.Formatting;
 
@@ -8,13 +7,23 @@ namespace MonoReport.Formatter.Spellout;
 
 internal sealed class SpelloutFormatter(InvariantDecimalParser decimalParser, SpelloutService service) : IFormatter
 {
+    private static class Parameters
+    {
+        public const string Mode = "mode";
+        public const string Language = "language";
+        public const string Currency = "currency";
+        public const string Gender = "gender";
+        public const string IncludeMinor = "includeMinor";
+        public const string Capitalize = "capitalize";
+    }
+
     public FormatterMetadata Metadata { get; } = new([
-        new FormatterParameter("mode", typeof(string), false),
-        new FormatterParameter("language", typeof(string), false),
-        new FormatterParameter("currency", typeof(string), false),
-        new FormatterParameter("gender", typeof(string), false),
-        new FormatterParameter("includeMinor", typeof(bool), false),
-        new FormatterParameter("capitalize", typeof(bool), false)
+        new FormatterParameter(Parameters.Mode, typeof(string), false),
+        new FormatterParameter(Parameters.Language, typeof(string), false),
+        new FormatterParameter(Parameters.Currency, typeof(string), false),
+        new FormatterParameter(Parameters.Gender, typeof(string), false),
+        new FormatterParameter(Parameters.IncludeMinor, typeof(bool), false),
+        new FormatterParameter(Parameters.Capitalize, typeof(bool), false)
     ]);
 
     public FormatterValidationResult Validate(IReadOnlyDictionary<string, FormatterOperand> parameters)
@@ -30,27 +39,39 @@ internal sealed class SpelloutFormatter(InvariantDecimalParser decimalParser, Sp
             var value = operand.Literal;
             var allowed = name switch
             {
-                "mode" => value is "money" or "number",
-                "language" => value is "ru" or "en",
-                "currency" => value is "RUB" or "USD" or "EUR",
-                "gender" => value is "m" or "f" or "n",
-                "includeMinor" or "capitalize" => bool.TryParse(value, out _),
+                Parameters.Mode => value is Modes.Money or Modes.Number,
+                Parameters.Language => value is not null && service.SupportsLanguage(value),
+                Parameters.Currency => value is not null,
+                Parameters.Gender => value is Genders.Masculine or Genders.Feminine or Genders.Neuter,
+                Parameters.IncludeMinor or Parameters.Capitalize => bool.TryParse(value, out _),
                 _ => false
             };
             if (!allowed) errors.Add($"Invalid spellout parameter '{name}': '{value}'.");
         }
-        var mode = parameters.TryGetValue("mode", out var modeOperand) &&
+        var mode = parameters.TryGetValue(Parameters.Mode, out var modeOperand) &&
                    modeOperand.Kind == FormatterOperandKind.Literal
             ? modeOperand.Literal
-            : "number";
-        if (mode == "money" && !parameters.ContainsKey("currency"))
-            errors.Add("currency is required when mode is money.");
-        if (mode == "number" && parameters.ContainsKey("currency"))
-            errors.Add("currency applies only to money mode.");
-        if (mode == "number" && parameters.ContainsKey("includeMinor"))
-            errors.Add("includeMinor applies only to money mode.");
-        if (mode == "money" && parameters.ContainsKey("gender"))
-            errors.Add("gender applies only to number mode.");
+            : Modes.Number;
+        if (mode == Modes.Money && !parameters.ContainsKey(Parameters.Currency))
+            errors.Add($"{Parameters.Currency} is required when {Parameters.Mode} is {Modes.Money}.");
+        if (mode == Modes.Number && parameters.ContainsKey(Parameters.Currency))
+            errors.Add($"{Parameters.Currency} applies only to {Modes.Money} mode.");
+        if (mode == Modes.Number && parameters.ContainsKey(Parameters.IncludeMinor))
+            errors.Add($"{Parameters.IncludeMinor} applies only to {Modes.Money} mode.");
+        if (mode == Modes.Money && parameters.ContainsKey(Parameters.Gender))
+            errors.Add($"{Parameters.Gender} applies only to {Modes.Number} mode.");
+        if (parameters.TryGetValue(Parameters.Currency, out var currencyOperand) &&
+            currencyOperand.Kind == FormatterOperandKind.Literal && currencyOperand.Literal is { } currency)
+        {
+            var explicitLanguage = parameters.TryGetValue(Parameters.Language, out var languageOperand) &&
+                                   languageOperand.Kind == FormatterOperandKind.Literal &&
+                                   languageOperand.Literal is { } language && service.SupportsLanguage(language)
+                ? language
+                : null;
+            if (explicitLanguage is not null && !service.SupportsCurrency(explicitLanguage, currency) ||
+                explicitLanguage is null && !service.SupportsCurrency(currency))
+                errors.Add($"Unsupported spellout currency '{currency}'.");
+        }
         return errors.Count == 0 ? FormatterValidationResult.Valid : new FormatterValidationResult(errors);
     }
 
@@ -59,17 +80,14 @@ internal sealed class SpelloutFormatter(InvariantDecimalParser decimalParser, Sp
     {
         var error = Validate(parameters);
         if (error.Errors.Count != 0) throw new FormatException(string.Join("; ", error.Errors));
-        var mode = Get(parameters, "mode") ?? "number";
-        var language = Get(parameters, "language") ?? ResolveLanguage(context.Culture);
-        var currency = Get(parameters, "currency");
-        var gender = Get(parameters, "gender") ?? "m";
-        var includeMinor = GetBoolean(parameters, "includeMinor", true);
-        var capitalize = GetBoolean(parameters, "capitalize", true);
+        var mode = Get(parameters, Parameters.Mode) ?? Modes.Number;
+        var language = Get(parameters, Parameters.Language) ?? service.ResolveLanguage(context.Culture);
+        var currency = Get(parameters, Parameters.Currency);
+        var gender = Get(parameters, Parameters.Gender) ?? Genders.Masculine;
+        var includeMinor = GetBoolean(parameters, Parameters.IncludeMinor, true);
+        var capitalize = GetBoolean(parameters, Parameters.Capitalize, true);
         return service.Format(decimalParser.Parse(value), mode, language, currency, gender, includeMinor, capitalize);
     }
-
-    private static string ResolveLanguage(CultureInfo culture) =>
-        culture.TwoLetterISOLanguageName == "ru" ? "ru" : "en";
 
     private static string? Get(IReadOnlyDictionary<string, FormatterOperand> parameters, string name)
     {

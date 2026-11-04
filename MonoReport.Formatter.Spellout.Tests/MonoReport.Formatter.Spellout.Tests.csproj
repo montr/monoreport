@@ -3,6 +3,7 @@
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
+        <ImplicitUsings>disable</ImplicitUsings>
         <IsPackable>false</IsPackable>
     </PropertyGroup>
 
@@ -19,6 +20,10 @@
     <ItemGroup>
         <ProjectReference Include="../MonoReport/MonoReport.csproj"/>
         <ProjectReference Include="../MonoReport.Formatter.Spellout/MonoReport.Formatter.Spellout.csproj"/>
+    </ItemGroup>
+    <ItemGroup>
+        <EmbeddedResource Include="../MonoReport.Formatter.Spellout/Resources/spell-en.json" Link="Languages/spell-en.json" />
+        <EmbeddedResource Include="Resources/spell-test.json" />
     </ItemGroup>
 
 </Project>

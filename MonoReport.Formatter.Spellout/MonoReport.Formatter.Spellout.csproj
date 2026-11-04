@@ -11,4 +11,7 @@
         <EmbeddedResource Include="Resources/spell-en.json" />
         <EmbeddedResource Include="Resources/spell-ru.json" />
     </ItemGroup>
+    <ItemGroup>
+        <InternalsVisibleTo Include="MonoReport.Formatter.Spellout.Tests" />
+    </ItemGroup>
 </Project>

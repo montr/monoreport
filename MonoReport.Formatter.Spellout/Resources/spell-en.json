@@ -50,6 +50,7 @@
     "eight hundred",
     "nine hundred"
   ],
+  "genderVariants": {},
   "scales": [
     {
       "forms": [
@@ -137,5 +138,6 @@
       }
     }
   },
-  "pluralRule": "english"
+  "pluralRule": "one-other",
+  "tensAndOnesSeparator": "-"
 }

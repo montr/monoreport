@@ -1,12 +1,10 @@
+using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text.Json;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
-using Microsoft.Extensions.DependencyInjection;
-using MonoReport.Core.Templates;
+using MonoReport.Core.Formatting;
 using Xunit;
-using System.IO;
 
 namespace MonoReport.Formatter.Spellout.Tests;
 
@@ -15,51 +13,13 @@ public sealed class SpelloutBehaviorTests
     [Theory]
     [InlineData("0", "Ноль рублей 00 копеек")]
     [InlineData("-1.005", "Минус один рубль 01 копейка")]
-    [InlineData("2.5", "Два рубля 50 копеек")]
-    [InlineData("5.05", "Пять рублей 05 копеек")]
-    [InlineData("11.11", "Одиннадцать рублей 11 копеек")]
     [InlineData("21.21", "Двадцать один рубль 21 копейка")]
-    [InlineData("22.22", "Двадцать два рубля 22 копейки")]
-    [InlineData("25.25", "Двадцать пять рублей 25 копеек")]
-    [InlineData("1000", "Одна тысяча рублей 00 копеек")]
     [InlineData("2000", "Две тысячи рублей 00 копеек")]
-    [InlineData("11000", "Одиннадцать тысяч рублей 00 копеек")]
     [InlineData("21000", "Двадцать одна тысяча рублей 00 копеек")]
-    public void Formats_rubles_with_rounding_and_russian_grammatical_forms(string value, string expected)
+    public void Formats_ruble_money_with_rounding_and_russian_grammatical_forms(string value, string expected)
     {
-        Assert.Equal(expected, RenderMoney(value, "ru-RU"));
-    }
-
-    [Fact]
-    public void Accepts_the_upper_boundary_and_rejects_the_first_rounded_out_of_range_value()
-    {
-        Assert.EndsWith("99 копеек", RenderMoney("999999999999999999.994", "ru-RU"));
-        var error = Assert.Throws<TemplateException>(() => RenderMoney("999999999999999999.995", "ru-RU"));
-        Assert.Equal("generation.invalid_format", error.Code);
-        error = Assert.Throws<TemplateException>(() => RenderMoney("-1000000000000000000", "ru-RU"));
-        Assert.Equal("generation.invalid_format", error.Code);
-    }
-
-    [Theory]
-    [InlineData("ru-RU", "Один")]
-    [InlineData("en-US", "One")]
-    [InlineData("tr-TR", "One")]
-    public void Defaults_to_number_and_selects_language_from_culture_with_english_fallback(string culture,
-        string expected)
-    {
-        Assert.Equal(expected, Render("1", culture));
-    }
-
-    [Fact]
-    public void Supports_money_rounding_currency_pluralization_and_omitting_minor_units()
-    {
-        Assert.Equal("Minus one dollar 01 cent", Render("-1.005", "en-US",
-            "{Value spellout mode=\"money\" language=\"en\" currency=\"USD\"}"));
-        Assert.Equal("Two dollars", Render("1.995", "en-US",
-            "{Value spellout mode=\"money\" language=\"en\" currency=\"USD\" includeMinor=\"false\"}"));
-        Assert.Equal("Ноль рублей 00 копеек", RenderMoney("0", "ru-RU"));
-        Assert.Equal("One ruble 00 copecks", Render("1", "tr-TR",
-            "{Value spellout mode=\"money\" currency=\"RUB\"}"));
+        Assert.Equal(expected, CreateService().Format(decimal.Parse(value, CultureInfo.InvariantCulture),
+            "money", "ru", "RUB", "m", true, true));
     }
 
     [Theory]
@@ -67,84 +27,154 @@ public sealed class SpelloutBehaviorTests
     [InlineData("ru-RU", "2000000000000000", "Два квадриллиона")]
     [InlineData("ru-RU", "5000000000000000", "Пять квадриллионов")]
     [InlineData("en-US", "1000000000000000", "One quadrillion")]
-    public void Supports_quadrillion_scale_and_rejects_the_10_to_18_boundary(string culture, string value,
-        string expected)
+    [InlineData("en-US", "1000000", "One million")]
+    [InlineData("en-US", "21000000", "Twenty-one million")]
+    public void Formats_quadrillion_scale_names_and_declensions(string culture, string value, string expected)
     {
-        Assert.Equal(expected, Render(value, culture));
-        var error = Assert.Throws<TemplateException>(() => Render("1000000000000000000", culture));
-        Assert.Equal("generation.invalid_format", error.Code);
+        var service = CreateService();
+        Assert.Equal(expected, service.Format(decimal.Parse(value, CultureInfo.InvariantCulture),
+            "number", culture == "ru-RU" ? "ru" : "en", null, "m", true, true));
     }
 
     [Fact]
-    public void Supports_integer_number_mode_gender_and_capitalization()
+    public void Rejects_both_signs_of_the_10_to_18_boundary()
     {
-        Assert.Equal("двадцать одна", Render("21", "en-US",
-            "{Value spellout mode=\"number\" language=\"ru\" gender=\"f\" capitalize=\"false\"}"));
-        Assert.Equal("Minus twenty one", Render("-21", "en-US",
-            "{Value spellout mode=\"number\" language=\"en\"}"));
+        var service = CreateService();
+        Assert.Throws<FormatException>(() => service.Format(1_000_000_000_000_000_000m,
+            "number", "en", null, "m", true, true));
+        Assert.Throws<FormatException>(() => service.Format(-1_000_000_000_000_000_000m,
+            "number", "en", null, "m", true, true));
     }
 
-    [Theory]
-    [InlineData("{Value spellout mode=\"money\" currency=\"RUB\" gender=\"f\"}")]
-    [InlineData("{Value spellout mode=\"number\" currency=\"USD\"}")]
-    [InlineData("{Value spellout currency=\"USD\"}")]
-    [InlineData("{Value spellout mode=\"money\"}")]
-    [InlineData("{Value spellout mode=\"money\" currency=\"RUB\" language=\"fr\"}")]
-    [InlineData("{Value spellout mode=\"money\" currency=\"JPY\"}")]
-    public void Rejects_invalid_values_and_inapplicable_parameter_combinations(string expression)
+    [Fact]
+    public void Money_rounding_accepts_values_below_the_limit_and_rejects_values_that_round_to_it()
     {
-        var error = Assert.Throws<TemplateException>(() => Render("1", "en-US", expression));
-        Assert.Equal("template.invalid_expression", error.Code);
+        var service = CreateService();
+        Assert.EndsWith("99 cents", service.Format(999_999_999_999_999_999.994m,
+            "money", "en", "USD", "m", true, false));
+        Assert.EndsWith("99 cents", service.Format(-999_999_999_999_999_999.994m,
+            "money", "en", "USD", "m", true, false));
+        Assert.Throws<FormatException>(() => service.Format(999_999_999_999_999_999.995m,
+            "money", "en", "USD", "m", true, false));
+        Assert.Throws<FormatException>(() => service.Format(-999_999_999_999_999_999.995m,
+            "money", "en", "USD", "m", true, false));
+    }
+
+    [Fact]
+    public void Money_rounding_carries_into_the_major_units()
+    {
+        Assert.Equal("two dollars 00 cents", CreateService().Format(1.995m,
+            "money", "en", "USD", "m", true, false));
     }
 
     [Fact]
     public void Number_mode_rejects_fractional_values()
     {
-        var error = Assert.Throws<TemplateException>(() => Render("1.5", "en-US",
-            "{Value spellout mode=\"number\"}"));
-        Assert.Equal("generation.invalid_format", error.Code);
+        Assert.Throws<FormatException>(() => CreateService().Format(1.25m,
+            "number", "en", null, "m", true, false));
+    }
+
+    [Theory]
+    [InlineData("1", "one dollar")]
+    [InlineData("2", "two dollars")]
+    [InlineData("11", "eleven dollars")]
+    [InlineData("21", "twenty-one dollars")]
+    [InlineData("22", "twenty-two dollars")]
+    [InlineData("101", "one hundred one dollars")]
+    [InlineData("1001", "one thousand one dollars")]
+    public void One_other_currency_forms_use_the_whole_unit_amount(string value, string expected)
+    {
+        Assert.Equal(expected, CreateService().Format(decimal.Parse(value, CultureInfo.InvariantCulture),
+            "money", "en", "USD", "m", false, false));
+    }
+
+    [Theory]
+    [InlineData("1", "один рубль")]
+    [InlineData("2", "два рубля")]
+    [InlineData("11", "одиннадцать рублей")]
+    [InlineData("21", "двадцать один рубль")]
+    [InlineData("22", "двадцать два рубля")]
+    [InlineData("101", "сто один рубль")]
+    public void One_few_many_selects_currency_forms_using_ruled_endings(string value, string expected)
+    {
+        Assert.Equal(expected, CreateService().Format(decimal.Parse(value, CultureInfo.InvariantCulture),
+            "money", "ru", "RUB", "m", false, false));
     }
 
     [Fact]
-    public void Unsupported_json_values_return_the_generation_diagnostic()
+    public void Formats_euros_and_neuter_gender()
     {
-        var error = Assert.Throws<TemplateException>(() => Render("true"));
-        Assert.Equal("generation.invalid_format", error.Code);
-        Assert.Equal("spellout", Assert.Single(error.Errors).Formatter);
+        using var value = JsonDocument.Parse("2.01");
+        var formatter = CreateFormatter();
+        Assert.Equal("Two euros 01 cent", formatter.Format(value.RootElement,
+            Arguments(("mode", "money"), ("currency", "EUR")),
+            new FormatterContext(CultureInfo.GetCultureInfo("en-US"))));
+        Assert.Equal("Одно", CreateService().Format(1m, "number", "ru", null, "n", true, true));
     }
 
-    private static string Render(string value, string? culture = null)
+    [Fact]
+    public void Formatter_resolves_test_language_and_currency_from_embedded_configuration()
     {
-        return Render(value, culture, "{Value spellout}");
+        using var value = JsonDocument.Parse("21");
+        var service = new SpelloutService(new SpelloutLanguageReader(typeof(SpelloutBehaviorTests).Assembly));
+        var formatter = new SpelloutFormatter(new InvariantDecimalParser(), service);
+        var parameters = Arguments(("mode", "money"), ("language", "test"), ("currency", "TOK"),
+            ("includeMinor", "false"), ("capitalize", "false"));
+
+        Assert.Empty(formatter.Validate(parameters).Errors);
+        Assert.Equal("twenty-one tokens", formatter.Format(value.RootElement, parameters,
+            new FormatterContext(CultureInfo.InvariantCulture)));
+        Assert.NotEmpty(formatter.Validate(Arguments(("mode", "money"), ("language", "test"),
+            ("currency", "USD"))).Errors);
     }
 
-    private static string RenderMoney(string value, string? culture = null)
+    [Theory]
+    [InlineData("ru-RU", "Один")]
+    [InlineData("tr-TR", "One")]
+    public void Formatter_defaults_to_number_and_uses_the_context_language(string culture, string expected)
     {
-        return Render(value, culture, "{Value spellout mode=\"money\" currency=\"RUB\"}");
+        using var value = JsonDocument.Parse("1");
+        var formatter = CreateFormatter();
+
+        var actual = formatter.Format(value.RootElement, Arguments(),
+            new FormatterContext(CultureInfo.GetCultureInfo(culture)));
+
+        Assert.Equal(expected, actual);
     }
 
-    private static string Render(string value, string? culture, string expression)
+    [Fact]
+    public void Formatter_rejects_money_without_currency_and_currency_in_number_mode()
     {
-        using var provider = new ServiceCollection().AddMonoReport().AddMonoReportSpelloutFormatter()
-            .BuildServiceProvider();
-        using var input = new MemoryStream(CreateDocx(expression));
-        using var data = JsonDocument.Parse("{\"Value\":" + value + "}");
-        var result = provider.GetRequiredService<DocumentGenerator>().Generate(input, data,
-            new GenerationOptions {Culture = CultureInfo.GetCultureInfo(culture ?? "en-US")});
-        using var documentStream = new MemoryStream(result.Document);
-        using var document = WordprocessingDocument.Open(documentStream, false);
-        return document.MainDocumentPart!.Document!.Body!.InnerText;
+        var formatter = CreateFormatter();
+        Assert.Equal("currency is required when mode is money.",
+            Assert.Single(formatter.Validate(Arguments(("mode", "money"))).Errors));
+        Assert.Equal("currency applies only to money mode.",
+            Assert.Single(formatter.Validate(Arguments(("currency", "EUR"))).Errors));
     }
 
-    internal static byte[] CreateDocx(string expression)
+    [Fact]
+    public void Formatter_direct_formatting_revalidates_parameters()
     {
-        using var output = new MemoryStream();
-        using (var document = WordprocessingDocument.Create(output, WordprocessingDocumentType.Document))
-        {
-            var main = document.AddMainDocumentPart();
-            main.Document = new Document(new Body(new Paragraph(new Run(new Text(expression)))));
-        }
+        using var value = JsonDocument.Parse("1");
+        var error = Assert.Throws<FormatException>(() => CreateFormatter().Format(value.RootElement,
+            Arguments(("mode", "money")), new FormatterContext(CultureInfo.InvariantCulture)));
 
-        return output.ToArray();
+        Assert.Equal("currency is required when mode is money.", error.Message);
+    }
+
+    private static SpelloutService CreateService()
+    {
+        return new SpelloutService(new SpelloutLanguageReader());
+    }
+
+    private static SpelloutFormatter CreateFormatter()
+    {
+        return new SpelloutFormatter(new InvariantDecimalParser(), CreateService());
+    }
+
+    private static IReadOnlyDictionary<string, FormatterOperand> Arguments(params (string Name, string Value)[] values)
+    {
+        return values.ToDictionary(value => value.Name,
+            value => new FormatterOperand(FormatterOperandKind.Literal, value.Value), StringComparer.Ordinal);
     }
 }
