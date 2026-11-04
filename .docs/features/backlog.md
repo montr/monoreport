@@ -22,7 +22,7 @@ Potential work for MonoReport. Items are not approved Features; scope and priori
 4. **C# formatting and code style** — establish and automate consistent rules.
 5. **UI performance** — measure bundle size and loading before optimizing.
 6. **API documentation** — verify OpenAPI and interactive documentation coverage; address confirmed gaps only.
-7. **Optional template data schema** — assess JSON Schema compatibility for validating input data and field references; keep distinct from template-specific Dataset analysis.
+7. **Optional template data schema and Sample JSON** — revisit the existing Sample JSON generation, which needs improvement. Explore an optional JSON Schema supplied alongside a DOCX/XLSX template to validate input data and generate representative sample JSON from the same schema. When no schema is supplied, retain template-based analysis and sample generation. Assess compatibility between an explicit schema and Analyzer-derived template requirements without conflating their responsibilities. No mandatory schema or separate manually maintained duplicate data definition.
 8. **Configurable diagnostic severity** — allow individual diagnostic codes to be configured as warnings or errors, similar to compiler diagnostics.
 9. **CI build performance** — measure Docker build stages and optimize layer caching, npm/NuGet reuse, COPY ordering, and redundant builds where justified.
 10. **Regression coverage** — review DOCX/XLSX fixtures and Analyzer/Sample JSON scenarios, especially `requirements`, `occurrences`, `verticalLevels`, `$level`, and nested collections.
