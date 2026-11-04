@@ -62,7 +62,8 @@ public sealed class CliProcessTests
         var template = Path.Combine(directory, "template.docx");
         var result = Path.Combine(directory, "result.docx");
         await File.WriteAllBytesAsync(template,
-            DocxFixture.Create(DocxFixture.P(DocxFixture.Run("{Amount spellout}"))));
+            DocxFixture.Create(DocxFixture.P(DocxFixture.Run(
+                "{Amount spellout mode=\"money\" currency=\"RUB\" language=\"ru\"}"))));
         try
         {
             var generation = await Run(["--template", template, "--json", "{\"Amount\":1}", "--output", result]);

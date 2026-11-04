@@ -25,15 +25,16 @@ public sealed class SpelloutRegistrationTests
 
         foreach (var key in new[] {"spellout", "rub_words", "amount_words"})
         {
-            var docx = SpelloutBehaviorTests.CreateDocx("{Value " + key + "}");
+            var expression = "{Value " + key + " mode=\"money\" currency=\"RUB\"}";
+            var docx = SpelloutBehaviorTests.CreateDocx(expression);
             using var docxInput = new MemoryStream(docx);
             Assert.True(provider.GetRequiredService<TemplateAnalyzer>().Analyze(docxInput).Valid);
-            Assert.Equal("Один рубль 00 копеек", ReadDocx(Generate(provider, docx, """{"Value":1}""")));
+            Assert.Equal("One ruble 00 copecks", ReadDocx(Generate(provider, docx, """{"Value":1}""")));
 
-            var xlsx = CreateXlsx("{Value " + key + "}");
+            var xlsx = CreateXlsx(expression);
             using var xlsxInput = new MemoryStream(xlsx);
             Assert.True(provider.GetRequiredService<TemplateAnalyzer>().Analyze(xlsxInput).Valid);
-            Assert.Equal("Один рубль 00 копеек", ReadXlsx(Generate(provider, xlsx, """{"Value":1}""")));
+            Assert.Equal("One ruble 00 copecks", ReadXlsx(Generate(provider, xlsx, """{"Value":1}""")));
         }
 
         var invalid = SpelloutBehaviorTests.CreateDocx("{Value rub_words}");

@@ -73,11 +73,12 @@ public sealed class HttpApiTests
     {
         using var factory = new WebApplicationFactory<Program>();
         using var client = factory.CreateClient();
-        var template = DocxFixture.Create(DocxFixture.P(DocxFixture.Run("{Amount spellout}")));
+        var template = DocxFixture.Create(DocxFixture.P(DocxFixture.Run(
+            "{Amount spellout mode=\"money\" currency=\"RUB\"}")));
         using var form = Form(template, "{\"Amount\":1}");
         using var response = await client.PostAsync("/api/documents/generate", form);
         response.EnsureSuccessStatusCode();
-        Assert.Equal("Один рубль 00 копеек",
+        Assert.Equal("One ruble 00 copecks",
             DocxFixture.Text(DocxFixture.Read(await response.Content.ReadAsByteArrayAsync())));
     }
 

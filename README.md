@@ -10,7 +10,7 @@ MonoReport generates DOCX reports, contracts, acts, protocols, invoices, and sim
 2. `MonoReport.Cli` is the command-line application and .NET tool.
 3. `MonoReport.Api` is the ASP.NET Core HTTP application.
 4. `web` is the React and TypeScript playground served by the API in production.
-5. `MonoReport.Formatter.Spellout` is the optional Russian RUB wording formatter.
+5. `MonoReport.Formatter.Spellout` is the optional English and Russian number and currency wording formatter.
 6. The three test projects cover Core, CLI, HTTP, OpenAPI, and Open XML behavior.
 
 ## Build and verify
@@ -54,13 +54,14 @@ MonoReport generates DOCX reports, contracts, acts, protocols, invoices, and sim
 | Text format | `{Name upper}`, `{Name lower}`, `{Name caps}`, `{Name firstcap}` |
 | Decimal format | `{Amount number "#,##0.00"}` or `{Amount number pattern="#,##0.00"}` |
 | ISO date format | `{Date date "dd MMM yyyy"}` or `{Date date pattern="dd MMM yyyy"}` |
-| Russian RUB words | `{Amount spellout}` |
+| Number words | `{Amount spellout}` |
+| Russian RUB words | `{Amount spellout mode="money" currency="RUB" language="ru"}` |
 
 1. Paths are ordinal and case-sensitive. A segment starts with a Unicode letter or underscore and then contains Unicode letters, digits, or underscores.
 2. `For` accepts JSON arrays, including mixed arrays of objects, strings, numbers, Booleans, and null. `{.}` renders the complete current primitive element and is valid only inside a loop.
 3. `If` accepts a JSON Boolean. Missing or null structural values select zero iterations or the false branch; incompatible non-null structural values are errors.
 4. A scalar expression supports at most one formatter. Formatter arguments are double-quoted strings: one optional leading positional argument and named arguments such as `pattern="N2"`. Names and keys are ordinal and case-sensitive. Colon patterns, bare values, single-quoted values, chaining, and formatter pipelines are invalid.
-5. `number` and `spellout` accept JSON numbers or invariant numeric strings. `date` accepts `YYYY-MM-DD` or an ISO date-time with `Z` or an explicit offset.
+5. `number` and `spellout` accept JSON numbers or invariant numeric strings. `spellout` defaults to integer number words; money mode requires an explicit `currency` (`RUB`, `USD`, or `EUR`). Its default language follows the configured culture (`ru` for Russian cultures and `en` otherwise). `date` accepts `YYYY-MM-DD` or an ISO date-time with `Z` or an explicit offset.
 6. Explicit null and empty strings render empty. Missing scalar values follow `GenerationOptions.MissingValues`.
 7. Inserted JSON text and emitted literal braces are never reinterpreted as template syntax.
 8. Raw markers occupy dedicated sibling paragraphs or dedicated sibling table rows under the same parent. Content between them is preserved literally without expression parsing, dependency extraction, brace unescaping, or data evaluation. Raw does not nest.
@@ -103,7 +104,7 @@ For the support, preservation, and rejection policy for Microsoft Word features,
    ```
 
 2. `Generate` reads from the template stream's current position and leaves caller-owned inputs open. A successful result contains independent document bytes, warnings and format metadata. `AddMonoReport()` composes both Word and XLSX handlers; existing manually composed Word constructors remain supported. A failed generation throws `TemplateException`, aggregates up to 100 ordered diagnostics, and returns no partial document.
-3. `GenerationOptions.Culture` controls output casing, decimal formatting, and date formatting. It does not change invariant numeric input parsing, ISO date interpretation, or Russian RUB `spellout` behavior.
+3. `GenerationOptions.Culture` controls output casing, decimal formatting, date formatting, and the default `spellout` language. It does not change invariant numeric input parsing or ISO date interpretation, and it never selects a currency.
 4. Core registers the six simple formatters. Spellout is an optional external formatter; register it explicitly with `services.AddMonoReportSpelloutFormatter()` when templates use `{Amount spellout}`. A custom registration key can be used in a template by passing that key to the extension.
 5. Add a project reference to `MonoReport.Formatter.Spellout` in applications that use its registration extension; this Feature does not distribute it as a NuGet package.
 6. Custom formatters implement Core's `IFormatter` contract and register as keyed services. The service key becomes the template name; the selected formatter supplies its own parameter metadata and validation.

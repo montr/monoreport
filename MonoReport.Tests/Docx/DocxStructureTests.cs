@@ -1018,7 +1018,8 @@ public sealed class DocxStructureTests
     [InlineData("12.50")]
     public void Number_and_spellout_share_accepted_decimal_inputs(string literal)
     {
-        var template = DocxFixture.Create(DocxFixture.P(DocxFixture.Run("{Value number \"0.00\"}|{Value spellout}")));
+        var template = DocxFixture.Create(DocxFixture.P(DocxFixture.Run(
+            "{Value number \"0.00\"}|{Value spellout mode=\"money\" currency=\"RUB\"}")));
         var result = DocxFixture.Generate(template, $"{{\"Value\":{literal}}}");
         Assert.Contains('|', DocxFixture.Text(DocxFixture.Read(result.Document)));
     }
@@ -1032,7 +1033,7 @@ public sealed class DocxStructureTests
     [InlineData("1e1000")]
     public void Number_and_spellout_share_rejected_numeric_strings(string value)
     {
-        foreach (var formatter in new[] {"number \"0.00\"", "spellout"})
+        foreach (var formatter in new[] {"number \"0.00\"", "spellout mode=\"money\" currency=\"RUB\""})
         {
             var template = DocxFixture.Create(DocxFixture.P(DocxFixture.Run($"{{Value {formatter}}}")));
             var error = Assert.Throws<TemplateException>(() => DocxFixture.Generate(template,

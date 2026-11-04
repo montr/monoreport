@@ -1,0 +1,141 @@
+{
+  "language": "en",
+  "zero": "zero",
+  "minus": "minus",
+  "ones": [
+    "",
+    "one",
+    "two",
+    "three",
+    "four",
+    "five",
+    "six",
+    "seven",
+    "eight",
+    "nine"
+  ],
+  "teens": [
+    "ten",
+    "eleven",
+    "twelve",
+    "thirteen",
+    "fourteen",
+    "fifteen",
+    "sixteen",
+    "seventeen",
+    "eighteen",
+    "nineteen"
+  ],
+  "tens": [
+    "",
+    "",
+    "twenty",
+    "thirty",
+    "forty",
+    "fifty",
+    "sixty",
+    "seventy",
+    "eighty",
+    "ninety"
+  ],
+  "hundreds": [
+    "",
+    "one hundred",
+    "two hundred",
+    "three hundred",
+    "four hundred",
+    "five hundred",
+    "six hundred",
+    "seven hundred",
+    "eight hundred",
+    "nine hundred"
+  ],
+  "scales": [
+    {
+      "forms": [
+        "thousand",
+        "thousand",
+        "thousand"
+      ]
+    },
+    {
+      "forms": [
+        "million",
+        "million",
+        "million"
+      ]
+    },
+    {
+      "forms": [
+        "billion",
+        "billion",
+        "billion"
+      ]
+    },
+    {
+      "forms": [
+        "trillion",
+        "trillion",
+        "trillion"
+      ]
+    },
+    {
+      "forms": [
+        "quadrillion",
+        "quadrillion",
+        "quadrillion"
+      ]
+    }
+  ],
+  "currencies": {
+    "RUB": {
+      "major": {
+        "forms": [
+          "ruble",
+          "rubles",
+          "rubles"
+        ]
+      },
+      "minor": {
+        "forms": [
+          "copeck",
+          "copecks",
+          "copecks"
+        ]
+      }
+    },
+    "USD": {
+      "major": {
+        "forms": [
+          "dollar",
+          "dollars",
+          "dollars"
+        ]
+      },
+      "minor": {
+        "forms": [
+          "cent",
+          "cents",
+          "cents"
+        ]
+      }
+    },
+    "EUR": {
+      "major": {
+        "forms": [
+          "euro",
+          "euros",
+          "euros"
+        ]
+      },
+      "minor": {
+        "forms": [
+          "cent",
+          "cents",
+          "cents"
+        ]
+      }
+    }
+  },
+  "pluralRule": "english"
+}
