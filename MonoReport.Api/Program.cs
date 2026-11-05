@@ -34,6 +34,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 builder.Services.AddMonoReport();
 builder.Services.AddMonoReportSpelloutFormatter();
+builder.Services.AddHealthChecks();
 builder.Services.AddTransient<MultipartRequestReader>();
 builder.Services.AddTransient<DocumentEndpoints>();
 builder.Services.AddServiceKeyProvider();
@@ -87,6 +88,7 @@ app.Use(async (context, next) =>
 });
 app.UseDefaultFiles();
 app.UseStaticFiles();
+app.MapHealthChecks("/health");
 app.MapPost("/api/documents/generate",
         (HttpContext context, DocumentEndpoints endpoints) => endpoints.Generate(context))
     .WithName("GenerateDocument").Produces(200,

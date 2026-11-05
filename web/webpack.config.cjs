@@ -73,7 +73,7 @@ module.exports = {
     historyApiFallback: true,
     proxy: [
       {
-        context: ["/api", "/docs", "/openapi"],
+        context: ["/api", "/docs", "/openapi", "/health"],
         target: process.env.MONOREPORT_API_URL || "http://localhost:5000"
       }]
   },
