@@ -27,8 +27,15 @@ export function DocxPreview({ source, label }: Props) {
 
   return (
     <div className="document-preview">
-      {warning && <div className="preview-warning" role="status">{warning}</div>}
-      <div ref={host} data-testid={`${label.toLowerCase()}-preview`} />
+      {warning && (
+        <div className="preview-warning" role="status">
+          {warning}
+        </div>
+      )}
+      <div
+        ref={host}
+        data-testid={`${label.toLowerCase()}-preview`}
+      />
     </div>
   );
 }

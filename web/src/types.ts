@@ -1,4 +1,6 @@
 import type { DocumentFormat } from "./services/documentFormat";
+import type { LocalFileHandle } from "./services/localFiles";
+import type { TemplateReference } from "./services/workspacePersistence";
 
 export interface Diagnostic {
   title: string;
@@ -43,3 +45,23 @@ export interface TemplateAnalysis {
   requirements: TemplateRequirement[];
   occurrences: TemplateOccurrence[];
 }
+
+
+export type Tab = "template" | "result";
+export type DiagnosticsTab = "problems" | "analysis";
+export interface Problem extends Diagnostic { action?: "Generate" | "Analyze" | "Generate Dataset"; severity?: "Error" | "Warning"; }
+export type ExampleSelection = string | "custom";
+
+export interface Dataset {
+  id: string;
+  name: string;
+  kind: "example" | "generated" | "upload" | "file";
+  text: string;
+  baseline?: string;
+  handle?: LocalFileHandle;
+  lastModified?: number;
+  exampleId?: string;
+  restoreError?: string;
+  needsPermission?: boolean;
+}
+export interface TemplateEntry extends TemplateReference { file?: File; restoreError?: string; needsPermission?: boolean; }

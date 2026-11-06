@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { XlsxViewer } from "@silurus/ooxml/xlsx";
+import type { XlsxSelectionContext, XlsxViewer } from "@silurus/ooxml/xlsx";
 
 interface Props {
   source: Blob | File;
@@ -40,6 +40,26 @@ export function XlsxPreview({ source, label }: Props) {
       dispose();
     }
 
+    function handleSelectionContextChange(context: XlsxSelectionContext | null) {
+      if (!current) return;
+      if (context?.kind !== "range") {
+        setFormulaBar(undefined);
+        return;
+      }
+
+      const active = context.selection.activeCell;
+      let column = "";
+      for (let col = active.col; col > 0; col = Math.floor((col - 1) / 26)) {
+        column = String.fromCharCode(65 + (col - 1) % 26) + column;
+      }
+      const cell = context.cells.find(cell => cell.address.row === active.row && cell.address.col === active.col);
+      setFormulaBar({
+        address: `${column}${active.row}`,
+        text: cell ? cell.formula !== undefined ? `=${cell.formula.replace(/^=+/, "")}` : cell.displayText
+          : ""
+      });
+    }
+
     void (async () => {
       const { XlsxViewer } = await import("@silurus/ooxml/xlsx");
       if (!current) return;
@@ -52,21 +72,7 @@ export function XlsxPreview({ source, label }: Props) {
         enableHyperlinks: false,
         resizable: false,
         workerTimeoutMs: 30_000,
-        onSelectionContextChange: context => {
-          if (!current) return;
-          if (context?.kind !== "range") { setFormulaBar(undefined); return; }
-          const active = context.selection.activeCell;
-          let column = "";
-          for (let col = active.col; col > 0; col = Math.floor((col - 1) / 26)) {
-            column = String.fromCharCode(65 + (col - 1) % 26) + column;
-          }
-          const cell = context.cells.find(cell => cell.address.row === active.row && cell.address.col === active.col);
-          setFormulaBar({
-            address: `${column}${active.row}`,
-            text: cell ? cell.formula !== undefined ? `=${cell.formula.replace(/^=+/, "")}` : cell.displayText
-              : ""
-          });
-        },
+        onSelectionContextChange: handleSelectionContextChange,
         onError: failed
       });
       // Self-owned loading lets destroy() release the workbook and its workers.
@@ -81,13 +87,33 @@ export function XlsxPreview({ source, label }: Props) {
     };
   }, [source, label]);
 
-  return <div className="xlsx-preview">
-    {status && <div className={status.kind === "error" ? "preview-warning" : "preview-loading"} role="status">{status.message}</div>}
-    <div className="xlsx-formula-bar" role="group" aria-label={`${label} formula bar`}>
-      <span className="xlsx-cell-address" aria-label={`${label} active cell`}>{formulaBar?.address ?? ""}</span>
-      <span className="xlsx-formula-label" aria-hidden="true">fx</span>
-      <textarea rows={1} readOnly aria-label={`${label} formula or value`} value={formulaBar?.text ?? ""} />
+  return (
+    <div className="xlsx-preview">
+      {status && (
+        <div
+          className={status.kind === "error" ? "preview-warning" : "preview-loading"}
+          role="status"
+        >
+          {status.message}
+        </div>
+      )}
+      <div className="xlsx-formula-bar" role="group" aria-label={`${label} formula bar`}>
+        <span className="xlsx-cell-address" aria-label={`${label} active cell`}>
+          {formulaBar?.address ?? ""}
+        </span>
+        <span className="xlsx-formula-label" aria-hidden="true">fx</span>
+        <textarea
+          rows={1}
+          readOnly
+          aria-label={`${label} formula or value`}
+          value={formulaBar?.text ?? ""}
+        />
+      </div>
+      <div
+        className="xlsx-preview-host"
+        ref={host}
+        data-testid={`${label.toLowerCase()}-xlsx-preview`}
+      />
     </div>
-    <div className="xlsx-preview-host" ref={host} data-testid={`${label.toLowerCase()}-xlsx-preview`} />
-  </div>;
+  );
 }

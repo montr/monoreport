@@ -79,7 +79,7 @@ function mockPlaygroundFetch(api: (input: RequestInfo | URL, init?: RequestInit)
 }
 
 async function selectTemplate(user: ReturnType<typeof userEvent.setup>, file = template()) {
-  await user.upload(document.querySelector('input[hidden][type="file"]') as HTMLInputElement, file);
+  await user.upload(document.querySelector('input[type="file"][accept*=".docx"]') as HTMLInputElement, file);
 }
 
 function selectedExample() {
@@ -731,7 +731,7 @@ describe("MonoReport playground", () => {
     expect(await screen.findByText("Examples unavailable")).toBeInTheDocument();
     await openMenu(user, "Document");
     expect(screen.getByRole("menuitem", { name: "Download" })).toHaveAttribute("aria-disabled", "true");
-    const input = document.querySelector('input[hidden][type="file"]') as HTMLInputElement;
+    const input = document.querySelector('input[type="file"][accept*=".docx"]') as HTMLInputElement;
     const click = vi.spyOn(input, "click");
     await user.click(screen.getByRole("menuitem", { name: "Upload…" }));
     expect(click).toHaveBeenCalledOnce();
@@ -1034,7 +1034,7 @@ describe("MonoReport playground", () => {
     await user.click(screen.getByRole("button", { name: "Generate document" }));
     await screen.findByText("Result preview");
     await user.click(screen.getByRole("radio", { name: "Template" }).closest("label")!);
-    const picker = document.querySelector('input[hidden][type="file"]')!;
+    const picker = document.querySelector('input[type="file"][accept*=".docx"]')!;
     expect(picker).toHaveAttribute("accept", expect.stringContaining(".xlsx"));
     const book = new File([new Uint8Array([1])], "tender.XLSX", { type: mime });
     await selectTemplate(user, book);

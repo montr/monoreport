@@ -25,8 +25,6 @@ export function MonacoJsonEditor({ value, datasetId, onChange, ref, wordWrap = f
   const applying = useRef(false);
   const previousDataset = useRef(datasetId);
 
-  function toggleWrap() { props.current.onWordWrapChange?.(!props.current.wordWrap); }
-
   useImperativeHandle(ref, () => ({
     async format() { await editorRef.current?.getAction("editor.action.formatDocument")?.run(); },
     async copy() {
@@ -37,7 +35,7 @@ export function MonacoJsonEditor({ value, datasetId, onChange, ref, wordWrap = f
       const text = selection && !selection.isEmpty() ? editor.getModel()!.getValueInRange(selection) : editor.getValue();
       await navigator.clipboard.writeText(text);
     },
-    toggleWrap
+    toggleWrap() { props.current.onWordWrapChange?.(!props.current.wordWrap); }
   }), []);
 
   useEffect(() => {
@@ -60,14 +58,39 @@ export function MonacoJsonEditor({ value, datasetId, onChange, ref, wordWrap = f
     });
     editorRef.current = editor;
     const actions: monaco.IDisposable[] = [];
-    function fileAction(id: "open" | "save" | "saveAs", label: string, key: number) {
-      if (!props.current.fileCommands?.[id]) return;
-      actions.push(editor.addAction({ id: `workspace.${id}`, label, keybindings: [key], keybindingContext: "editorTextFocus", run: () => props.current.fileCommands?.[id]?.() }));
+    if (props.current.fileCommands?.open) {
+      actions.push(editor.addAction({
+        id: "workspace.open",
+        label: "Open dataset",
+        keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyO],
+        keybindingContext: "editorTextFocus",
+        run: () => props.current.fileCommands?.open?.()
+      }));
     }
-    fileAction("open", "Open dataset", monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyO);
-    fileAction("save", "Save dataset", monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS);
-    fileAction("saveAs", "Save dataset as", monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyS);
-    actions.push(editor.addAction({ id: "workspace.wordWrap", label: "Word wrap", keybindingContext: "editorTextFocus", run: toggleWrap }));
+    if (props.current.fileCommands?.save) {
+      actions.push(editor.addAction({
+        id: "workspace.save",
+        label: "Save dataset",
+        keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
+        keybindingContext: "editorTextFocus",
+        run: () => props.current.fileCommands?.save?.()
+      }));
+    }
+    if (props.current.fileCommands?.saveAs) {
+      actions.push(editor.addAction({
+        id: "workspace.saveAs",
+        label: "Save dataset as",
+        keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyS],
+        keybindingContext: "editorTextFocus",
+        run: () => props.current.fileCommands?.saveAs?.()
+      }));
+    }
+    actions.push(editor.addAction({
+      id: "workspace.wordWrap",
+      label: "Word wrap",
+      keybindingContext: "editorTextFocus",
+      run: () => props.current.onWordWrapChange?.(!props.current.wordWrap)
+    }));
     const subscription = editor.onDidChangeModelContent(() => { if (!applying.current) props.current.onChange(editor.getValue()); });
     return () => {
       editorRef.current = null;

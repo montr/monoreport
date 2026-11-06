@@ -55,6 +55,10 @@
 2. Prefer theme tokens and framework styling over custom CSS. Avoid component-specific overrides when existing theme settings are sufficient.
 3. Keep UI behavior and visual appearance consistent with the existing application. Preserve accessibility and responsive layouts.
 4. If legal, security, or technical obligations require additional UI, explain the need and propose a minimal solution before implementing it.
+5. Keep React components focused on rendering and composition. Put coherent stateful UI logic and effects in custom hooks; keep simple local state and one-line handlers in the component. Hooks may coordinate UI state and services, but should not own data access or domain rules.
+6. Keep UI components, custom hooks, and services under web/src/components, web/src/hooks, and web/src/services, respectively. Use names that describe their responsibility. Keep small private helpers beside their owner; extract them when they are reused or have a substantial independent responsibility.
+7. Format JSX for readability. Keep short tags and simple props inline; split long tags, prop lists, nested expressions, and conditional blocks across lines. Separate distinct UI sections with blank lines, without adding spacing between every element.
+8. Keep component markup easy to scan. Extract local functions for event handlers, render helpers, or UI configuration only when the function body has at least three non-empty source lines after formatting. Do not count the function signature, blank lines, or lines containing only braces. Count wrapped continuation lines. Keep shorter one-off operations inline; do not create named wrappers for a single state update or command.
 
 # Karpathy behavioral guidelines
 

@@ -55,18 +55,6 @@ export function WorkspaceLayout({ data, document, problems, problemsOpen, onProb
 
   useEffect(() => { problemsCollapsed.current = !problemsOpen; }, [problemsOpen]);
 
-  function updateMainSize(sizes: number[]) {
-    const total = sizes[0] + sizes[1];
-    if (!mainCollapsed.current.some(Boolean) && total && sizes[0] > 0 && sizes[1] > 0) setValue(sizes[0] / total * 100);
-  }
-
-  function saveMainSize(sizes: number[]) {
-    const total = sizes[0] + sizes[1];
-    if (!mainCollapsed.current.some(Boolean) && total && sizes[0] > 0 && sizes[1] > 0) {
-      writePreference(mobile ? workspaceStorage.mobile : workspaceStorage.desktop, String(sizes[0] / total * 100));
-    }
-  }
-
   function updateCollapsed(next: boolean[]) {
     const state: PanelState = [Boolean(next[0]), Boolean(next[1])];
     mainCollapsed.current = state;
@@ -76,30 +64,64 @@ export function WorkspaceLayout({ data, document, problems, problemsOpen, onProb
 
   function updateProblemsSize(sizes: number[]) {
     const total = sizes[0] + sizes[1];
-    if (!problemsCollapsed.current && total && sizes[0] > 0 && sizes[1] > 0) setProblemsSize(sizes[1] / total * 100);
+    if (!problemsCollapsed.current && total && sizes[0] > 0 && sizes[1] > 0) {
+      setProblemsSize(sizes[1] / total * 100);
+    }
   }
 
   function saveProblemsSize(sizes: number[]) {
     const total = sizes[0] + sizes[1];
-    if (!problemsCollapsed.current && total && sizes[0] > 0 && sizes[1] > 0) writePreference(workspaceStorage.diagnosticsSize, String(sizes[1] / total * 100));
+    if (!problemsCollapsed.current && total && sizes[0] > 0 && sizes[1] > 0) {
+      writePreference(workspaceStorage.diagnosticsSize, String(sizes[1] / total * 100));
+    }
+  }
+
+  function updateMainSize(sizes: number[]) {
+    const total = sizes[0] + sizes[1];
+    if (!mainCollapsed.current.some(Boolean) && total && sizes[0] > 0 && sizes[1] > 0) {
+      setValue(sizes[0] / total * 100);
+    }
+  }
+
+  function saveMainSize(sizes: number[]) {
+    const total = sizes[0] + sizes[1];
+    if (!mainCollapsed.current.some(Boolean) && total && sizes[0] > 0 && sizes[1] > 0) {
+      writePreference(
+        mobile ? workspaceStorage.mobile : workspaceStorage.desktop,
+        String(sizes[0] / total * 100)
+      );
+    }
   }
 
   const mainSizes = collapsed[0] ? ["0%", "100%"] : collapsed[1] ? ["100%", "0%"] : [`${value}%`, `${100 - value}%`];
-  return <Splitter orientation="vertical" onResize={updateProblemsSize} onResizeEnd={saveProblemsSize}
-    onCollapse={next => { problemsCollapsed.current = next[1]; onProblemsOpenChange(!next[1]); }}>
-    <Splitter.Panel size={problemsOpen ? `${100 - problemsSize}%` : "100%"}>
-      <Splitter orientation={mobile ? "vertical" : "horizontal"} onResize={updateMainSize} onResizeEnd={saveMainSize}
-        onCollapse={updateCollapsed}>
-        <Splitter.Panel size={mainSizes[0]} collapsible>
-          {data}
-        </Splitter.Panel>
-        <Splitter.Panel size={mainSizes[1]} collapsible>
-          {document}
-        </Splitter.Panel>
-      </Splitter>
-    </Splitter.Panel>
-    <Splitter.Panel size={problemsOpen ? `${problemsSize}%` : 0} collapsible={{ start: true }}>
-      {problems}
-    </Splitter.Panel>
-  </Splitter>;
+  return (
+    <Splitter
+      orientation="vertical"
+      onResize={updateProblemsSize}
+      onResizeEnd={saveProblemsSize}
+      onCollapse={next => {
+        problemsCollapsed.current = next[1];
+        onProblemsOpenChange(!next[1]);
+      }}
+    >
+      <Splitter.Panel size={problemsOpen ? `${100 - problemsSize}%` : "100%"}>
+        <Splitter
+          orientation={mobile ? "vertical" : "horizontal"}
+          onResize={updateMainSize}
+          onResizeEnd={saveMainSize}
+          onCollapse={updateCollapsed}
+        >
+          <Splitter.Panel size={mainSizes[0]} collapsible>
+            {data}
+          </Splitter.Panel>
+          <Splitter.Panel size={mainSizes[1]} collapsible>
+            {document}
+          </Splitter.Panel>
+        </Splitter>
+      </Splitter.Panel>
+      <Splitter.Panel size={problemsOpen ? `${problemsSize}%` : 0} collapsible={{ start: true }}>
+        {problems}
+      </Splitter.Panel>
+    </Splitter>
+  );
 }

@@ -5,4 +5,8 @@ import App from "./App";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Application root was not found.");
-createRoot(root).render(<React.StrictMode><App /></React.StrictMode>);
+createRoot(root).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
