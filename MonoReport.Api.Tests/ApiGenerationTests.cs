@@ -44,7 +44,7 @@ public sealed class ApiGenerationTests
             json.RootElement.GetProperty("requirements").EnumerateArray()
                 .Select(item => item.GetProperty("name").GetString()));
         using var generation = Form(source, "{\"Items\":[]}", true);
-        using var generationResponse = await client.PostAsync("/api/documents/generate", generation);
+        using var generationResponse = await client.PostAsync("/api/documents/render", generation);
         generationResponse.EnsureSuccessStatusCode();
         using var generated =
             SpreadsheetDocument.Open(new MemoryStream(await generationResponse.Content.ReadAsByteArrayAsync()), false);
@@ -61,7 +61,7 @@ public sealed class ApiGenerationTests
         using var factory = new WebApplicationFactory<Program>();
         using var client = factory.CreateClient();
         using var form = Form(source, fixture.Data(3), true);
-        using var response = await client.PostAsync("/api/documents/generate", form);
+        using var response = await client.PostAsync("/api/documents/render", form);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             response.Content.Headers.ContentType!.MediaType);
@@ -70,7 +70,7 @@ public sealed class ApiGenerationTests
         fixture.AssertGenerated(await response.Content.ReadAsByteArrayAsync());
         using var invalid = Form(source,
             "{\"Bids\":[{}],\"Criteria\":[{},{}],\"Items\":[{\"$level\":10,\"$path\":\"p\"}]}", true);
-        using var rejected = await client.PostAsync("/api/documents/generate", invalid);
+        using var rejected = await client.PostAsync("/api/documents/render", invalid);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, rejected.StatusCode);
         Assert.Equal("application/problem+json", rejected.Content.Headers.ContentType!.MediaType);
         Assert.Null(rejected.Content.Headers.ContentDisposition);
@@ -91,7 +91,7 @@ public sealed class ApiGenerationTests
         using var factory = new WebApplicationFactory<Program>();
         using var client = factory.CreateClient();
         using var form = Form(source, XlsxNestedFixture.ActivatedData(), true);
-        using var response = await client.PostAsync("/api/documents/generate", form);
+        using var response = await client.PostAsync("/api/documents/render", form);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             response.Content.Headers.ContentType!.MediaType);
@@ -101,7 +101,7 @@ public sealed class ApiGenerationTests
 
         using var invalid = Form(source,
             "{\"Bids\":[{}],\"Criteria\":[{},{}],\"Third\":[{}],\"Items\":[{\"$level\":10,\"$path\":\"p\"}]}", true);
-        using var rejected = await client.PostAsync("/api/documents/generate", invalid);
+        using var rejected = await client.PostAsync("/api/documents/render", invalid);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, rejected.StatusCode);
         Assert.Equal("application/problem+json", rejected.Content.Headers.ContentType!.MediaType);
         Assert.Null(rejected.Content.Headers.ContentDisposition);
@@ -122,7 +122,7 @@ public sealed class ApiGenerationTests
         using var form = Form(source,
             "{\"Items\":[{\"$level\":10,\"Name\":\"one\",\"Price\":12},{\"$level\":10,\"Name\":\"two\",\"Price\":20}]}",
             true);
-        using var response = await client.PostAsync("/api/documents/generate", form);
+        using var response = await client.PostAsync("/api/documents/render", form);
         response.EnsureSuccessStatusCode();
         Assert.Equal("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             response.Content.Headers.ContentType!.MediaType);
@@ -142,7 +142,7 @@ public sealed class ApiGenerationTests
         Assert.True(json.RootElement.GetProperty("valid").GetBoolean());
         Assert.Equal("Items", json.RootElement.GetProperty("requirements")[0].GetProperty("name").GetString());
         using var invalidForm = Form(source, "{\"Items\":[{\"$level\":\"bad\"}]}", true);
-        using var invalid = await client.PostAsync("/api/documents/generate", invalidForm);
+        using var invalid = await client.PostAsync("/api/documents/render", invalidForm);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, invalid.StatusCode);
         Assert.Null(invalid.Content.Headers.ContentDisposition);
         using var error = JsonDocument.Parse(await invalid.Content.ReadAsStringAsync());
@@ -160,7 +160,7 @@ public sealed class ApiGenerationTests
         using var factory = new WebApplicationFactory<Program>();
         using var client = factory.CreateClient();
         using var generation = Form(source, "{\"Name\":\"Ada\"}", spreadsheet);
-        using var response = await client.PostAsync("/api/documents/generate", generation);
+        using var response = await client.PostAsync("/api/documents/render", generation);
         response.EnsureSuccessStatusCode();
         Assert.Equal(
             "application/vnd.openxmlformats-officedocument." +
@@ -225,7 +225,7 @@ public sealed class ApiGenerationTests
         using var factory = new WebApplicationFactory<Program>();
         using var client = factory.CreateClient();
         using var form = Form(source, data, true);
-        using var response = await client.PostAsync("/api/documents/generate", form);
+        using var response = await client.PostAsync("/api/documents/render", form);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         Assert.Equal("application/problem+json", response.Content.Headers.ContentType!.MediaType);
         Assert.Null(response.Content.Headers.ContentDisposition);
@@ -270,12 +270,12 @@ public sealed class ApiGenerationTests
         using var factory = new WebApplicationFactory<Program>();
         using var client = factory.CreateClient();
         using var success = Form(_fixture.Create(), JsonSerializer.Serialize(new {Name = "a\r\n_x0041_"}), true);
-        using var output = await client.PostAsync("/api/documents/generate", success);
+        using var output = await client.PostAsync("/api/documents/render", success);
         output.EnsureSuccessStatusCode();
         Assert.Equal("a\r\n_x0041_", _fixture.ReadCellText(await output.Content.ReadAsByteArrayAsync(), "A1"));
         var source = _fixture.Create(kind: SpreadsheetDocumentType.Template);
         using var form = Form(source, "{}", true);
-        using var response = await client.PostAsync("/api/documents/generate", form);
+        using var response = await client.PostAsync("/api/documents/render", form);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         Assert.Null(response.Content.Headers.ContentDisposition);
         using var failure = JsonDocument.Parse(await response.Content.ReadAsStringAsync());

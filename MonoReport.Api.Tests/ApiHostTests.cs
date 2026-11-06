@@ -58,12 +58,12 @@ public sealed class ApiHostTests
             }
 
             Assert.True(ready, "Local API host did not become ready.");
-            foreach (var endpoint in new[] {"analyze", "generate"})
+            foreach (var endpoint in new[] {"analyze", "render"})
             {
                 foreach (var streamed in new[] {false, true})
                 {
                     using var multipart = HttpApiTests.Form(new byte[5000],
-                        endpoint == "generate" ? new string(' ', 5000) : null);
+                        endpoint == "render" ? new string(' ', 5000) : null);
                     if (endpoint == "analyze")
                         multipart.Add(new ByteArrayContent(new byte[5000]), "extra", "extra.docx");
                     using HttpContent content = streamed ? new StreamingContent(multipart) : multipart;
@@ -78,10 +78,10 @@ public sealed class ApiHostTests
                 }
 
                 using var small = HttpApiTests.Form(DocxFixture.Create(DocxFixture.P(DocxFixture.Run("{Name}"))),
-                    endpoint == "generate" ? "{\"Name\":\"fine\"}" : null);
+                    endpoint == "render" ? "{\"Name\":\"fine\"}" : null);
                 using var recovered = await client.PostAsync($"/api/documents/{endpoint}", small);
                 Assert.Equal(HttpStatusCode.OK, recovered.StatusCode);
-                if (endpoint == "generate")
+                if (endpoint == "render")
                 {
                     Assert.Equal("fine",
                         DocxFixture.Text(DocxFixture.Read(await recovered.Content.ReadAsByteArrayAsync())));

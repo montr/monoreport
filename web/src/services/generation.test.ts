@@ -34,7 +34,7 @@ describe("generation client", () => {
     expect(result.format).toBe("docx");
     expect(new Uint8Array(await result.blob.arrayBuffer())).toEqual(new Uint8Array(await responseBlob.arrayBuffer()));
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe("/api/documents/generate");
+    expect(url).toBe("/api/documents/render");
     expect(init.method).toBe("POST");
     expect(init.headers).toEqual({ Accept: "multipart/mixed" });
     const body = init.body as FormData;

@@ -181,7 +181,7 @@ export async function generateDocument(file: File, json: string, signal?: AbortS
   body.append("data", json);
   let response: Response;
   try {
-    response = await fetch("/api/documents/generate", { method: "POST", body, signal, headers: { Accept: "multipart/mixed" } });
+    response = await fetch("/api/documents/render", { method: "POST", body, signal, headers: { Accept: "multipart/mixed" } });
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") throw error;
     throw new GenerationFailure([{ title: "Server unavailable", detail: "The generation service could not be reached." }]);

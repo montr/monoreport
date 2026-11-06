@@ -32,7 +32,7 @@ public sealed class ApiDocumentTransportTests
         using var factory = new WebApplicationFactory<Program>();
         using var client = factory.CreateClient();
         using var form = HttpApiTests.Form(fixture.Source, fixture.Data);
-        using var response = await client.PostAsync("/api/documents/generate", form);
+        using var response = await client.PostAsync("/api/documents/render", form);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         AssertCount(response, 0);
         Assert.Equal(Excel, response.Content.Headers.ContentType!.MediaType);
@@ -56,7 +56,7 @@ public sealed class ApiDocumentTransportTests
         using var factory = new WebApplicationFactory<Program>();
         using var client = factory.CreateClient();
         using var form = HttpApiTests.Form(source, TransportFixture.Data);
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/documents/generate") {Content = form};
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/documents/render") {Content = form};
         request.Headers.Accept.ParseAdd("multipart/mixed");
         using var response = await client.SendAsync(request);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -105,14 +105,14 @@ public sealed class ApiDocumentTransportTests
         expected.Write(Encoding.ASCII.GetBytes($"\r\n--{boundary}--\r\n"));
         Assert.Equal(expected.ToArray(), bytes);
         using var binaryForm = HttpApiTests.Form(source, TransportFixture.Data);
-        using var binary = await client.PostAsync("/api/documents/generate", binaryForm);
+        using var binary = await client.PostAsync("/api/documents/render", binaryForm);
         Assert.Equal(spreadsheet ? Excel : Word, binary.Content.Headers.ContentType!.MediaType);
         Assert.Equal("document." + extension, binary.Content.Headers.ContentDisposition!.FileNameStar);
         Assert.Contains("Accept", binary.Headers.Vary);
         AssertCount(binary, count);
         AssertPackageEntriesEqual(attachment, await binary.Content.ReadAsByteArrayAsync());
         using var freshForm = HttpApiTests.Form(source, TransportFixture.Data);
-        using var freshRequest = new HttpRequestMessage(HttpMethod.Post, "/api/documents/generate")
+        using var freshRequest = new HttpRequestMessage(HttpMethod.Post, "/api/documents/render")
             {Content = freshForm};
         freshRequest.Headers.Accept.ParseAdd("multipart/mixed");
         using var fresh = await client.SendAsync(freshRequest);
@@ -130,7 +130,7 @@ public sealed class ApiDocumentTransportTests
         var expected = Assert.Single(core.Warnings);
         using var factory = new WebApplicationFactory<Program>();
         using var client = factory.CreateClient();
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/documents/generate")
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/documents/render")
         {
             Content = HttpApiTests.Form(source, TransportFixture.SanitizationData)
         };
@@ -160,7 +160,7 @@ public sealed class ApiDocumentTransportTests
         Assert.Contains("Removed 2", warning.GetProperty("message").GetString());
 
         using var binaryForm = HttpApiTests.Form(source, TransportFixture.SanitizationData);
-        using var binary = await client.PostAsync("/api/documents/generate", binaryForm);
+        using var binary = await client.PostAsync("/api/documents/render", binaryForm);
         Assert.Equal(HttpStatusCode.OK, binary.StatusCode);
         Assert.Equal(spreadsheet ? Excel : Word, binary.Content.Headers.ContentType!.MediaType);
         AssertCount(binary, 1);
@@ -211,7 +211,7 @@ public sealed class ApiDocumentTransportTests
     {
         using var factory = new WebApplicationFactory<Program>();
         using var client = factory.CreateClient();
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/documents/generate")
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/documents/render")
             {Content = HttpApiTests.Form(new TransportFixture().Create(spreadsheet, 0), TransportFixture.Data)};
         if (accept is not null) request.Headers.TryAddWithoutValidation("Accept", accept);
         using var response = await client.SendAsync(request);
@@ -237,7 +237,7 @@ public sealed class ApiDocumentTransportTests
                     services.ConfigureHttpJsonOptions(options => options.SerializerOptions.Converters.Add(converter));
             }));
         using var client = factory.CreateClient();
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/documents/generate")
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/documents/render")
         {
             Content = HttpApiTests.Form(new TransportFixture().Create(spreadsheet, 1),
                 serializationFailure ? TransportFixture.Data : "[]")

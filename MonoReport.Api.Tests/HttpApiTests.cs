@@ -51,14 +51,14 @@ public sealed class HttpApiTests
         using var client = factory.CreateClient();
         var template = DocxFixture.Create(DocxFixture.P(DocxFixture.Run("{Amount number \"0.00\"}")));
         using (var form = Form(template, "{\"Amount\":1234.5}"))
-        using (var response = await client.PostAsync("/api/documents/generate", form))
+        using (var response = await client.PostAsync("/api/documents/render", form))
         {
             response.EnsureSuccessStatusCode();
             Assert.Equal("1234.50", DocxFixture.Text(DocxFixture.Read(await response.Content.ReadAsByteArrayAsync())));
         }
 
         using var invalid = Form(template, "{\"Amount\":true}");
-        using var failure = await client.PostAsync("/api/documents/generate", invalid);
+        using var failure = await client.PostAsync("/api/documents/render", invalid);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, failure.StatusCode);
         using var problem = JsonDocument.Parse(await failure.Content.ReadAsStringAsync());
         Assert.Equal("generation.invalid_format", problem.RootElement.GetProperty("code").GetString());
@@ -75,7 +75,7 @@ public sealed class HttpApiTests
         var template = DocxFixture.Create(DocxFixture.P(DocxFixture.Run(
             "{Amount spellout mode=\"money\" currency=\"RUB\"}")));
         using var form = Form(template, "{\"Amount\":1}");
-        using var response = await client.PostAsync("/api/documents/generate", form);
+        using var response = await client.PostAsync("/api/documents/render", form);
         response.EnsureSuccessStatusCode();
         Assert.Equal("One ruble 00 copecks",
             DocxFixture.Text(DocxFixture.Read(await response.Content.ReadAsByteArrayAsync())));
@@ -99,7 +99,7 @@ public sealed class HttpApiTests
         }
 
         using var generate = Form(template, "{}");
-        using var failure = await client.PostAsync("/api/documents/generate", generate);
+        using var failure = await client.PostAsync("/api/documents/render", generate);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, failure.StatusCode);
         using var problem = JsonDocument.Parse(await failure.Content.ReadAsStringAsync());
         Assert.Equal("template.invalid_structure", problem.RootElement.GetProperty("code").GetString());
@@ -126,7 +126,7 @@ public sealed class HttpApiTests
             Assert.Equal("/word/document.xml, paragraph 1", item.GetProperty("location").GetString());
         });
         using var generate = Form(template, "{}");
-        using var generated = await client.PostAsync("/api/documents/generate", generate);
+        using var generated = await client.PostAsync("/api/documents/render", generate);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, generated.StatusCode);
         using var problem = JsonDocument.Parse(await generated.Content.ReadAsStringAsync());
         var generationErrors = problem.RootElement.GetProperty("errors").EnumerateArray().ToArray();
@@ -139,7 +139,7 @@ public sealed class HttpApiTests
 
     [Theory]
     [InlineData("analyze")]
-    [InlineData("generate")]
+    [InlineData("render")]
     public async Task Request_contract_rejects_non_multipart_input(string endpoint)
     {
         using var factory = new WebApplicationFactory<Program>();
@@ -169,7 +169,7 @@ public sealed class HttpApiTests
         using var analysis = JsonDocument.Parse(await analyzed.Content.ReadAsStringAsync());
         Assert.False(analysis.RootElement.GetProperty("valid").GetBoolean());
         using var generate = Form(template, File.ReadAllText(path + ".json"));
-        using var generated = await client.PostAsync("/api/documents/generate", generate);
+        using var generated = await client.PostAsync("/api/documents/render", generate);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, generated.StatusCode);
         Assert.Equal("application/problem+json", generated.Content.Headers.ContentType?.MediaType);
         Assert.Null(generated.Content.Headers.ContentDisposition);
@@ -192,7 +192,7 @@ public sealed class HttpApiTests
         using var factory = new WebApplicationFactory<Program>();
         using var client = factory.CreateClient();
         using var form = Form(template, "{\"Name\":\"OK\"}");
-        using var response = await client.PostAsync("/api/documents/generate", form);
+        using var response = await client.PostAsync("/api/documents/render", form);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var output = await response.Content.ReadAsByteArrayAsync();
         DocxFixture.AssertValid(output, FileFormatVersions.Office2010);

@@ -1140,7 +1140,7 @@ describe("MonoReport playground", () => {
     expect(screen.getByRole("radio", { name: "Result" })).toBeChecked();
     expect(new Uint8Array(await xlsxSources.at(-1)!.arrayBuffer())).toEqual(new Uint8Array(await resultBlob.arrayBuffer()));
     expect(apiMock).toHaveBeenCalledOnce();
-    expect(String((apiMock.mock.calls[0] as [string])[0])).toBe("/api/documents/generate");
+    expect(String((apiMock.mock.calls[0] as [string])[0])).toBe("/api/documents/render");
     const requestBody = (apiMock.mock.calls[0] as [string, RequestInit])[1].body as FormData;
     expect(requestBody.get("template")).toBe(sourceFile);
     expect(requestBody.get("data")).toBe('{"manual":true}');
@@ -1883,7 +1883,7 @@ describe("MonoReport playground", () => {
     });
     await screen.findByText("Result preview");
     expect(screen.getByRole("status")).toHaveTextContent("Success");
-    expect(apiMock.mock.calls.map(([url]) => String(url))).toEqual(["/api/documents/analyze", "/api/documents/analyze", "/api/documents/generate"]);
+    expect(apiMock.mock.calls.map(([url]) => String(url))).toEqual(["/api/documents/analyze", "/api/documents/analyze", "/api/documents/render"]);
     expect(screen.getByRole("status")).toHaveTextContent("Success");
     expect(screen.getByRole("contentinfo")).toHaveTextContent("450 ms");
     expect(screen.getByRole("status").textContent).not.toMatch(/\d{1,2}:\d{2}/);

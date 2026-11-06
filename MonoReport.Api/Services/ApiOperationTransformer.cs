@@ -37,9 +37,9 @@ public sealed class ApiOperationTransformer : IOpenApiOperationTransformer
             return;
         }
 
-        if (context.Description.RelativePath is not ("api/documents/generate" or "api/documents/analyze"))
+        if (context.Description.RelativePath is not ("api/documents/render" or "api/documents/analyze"))
             return;
-        var generation = context.Description.RelativePath == "api/documents/generate";
+        var generation = context.Description.RelativePath == "api/documents/render";
         var requestCodes = generation
             ? new[]
             {

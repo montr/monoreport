@@ -102,7 +102,7 @@ public sealed class OpenApiContractTests
         Assert.Equal(new[] {"expression", "kind", "location", "part", "path"},
             occurrence.GetProperty("required").EnumerateArray().Select(item => item.GetString()).Order());
 
-        var generate = root.GetProperty("paths").GetProperty("/api/documents/generate").GetProperty("post");
+        var generate = root.GetProperty("paths").GetProperty("/api/documents/render").GetProperty("post");
         var errors = generate.GetProperty("responses").GetProperty("422").GetProperty("content")
             .GetProperty("application/problem+json").GetProperty("schema").GetProperty("properties")
             .GetProperty("errors");
@@ -119,7 +119,7 @@ public sealed class OpenApiContractTests
         using var response = await client.GetAsync("/openapi/v1.json");
         response.EnsureSuccessStatusCode();
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        var generate = json.RootElement.GetProperty("paths").GetProperty("/api/documents/generate")
+        var generate = json.RootElement.GetProperty("paths").GetProperty("/api/documents/render")
             .GetProperty("post").GetProperty("responses");
         var analyze = json.RootElement.GetProperty("paths").GetProperty("/api/documents/analyze")
             .GetProperty("post").GetProperty("responses");
@@ -165,7 +165,7 @@ public sealed class OpenApiContractTests
         Assert.Equal([ApiDiagnosticCodes.ServerInternalError], Codes(generate, "500"));
 
         using var form = HttpApiTests.Form(DocxFixture.Create(DocxFixture.P(DocxFixture.Run("{Raw}"))), "{}");
-        using var failure = await client.PostAsync("/api/documents/generate", form);
+        using var failure = await client.PostAsync("/api/documents/render", form);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, failure.StatusCode);
         using var problem = JsonDocument.Parse(await failure.Content.ReadAsStringAsync());
         var actual = problem.RootElement.GetProperty("code").GetString()!;
@@ -182,7 +182,7 @@ public sealed class OpenApiContractTests
         response.EnsureSuccessStatusCode();
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         var paths = json.RootElement.GetProperty("paths");
-        Assert.Equal(new[] {"/api/documents/analyze", "/api/documents/generate", "/api/formatters", "/api/formatters/{name}/execute"},
+        Assert.Equal(new[] {"/api/documents/analyze", "/api/documents/render", "/api/formatters", "/api/formatters/{name}/execute"},
             paths.EnumerateObject().Select(item => item.Name).Order());
         var list = paths.GetProperty("/api/formatters").GetProperty("get");
         Assert.False(list.TryGetProperty("requestBody", out _));
@@ -192,7 +192,7 @@ public sealed class OpenApiContractTests
         Assert.Equal(new[] {"application/json"}, execute.GetProperty("requestBody").GetProperty("content")
             .EnumerateObject().Select(item => item.Name));
         Assert.True(execute.GetProperty("responses").TryGetProperty("404", out _));
-        var operation = paths.GetProperty("/api/documents/generate").GetProperty("post");
+        var operation = paths.GetProperty("/api/documents/render").GetProperty("post");
         var content = operation.GetProperty("responses").GetProperty("200").GetProperty("content");
         Assert.Equal(
             new[]
