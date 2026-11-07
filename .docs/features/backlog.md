@@ -11,6 +11,7 @@ Potential work for MonoReport. Items are not approved Features; scope and priori
 5. **Examples experience** — define DOCX/XLSX groups in `examples.json`; consider a drawer or side library instead of a permanent dropdown.
 6. **Diagnostics endpoint** — `/debug/` with application diagnostics as JSON and a generated DOCX report.
 7. **Russian name inflection (Feature 017)** — planned, schedule TBD; resume from the existing Feature Spec after resolving Morphos integration decisions.
+8. **DOCX/XLSX rejected-feature support review** — inventory currently rejected Word/Excel features (including images/drawings, charts, hyperlinks, comments, conditional formatting, data validation, Excel Tables, AutoFilter, PivotTables, Print Titles, panes and manual page breaks in repeated sheets). For each, assess why it is rejected, whether unchanged preservation is possible without repetition or cropping, and the complexity and value of supporting it with cropping and repetition. Recommend prioritized product improvements with risks and test requirements. Review only; do not implement or change compatibility guarantees without approval.
 
 ## Engineering Backlog
 

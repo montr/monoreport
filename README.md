@@ -1,175 +1,129 @@
 # MonoReport
 
-MonoReport generates DOCX reports, contracts, acts, protocols, invoices, and similar documents from Microsoft Word templates and JSON data. It requires .NET SDK 10. Microsoft Word is useful for authoring and visual verification but is not required by the engine.
+MonoReport generates DOCX and XLSX documents from templates and JSON data — reports, contracts, invoices, spreadsheets, and other business documents.
 
-1. MonoReport supports ordinary XLSX templates through Core, CLI and the existing HTTP document endpoints: scalar fields, nested vertical headers/footers and multirow blocks, recursive horizontal Cartesian expansion with branching sibling blocks and multirow headers, safe scalar A1 formulas including supported sheet/name/shared references, physical PrintArea crop, optional PrintArea on uncontrolled sheets, and styled rich-text substitutions. Recognized Excel save metadata and valid worksheet selections normalize during generation. Actual Excel save/edit/reopen acceptance remains Pending. See [XLSX compatibility and current limits](docs/xlsx-template-compatibility.md). The Playground provides an approximate read-only XLSX preview; download the output to recalculate and verify it in Excel.
+**Use the editors you already know.** Create and maintain templates in Microsoft Word, Excel, or other compatible editors. No need to learn a new report designer or specialized editing tools.
 
-## Projects
+**Preserve your document design.** Generated documents retain the template's layout, formatting, tables, styles, and supported Excel formulas.
 
-1. `MonoReport` is the reusable library.
-2. `MonoReport.Cli` is the command-line application and .NET tool.
-3. `MonoReport.Api` is the ASP.NET Core HTTP application.
-4. `web` is the React and TypeScript playground served by the API in production.
-5. `MonoReport.Formatter.Spellout` is the optional English and Russian number and currency wording formatter.
-6. The three test projects cover Core, CLI, HTTP, OpenAPI, and Open XML behavior.
+**Separate data from presentation.** Templates define the appearance, while JSON provides the content. Reuse templates with different data to generate consistent documents.
 
-## Build and verify
+## Table of Contents
 
-1. Run the backend checks from the repository root:
+1. [Ways to Use](#ways-to-use)
+2. [Playground & Examples](#playground--examples)
+3. [How It Works](#how-it-works)
 
-   ```bash
-   dotnet build MonoReport.slnx -c Release
-   dotnet test MonoReport.slnx -c Release
-   ```
+## Ways to Use
 
-2. Run the frontend checks from `web`:
+MonoReport can be used as an HTTP API, a .NET library, or a command-line tool.
 
-   ```bash
-   npm ci
-   npm test -- --run
-   npm run typecheck
-   npm run build
-   ```
+### HTTP API
 
-3. Start the API and UI for local development in separate terminals:
+Render documents or analyze templates through REST endpoints. Suitable for integration with web applications, backend services, and automation workflows.
 
-   ```bash
-   dotnet run --project MonoReport.Api
-   cd web && npm run dev
-   ```
+**Analyze a template:**
 
-## Template syntax
+```bash
+curl -X POST http://localhost:8080/api/documents/analyze \
+  -F "template=@Samples/sample.template.docx"
+```
 
-| Purpose | Syntax |
-| --- | --- |
-| Scalar value | `{Customer.Name}` |
-| Current property | `{./Name}` |
-| Current array element | `{.}` |
-| Parent loop context | `{../Number}` |
-| Root context | `{$.Company.Name}` |
-| Loop | `{For:Items}` … `{/For}` |
-| Condition | `{If:IsActive}` … `{Else}` … `{/If}` |
-| Literal DOCX region | `{Raw}` … `{/Raw}` |
-| Literal braces | `{{` and `}}` |
-| Text format | `{Name upper}`, `{Name lower}`, `{Name caps}`, `{Name firstcap}` |
-| Decimal format | `{Amount number "#,##0.00"}` or `{Amount number pattern="#,##0.00"}` |
-| ISO date format | `{Date date "dd MMM yyyy"}` or `{Date date pattern="dd MMM yyyy"}` |
-| Number words | `{Amount spellout}` |
-| Russian RUB words | `{Amount spellout mode="money" currency="RUB" language="ru"}` |
+Returns template validation results, diagnostics, and required data fields as JSON.
 
-1. Paths are ordinal and case-sensitive. A segment starts with a Unicode letter or underscore and then contains Unicode letters, digits, or underscores.
-2. `For` accepts JSON arrays, including mixed arrays of objects, strings, numbers, Booleans, and null. `{.}` renders the complete current primitive element and is valid only inside a loop.
-3. `If` accepts a JSON Boolean. Missing or null structural values select zero iterations or the false branch; incompatible non-null structural values are errors.
-4. A scalar expression supports at most one formatter. Formatter arguments are double-quoted strings: one optional leading positional argument and named arguments such as `pattern="N2"`. Names and keys are ordinal and case-sensitive. Colon patterns, bare values, single-quoted values, chaining, and formatter pipelines are invalid.
-5. `number` and `spellout` accept JSON numbers or invariant numeric strings. `spellout` defaults to integer number words; money mode requires an explicit `currency` (`RUB`, `USD`, or `EUR`). Its default language follows the configured culture (`ru` for Russian cultures and `en` otherwise). `date` accepts `YYYY-MM-DD` or an ISO date-time with `Z` or an explicit offset.
-6. Explicit null and empty strings render empty. Missing scalar values follow `GenerationOptions.MissingValues`.
-7. Inserted JSON text and emitted literal braces are never reinterpreted as template syntax.
-8. Raw markers occupy dedicated sibling paragraphs or dedicated sibling table rows under the same parent. Content between them is preserved literally without expression parsing, dependency extraction, brace unescaping, or data evaluation. Raw does not nest.
+**Render a document:**
 
-## DOCX compatibility
+```bash
+curl -X POST http://localhost:8080/api/documents/render \
+  -F "template=@Samples/sample.template.docx" \
+  -F "data=<Samples/sample.json" \
+  -o result.docx
+```
 
-For the support, preservation, and rejection policy for Microsoft Word features, see [DOCX Template Compatibility](docs/docx-template-compatibility.md). Feature 011 implements this approved contract in the current source and was accepted by the Product Owner on 2026-10-19.
+The `data` form field contains the JSON text loaded from `Samples/sample.json`.
 
-## DOCX structure
+**Run with Docker:**
 
-1. Scalar expressions work in ordinary paragraphs and tables in the main document, headers, footers, footnotes, and endnotes.
-2. Control markers must occupy dedicated sibling paragraphs or dedicated sibling table rows. Paragraph blocks may contain complete tables. Row blocks operate only on sibling rows of one table.
-3. Nested blocks and nested tables are supported when every block independently satisfies those boundaries.
-4. Repeated and conditional list paragraphs preserve their styles, numbering references, levels, and indentation. Word controls visible continuation; MonoReport does not force a restart per iteration.
-5. Horizontal merged cells are preserved. A row operation intersecting a vertical merge is rejected; a complete vertically merged table may be cloned by a paragraph block.
-6. Hyperlinks and Word fields are preserved as opaque content. Expressions inside hyperlink text or Word field instructions/results are not processed.
-7. Shapes, floating text boxes, SmartArt, charts, and other specialized content are preserved without expression processing.
-8. Templates containing unaccepted tracked revisions in supported content are rejected, including cell changes, move/custom-XML revision ranges, deleted payloads, property changes, and Office 2010 conflicts. Accept or reject revisions in Word before generation.
-9. Content controls (`w:sdt`) are fully opaque, including inline, block, row, and cell controls. Their XML, properties, binding, and relationships are preserved. Expressions inside are literal; expressions cannot cross entry or exit boundaries.
-10. Unaffected comments and bookmarks, valid constructs within or spanning Raw, and complete ranges that enclose a `For` or `If` operation are preserved unchanged. Local comment or bookmark attachments inside `For` or `If`, split ranges, and crossing arrangements are rejected. Complete annotations wholly attached to a removed standalone Raw delimiter are removed safely with unneeded comment definitions.
-11. Permission ranges retain local copying support with matching IDs. Drawing IDs remain unique across physical copies and package reservations, including images in repeated Raw content.
-12. Explicit internal hyperlinks are preserved only outside `For` and `If` when their targets remain valid and unchanged, including stable Raw targets. Internal links inside structural operations or links to removed, repeated, ambiguous, or invalidated targets are rejected without remapping. External hyperlink relationships and fragments are preserved unchanged.
-13. Word fields remain opaque: `REF`, `PAGEREF`, and field-code hyperlinks are not rewritten and their targets are not guaranteed to resolve after structural operations. Unrelated pre-existing unresolved anchors are preserved.
+Run the API and Playground using the prebuilt image from GitHub Container Registry:
 
-## Core API
+```bash
+docker run -d --name monoreport -p 8080:8080 ghcr.io/montr/monoreport:latest
+```
 
-1. Register services and inject `DocumentGenerator` and, when needed, `TemplateAnalyzer`:
+Open the Playground at [http://localhost:8080](http://localhost:8080). See the [repository](https://github.com/montr/monoreport) for deployment examples.
 
-   ```csharp
-   services.AddMonoReport();
-   services.AddMonoReportSpelloutFormatter(); // Optional; required for `{Amount spellout}`
+### .NET Library
 
-   using var template = File.OpenRead("template.docx");
-   using var data = JsonDocument.Parse(json);
-   GenerationResult result = generator.Generate(template, data, new GenerationOptions
-   {
-       Culture = CultureInfo.GetCultureInfo("en-GB"),
-       MissingValues = MissingValueBehavior.Error
-   });
-   ```
+Integrate document generation directly into .NET applications without an HTTP service.
 
-2. `Generate` reads from the template stream's current position and leaves caller-owned inputs open. A successful result contains independent document bytes, warnings and format metadata. `AddMonoReport()` composes both Word and XLSX handlers; existing manually composed Word constructors remain supported. A failed generation throws `TemplateException`, aggregates up to 100 ordered diagnostics, and returns no partial document.
-3. `GenerationOptions.Culture` controls output casing, decimal formatting, date formatting, and the default `spellout` language. It does not change invariant numeric input parsing or ISO date interpretation, and it never selects a currency.
-4. Core registers the six simple formatters. Spellout is an optional external formatter; register it explicitly with `services.AddMonoReportSpelloutFormatter()` when templates use `{Amount spellout}`. A custom registration key can be used in a template by passing that key to the extension.
-5. Add a project reference to `MonoReport.Formatter.Spellout` in applications that use its registration extension; this Feature does not distribute it as a NuGet package.
-6. Custom formatters implement Core's `IFormatter` contract and register as keyed services. The service key becomes the template name; the selected formatter supplies its own parameter metadata and validation.
+Register MonoReport with dependency injection:
 
-## Analyzer
+```csharp
+services.AddMonoReport();
+```
 
-1. `TemplateAnalyzer.Analyze(Stream)` uses the same parser and structural plan as generation without requiring JSON or producing a document.
-   Diagnostics retain the offending token or fragment in `field` and the precise part and paragraph/table coordinates in `location`. Their `message` includes bounded nearby template text where available so it can be found in Word; an incomplete fragment is never presented as a complete expression. Analyzer and generation use the same diagnostic messages in Core, API, CLI, and Playground.
-2. The result contains `valid`, `errors`, `warnings`, recursive `requirements`, and source-ordered `occurrences`.
-3. Each requirement contains only `name`, `type`, and optional nonempty `fields`. Allowed types are `object`, `array`, `value`, and `boolean`. Array fields describe expressions evaluated against elements; they are dependencies, not a homogeneous JSON schema.
-4. Each occurrence contains `kind`, the original `expression`, canonical `path`, document `part`, and source `location`. Duplicate occurrences are preserved. XLSX locations identify source worksheet names and A1 coordinates. XLSX analysis also accepts nested vertical templates and reports their source dependencies; a valid analysis does not validate JSON cardinality or data-dependent formula images. See the [XLSX compatibility guidance](docs/xlsx-template-compatibility.md) for generation boundaries.
-5. A loop using `{.}` can produce the requirement `{ "name": "Tags", "type": "array" }` and an occurrence at `$.Tags[]`; no artificial element property is inferred.
+Inject `DocumentGenerator` and generate a document (excerpt; assumes `generator` and `json` are available):
 
-## CLI
+```csharp
+using System.Text.Json;
 
-1. Generate from a JSON file:
+using var template = File.OpenRead("template.docx");
+using var data = JsonDocument.Parse(json);
 
-   ```bash
-   dotnet run --project MonoReport.Cli -- \
-     --template Samples/sample.template.docx \
-     --json-file Samples/sample.json \
-     --output result.docx
-   ```
+GenerationResult result = generator.Generate(template, data);
 
-2. Analyze without JSON:
+File.WriteAllBytes("result.docx", result.DocumentBytes);
+```
 
-   ```bash
-   dotnet run --project MonoReport.Cli -- \
-     --analyze --template Samples/sample.template.docx
-   ```
+### CLI
 
-3. JSON may instead come from `--json` or `--stdin`. Omit `--output` or use `-` for binary stdout. Errors and successful DOCX/XLSX warnings go to stderr in Core order with available diagnostic context. Successful generation with warnings exits 0; stdout remains binary.
+Generate documents from the terminal, scripts, or automated workflows.
 
-## HTTP API and playground
+Run from source:
 
-1. `POST /api/documents/render` accepts multipart fields `template`, `data`, and optional `culture`; success returns raw DOCX or XLSX bytes with format-specific MIME and deterministic filename. Actual package content selects the format, independently of the upload name/MIME. XLSX requires JSON object data.
-2. Generation supports explicit `Accept: multipart/mixed` for either format. The two attachments are `document.docx` or `document.xlsx` with its document MIME type, and `diagnostics.json` with `application/json`. JSON contains `format` (`docx` or `xlsx`), `fileName`, and the original ordered `warnings`, including an empty array. Entries retain `message`, `field`, `fieldCode`, `part`, `location`, `dataPath`, and optional XLSX `code`; DOCX warnings need no code.
-3. Missing Accept or wildcards alone keep binary output. An explicit multipart quality of zero never opts in. Higher quality among explicit supported document types and multipart wins; binary wins a tie. Other Accept values retain binary fallback. Generation responses set `Vary: Accept`; `X-MonoReport-Warning-Count` is present only when warnings exist in either representation. Generation and diagnostics are prepared before success publication; preparation failures return existing Problem Details without a document. Cancellation after transmission starts cannot retract bytes already sent.
-4. `POST /api/documents/analyze` accepts only multipart file field `template`; success returns the Analyzer contract even when `valid` is false.
-5. Swagger UI is available at `/docs` and OpenAPI at `/openapi/v1.json` when documentation is enabled.
-6. The browser playground loads the authoritative assets from `Samples`, can analyze a template to propose dependency-based JSON, and does not persist user data.
-7. `GET /api/formatters` returns an array of registered formatter metadata: `name`, `parameters` (each with `name`, CLR type name in `type`, and `required`), and `positionalParameter`. Discovery uses keyed `IFormatter` registrations, including custom keys and replacements; names are ordinal and case-sensitive.
-8. `POST /api/formatters/{name}/execute` accepts a JSON object with required `value`, optional `parameters` mapping parameter names to string literals, and optional `culture` (invariant when omitted or blank). Success returns a JSON object with `result`. Parameter binding, formatter validation, execution, and empty-value behavior are shared with document formatting. Invalid requests or parameters return 400, unknown formatter names return 404, unsupported content types return 415, and incompatible values return 422, using Problem Details. Parameter validation errors include an `errors` array.
+```bash
+dotnet run --project MonoReport.Cli -- \
+  --template Samples/sample.template.docx \
+  --json-file Samples/sample.json \
+  --output result.docx
+```
 
-## Sample and migration
+Alternatively, install MonoReport as a .NET tool and run it directly (confirm the published package and command names before using these commands):
 
-1. The maintained XLSX tender pair is `Samples/xlsx-tender.template.xlsx` and `Samples/xlsx-tender.json`. Follow the [authoring walkthrough](docs/xlsx-tender-walkthrough.md) for PrintArea, markers, positional data ordering, scopes and limitations.
-2. `Samples/sample.template.docx` and `Samples/sample.json` are the authoritative template and data pair. `Samples/sample.docx` is their generated output.
-3. Feature 010 removed legacy Word `MERGEFIELD`, `TableStart:`, `TableEnd:`, Word switch formatting, and programmatic formatter bindings from MonoReport interpretation. Existing Word fields remain untouched as ordinary opaque document content.
-4. Feature 011 changes control closes to `{/For}` and `{/If}`. The former spellings `EndFor` and `EndIf` are ordinary case-sensitive scalar property names, not aliases or migration controls.
-5. Convert legacy scalar fields to `{Path}`, collection markers to `{For:Path}` and `{/For}`, conditional closes to `{/If}`, and Word formatting switches to the built-in formatter syntax shown above. Remove comments, bookmarks, and internal links from repeated or conditional bodies, or move complete ranges outside the operation. Use Raw only for literal, structurally bounded Word content.
-6. Migrate legacy colon patterns such as `{Amount number:"N2"}` to positional or named double-quoted arguments. The old colon syntax and bare formatter arguments are intentionally rejected.
+```bash
+dotnet tool install --global MonoReport.Cli
 
-## Production hosting
+monoreport --template sample.template.docx \
+  --json-file sample.json \
+  --output result.docx
+```
 
-1. Publish the combined API and UI:
+## Playground & Examples
 
-   ```bash
-   dotnet publish MonoReport.Api/MonoReport.Api.csproj -c Release -o artifacts/publish
-   ASPNETCORE_URLS=http://0.0.0.0:8080 dotnet artifacts/publish/MonoReport.Api.dll
-   ```
+Explore MonoReport in the browser. Try DOCX and XLSX templates with sample JSON data, analyze templates, preview generated documents, and download the results.
 
-2. Or build and run the container:
+**[Try the Playground & Examples](https://demo.monoreport.net)**
 
-   ```bash
-   docker build -t monoreport:local .
-   docker run --rm -p 8080:8080 monoreport:local
-   ```
+## How It Works
+
+MonoReport combines a DOCX or XLSX template with JSON data to generate a document.
+
+1. **Create a template** in Word, Excel, or another compatible editor.
+2. **Provide JSON data** containing values and collections.
+3. **Generate the document** using the API, .NET library, CLI, or Playground.
+
+### DOCX Templates
+
+Insert JSON values into Word documents, repeat paragraphs and table rows, add conditional content, and format values while retaining supported document styling.
+
+[DOCX Template Guide](docs/docx-template-guide.md) · [DOCX Compatibility](docs/docx-template-compatibility.md)
+
+### XLSX Templates
+
+Populate Excel cells, expand rows and columns from JSON collections, and preserve formatting and supported formulas.
+
+[XLSX Template Guide](docs/xlsx-template-guide.md) · [XLSX Compatibility](docs/xlsx-template-compatibility.md)
+
+## License
+
+[Apache-2.0 license](LICENSE)

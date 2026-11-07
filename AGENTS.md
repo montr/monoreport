@@ -48,6 +48,7 @@
 1. Write Skills, project rules, specifications, plans, decisions, and other project documentation in English; Product Owner discussions may use another language.
 2. Use explicitly sequential numbered lists, not bullets; keep references unambiguous.
 3. Do not add code-formatting examples unless the Product Owner requests them.
+4. Do not modify README or other user-facing documentation unless explicitly requested by the Product Owner. When changes affect existing documentation, report which documents need updating and recommend specific corrections without modifying them.
 
 ## UI Development
 
