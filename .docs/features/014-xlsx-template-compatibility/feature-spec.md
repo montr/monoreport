@@ -1,6 +1,6 @@
 # Feature 014 — XLSX Template Compatibility
 
-**Status:** Approved by the Product Owner; Stage 1 implementation authorized on 2026-10-26 under the approved Implementation Plan. Stage 1 remains Review, not Accepted. Product Owner manual Excel evidence is recorded on 2026-10-27; section 5 reconciles completed verification and remaining mandatory evidence without changing the approved requirements.
+**Status:** Approved by the Product Owner; implementation work is closed for now by Product Owner direction on 2026-11-08. Stage 1 has not been accepted. The remaining manual Excel acceptance evidence in section 5 is deferred, not completed or waived; approved requirements remain unchanged.
 
 ## 1. Goal and scope
 

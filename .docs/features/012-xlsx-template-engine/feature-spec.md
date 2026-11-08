@@ -1,6 +1,6 @@
 # Feature 012 — XLSX Template Engine
 
-**Status:** Approved baseline and Owner amendments remain authoritative. M3.14 and M4 are Owner-accepted; M4 was accepted on 2026-10-24 after public activation and the verification recorded in implementation-progress.md. The earlier bounded activation acceptance and its Git integrity confirmation are historical; recorded fingerprints remain historical evidence and are not represented as matching. M5 implementation completed on 2026-10-24 under Owner-authorized transport completion; verification is recorded in implementation-progress.md. The malformed-quality review correction is implemented; independent M5 re-review and formal Owner M5 acceptance remain pending. Microsoft Excel E1, M6, and final Feature 012 acceptance remain pending. Milestone implementation completion does not imply final Feature acceptance.
+**Status:** Closed for now by Product Owner direction on 2026-11-08. M3.14 and M4 are Owner-accepted; M5 is Owner-accepted and M6 technical verification is complete, as recorded in implementation-progress.md. The mandatory §8.3 architecture retrospective and Microsoft Excel E1/A14 remain outstanding and deferred; they are not marked complete or waived. Milestone implementation completion does not imply final Feature acceptance.
 **Scope:** XLSX template processing through existing MonoReport Core, CLI and HTTP interfaces, JSON binding, nested two-axis expansion, and Excel-compatible output. Preserve existing DOCX contracts.
 
 ## 1. Goal

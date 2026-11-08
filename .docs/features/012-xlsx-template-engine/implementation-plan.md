@@ -1,6 +1,6 @@
 # Feature 012 — Developer-owned Implementation Plan
 
-**Prepared:** 2026-10-20. **Amended:** 2026-10-24. **Current status:** M3.14, M4 and M5 are Owner-accepted; the latest implementation-progress.md handoff is authoritative for M5 and its independent re-review PASS. M6 technical verification is complete: A1–A19 reconciled, bounded capacity observations recorded in [capacity-results.md](capacity-results.md), Release build and V9 passed. Stop for Owner review before the mandatory §8.3 architecture retrospective, which has not started. Microsoft Excel E1 is deferred until after UI implementation; E1/A14 remain mandatory for final acceptance. Feature 012 remains open. Earlier milestone restrictions and fingerprint statements below retain their historical scope; no final acceptance or matching historical fingerprints are inferred.
+**Prepared:** 2026-10-20. **Amended:** 2026-11-08. **Current status:** Feature 012 is closed for now by Product Owner direction. M3.14, M4 and M5 are Owner-accepted; M6 technical verification is complete: A1–A19 reconciled, bounded capacity observations recorded in [capacity-results.md](capacity-results.md), Release build and V9 passed. The mandatory §8.3 architecture retrospective and Microsoft Excel E1/A14 remain outstanding and deferred, not completed or waived. Earlier milestone restrictions and fingerprint statements below retain their historical scope; no final acceptance or matching historical fingerprints are inferred.
 
 ## 1. Authority, scope, and repository baseline
 
