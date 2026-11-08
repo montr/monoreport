@@ -28,7 +28,10 @@ internal sealed record TemplatePath(
     bool CurrentElement,
     IReadOnlyList<string> Segments);
 
-internal sealed record TemplateFormatter(string Name, IReadOnlyDictionary<string, FormatterOperand> Arguments);
+internal sealed record TemplateFormatter(string Name, IReadOnlyDictionary<string, FormatterOperand> Arguments)
+{
+    internal SemanticType? SemanticType { get; init; }
+}
 
 internal sealed record TemplateExpression(
     TemplateExpressionKind Kind,

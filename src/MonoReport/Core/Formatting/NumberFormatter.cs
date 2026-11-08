@@ -7,7 +7,10 @@ namespace MonoReport.Core.Formatting;
 internal sealed class NumberFormatter(InvariantDecimalParser decimalParser) : IFormatter
 {
     private static readonly FormatterMetadata MetadataValue =
-        new([new FormatterParameter("pattern", typeof(string), true)], "pattern");
+        new([new FormatterParameter("pattern", typeof(string), true)], "pattern")
+        {
+            SemanticType = SemanticType.Number
+        };
 
     public FormatterMetadata Metadata => MetadataValue;
 

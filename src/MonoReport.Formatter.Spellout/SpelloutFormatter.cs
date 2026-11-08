@@ -14,7 +14,10 @@ internal sealed class SpelloutFormatter(InvariantDecimalParser decimalParser, Sp
         new FormatterParameter(Parameters.Gender, typeof(string), false),
         new FormatterParameter(Parameters.IncludeMinor, typeof(bool), false),
         new FormatterParameter(Parameters.Capitalize, typeof(bool), false)
-    ]);
+    ])
+    {
+        SemanticType = SemanticType.Number
+    };
 
     public FormatterValidationResult Validate(IReadOnlyDictionary<string, FormatterOperand> parameters)
     {

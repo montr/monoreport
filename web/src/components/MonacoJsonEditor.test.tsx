@@ -40,6 +40,18 @@ describe("Monaco JSON editor", () => {
     expect(monaco.create).toHaveBeenCalledWith(expect.any(HTMLDivElement), expect.objectContaining({ model: monaco.model, pasteAs: { enabled: false } }));
   });
 
+  it("configures a sample preview as a read-only navigable JSON editor", () => {
+    render(<MonacoJsonEditor value={text} onChange={() => undefined} readOnly ariaLabel="Sample JSON preview" minimap={false} />);
+    expect(monaco.create).toHaveBeenCalledWith(expect.any(HTMLDivElement), expect.objectContaining({
+      ariaLabel: "Sample JSON preview",
+      folding: true,
+      lineNumbers: "on",
+      minimap: { enabled: false },
+      readOnly: true,
+      scrollbar: { vertical: "auto", horizontal: "auto" }
+    }));
+  });
+
   it("uses the local editor for value updates and disposes only its owned resources", () => {
     const onChange = vi.fn();
     const view = render(<MonacoJsonEditor value={text} onChange={onChange} />);

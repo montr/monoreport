@@ -8,9 +8,17 @@ using Microsoft.Net.Http.Headers;
 
 namespace MonoReport.Api.Services;
 
+public enum MultipartRequestOperation
+{
+    Generate,
+    Analyze,
+    Sample
+}
+
 public sealed class MultipartRequestReader
 {
-    public async Task<IFormCollection> Read(HttpRequest request, bool analysis, CancellationToken cancellation)
+    public async Task<IFormCollection> Read(HttpRequest request, MultipartRequestOperation operation,
+        CancellationToken cancellation)
     {
         if (!MediaTypeHeaderValue.TryParse(request.ContentType, out var media) ||
             !string.Equals(media.MediaType.Value, "multipart/form-data", StringComparison.OrdinalIgnoreCase))
@@ -32,12 +40,23 @@ public sealed class MultipartRequestReader
         }
 
         RequireFile(form, "template");
-        if (analysis && (form.Keys.Any(key => key != "template") || form.Files.Any(f => f.Name != "template")))
+        if (operation == MultipartRequestOperation.Analyze &&
+            (form.Keys.Any(key => key != "template") || form.Files.Any(f => f.Name != "template")))
             throw new RequestInputException(400, ApiDiagnosticCodes.RequestUnexpectedInput);
-        if (!analysis)
+        if (operation == MultipartRequestOperation.Generate)
         {
             RequireText(form, "data", true);
             RequireText(form, "culture", false);
+        }
+        if (operation == MultipartRequestOperation.Sample)
+        {
+            if (form.Keys.Any(key => key is not ("template" or SampleJsonRequestFields.ItemsPerCollection or
+                    SampleJsonRequestFields.Values)) ||
+                form.Files.Any(file => file.Name is not ("template" or SampleJsonRequestFields.ItemsPerCollection or
+                    SampleJsonRequestFields.Values)))
+                throw new RequestInputException(400, ApiDiagnosticCodes.RequestUnexpectedInput);
+            RequireText(form, SampleJsonRequestFields.ItemsPerCollection, false, true);
+            RequireText(form, SampleJsonRequestFields.Values, false, true);
         }
 
         return form;
@@ -61,7 +80,7 @@ public sealed class MultipartRequestReader
         if (files[0].Length == 0) throw new RequestInputException(400, ApiDiagnosticCodes.RequestEmptyInput, name);
     }
 
-    private static void RequireText(IFormCollection form, string name, bool required)
+    private static void RequireText(IFormCollection form, string name, bool required, bool rejectBlank = false)
     {
         var files = form.Files.Count(f => f.Name == name);
         var values = form[name];
@@ -69,7 +88,7 @@ public sealed class MultipartRequestReader
         if (required && count == 0) throw new RequestInputException(400, ApiDiagnosticCodes.RequestMissingInput, name);
         if (count > 1) throw new RequestInputException(400, ApiDiagnosticCodes.RequestDuplicateInput, name);
         if (files != 0) throw new RequestInputException(400, ApiDiagnosticCodes.RequestInvalidInput, name);
-        if (required && string.IsNullOrWhiteSpace(values.ToString()))
+        if ((required || rejectBlank && count != 0) && string.IsNullOrWhiteSpace(values.ToString()))
             throw new RequestInputException(400, ApiDiagnosticCodes.RequestEmptyInput, name);
     }
 }

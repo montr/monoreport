@@ -36,6 +36,7 @@ export interface TemplateOccurrence {
   path: string;
   part: string;
   location: string;
+  semanticType?: "number" | "date" | "boolean";
 }
 
 export interface TemplateAnalysis {

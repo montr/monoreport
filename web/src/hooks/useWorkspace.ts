@@ -62,10 +62,11 @@ export function useWorkspace() {
   const [pendingExample, setPendingExample] = useState<string>();
   const [exampleLoading, setExampleLoading] = useState(true);
   const contentRevision = useRef(0);
+  const sampleSettingsRevision = useRef(0);
   const exampleLoadId = useRef(0);
   const currentTemplate = useRef<File | undefined>(undefined);
   const currentJson = useRef(json);
-  const { result, resultInputs, analysis, clearAnalysis, closeResult, resetDocumentActions, disposeDocumentActions, jsonSettingsOpen, setJsonSettingsOpen, jsonSettings, operationStatus, pending, invalidateOperation, generate, analyze, submitJsonSettings } = useDocumentActions({ template, datasetId, json, selectedTemplate: templateEntry, currentTemplate, contentRevision, datasetRecord, setErrors, openDiagnostics, setActive, addDataset, confirmDiscard });
+  const { result, resultInputs, analysis, analysisWireResult, sampleCandidate, sampleFailure, acceptSample, clearAnalysis, closeResult, resetDocumentActions, disposeDocumentActions, jsonSettingsOpen, setJsonSettingsOpen, captureSampleValidation, jsonSettings, operationStatus, pending, invalidateOperation, generate, analyze, submitJsonSettings } = useDocumentActions({ template, datasetId, json, selectedTemplate: templateEntry, currentTemplate, contentRevision, datasetRecord, setErrors, openDiagnostics, setActive, addDataset, onSettingsRevision: sampleSettingsRevision });
   generateAction.current = () => void generate();
   const { openData, chooseDataFile, saveData, recoverData, saving, savingRef, dataInput, reopenDataId } = useDatasetFileActions({ files, resetRevision, contentRevision, datasetRecord, confirmDiscard, addDataset, setDatasetRecord, setErrors, fileError, downloadBlob, modal, feedback });
   const { openTemplate, recoverTemplate, acceptTemplate, selected, drop, clearTemplate, dragging, setDragging, fileInput, reopenTemplateId } = useTemplateFileActions({ files, resetRevision, contentRevision, templateRecord, nextId, selectTemplateEntry, setErrors, fileError, openDiagnostics });
@@ -246,6 +247,16 @@ export function useWorkspace() {
     }
   }
 
+  async function copySampleJson() {
+    if (!sampleCandidate) return;
+    try {
+      await navigator.clipboard.writeText(sampleCandidate.json);
+      void feedback.success("Sample JSON copied to clipboard.");
+    } catch {
+      void feedback.error("The sample JSON could not be copied to the clipboard.");
+    }
+  }
+
   async function copyProblems() {
     try {
       await navigator.clipboard.writeText(JSON.stringify(errors, null, 2));
@@ -353,13 +364,16 @@ export function useWorkspace() {
     dialogs: {
       contexts: { modalContext, feedbackContext },
       shortcuts: { shortcutsOpen, setShortcutsOpen, shortcutGroups },
-      generateDataset: { jsonSettingsOpen, pending, submitJsonSettings, invalidateOperation, setJsonSettingsOpen, token, jsonSettings }
+      generateDataset: { jsonSettingsOpen, pending, submitJsonSettings, invalidateOperation, setJsonSettingsOpen, captureSampleValidation, token, jsonSettings, sampleCandidate, sampleFailure, acceptSample, modified,
+        copySampleJson,
+        settingsChanged: () => { sampleSettingsRevision.current += 1; invalidateOperation(); } }
     },
     layout: { workspaceKey, problemsOpen, onProblemsOpenChange: changeProblemsOpen },
     header: { examples, pendingExample, selectedExample, chooseExample, generateShortcut, token, pending, dataset, selectedTemplate: templateEntry, generate, template, analyze, setJsonSettingsOpen, isMac, setShortcutsOpen, saving, clearing, clearLocalData },
     datasetPanel: { dataset, modified, token, recoverData, editor, json, changeJson, wordWrap, changeWordWrap, chooseDataFile, editorAvailable, saveData, openLabel, commandKey, saveAsShortcut, formatShortcut, saving, formatJson, copyJson, dataInput, reopenDataId, openData },
     documentPanel: { active, setActive, result, selectedTemplate: templateEntry, resultInputs, pending, exampleLoading, resultCurrent, dragging, setDragging, recoverTemplate, drop, files, openTemplate, openLabel, acceptTemplate, template, downloadBlob, clearTemplate, closeResult, fileInput, selected },
-    diagnosticsPanel: { token, diagnosticsTab, setDiagnosticsTab, changeProblemsOpen, errors, setErrors, copyProblems, analysis },
+    diagnosticsPanel: { token, diagnosticsTab, setDiagnosticsTab, changeProblemsOpen, errors, setErrors, copyProblems, analysis, analysisWireResult,
+      copyAnalysis: async () => { try { await navigator.clipboard.writeText(JSON.stringify(analysisWireResult ?? {}, null, 2)); void feedback.success("Analysis results copied to clipboard."); } catch { void feedback.error("The analysis results could not be copied to the clipboard."); } } },
     footer: { token, operationStatus, errors, openDiagnostics, problemsOpen, diagnosticsTab }
   };
 }

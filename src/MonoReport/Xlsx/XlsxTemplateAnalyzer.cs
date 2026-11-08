@@ -26,11 +26,7 @@ public sealed class XlsxTemplateAnalyzer(
         try
         {
             using var document = SpreadsheetDocument.Open(package, false);
-            var context = new XlsxOperationContext(new GenerationOptions()) {SourceBytes = package.Length};
-            var plan = _planner.Plan(_reader.Read(document, context), context);
-            var staticGeometry = _geometry.Preflight(plan, context, true);
-            _formulas.ValidateStaticReferences(plan, context);
-            if (staticGeometry is not null) _formulas.Finalize(plan, staticGeometry, context);
+            var plan = Inspect(document, package.Length);
             return new TemplateAnalysisResult([], requirements: plan.Requirements, occurrences: plan.Occurrences);
         }
         catch (TemplateException error)
@@ -46,5 +42,16 @@ public sealed class XlsxTemplateAnalyzer(
                     "The XLSX package is inconsistent. Repair or re-save the workbook with valid parts and relationships.")
             ]);
         }
+    }
+
+    internal XlsxTemplatePlan Inspect(SpreadsheetDocument document, long sourceBytes)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        var context = new XlsxOperationContext(new GenerationOptions()) {SourceBytes = sourceBytes};
+        var plan = _planner.Plan(_reader.Read(document, context), context);
+        var staticGeometry = _geometry.Preflight(plan, context, true);
+        _formulas.ValidateStaticReferences(plan, context);
+        if (staticGeometry is not null) _formulas.Finalize(plan, staticGeometry, context);
+        return plan;
     }
 }

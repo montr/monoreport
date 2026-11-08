@@ -8,7 +8,8 @@ const repositoryUrl = "https://github.com/montr/monoreport";
 export function WorkspaceFooter({ model }: { model: Workspace["footer"] }) {
   const { token, operationStatus, errors, openDiagnostics, problemsOpen, diagnosticsTab } = model;
   const statusLabel = operationStatus.outcome === "running"
-    ? operationStatus.action === "Generate" ? "Generating..." : "Analyzing..."
+    ? operationStatus.action === "Generate" ? "Generating..."
+      : operationStatus.action === "Generate Dataset" ? "Generating sample..." : "Analyzing..."
     : operationStatus.outcome === "ready" ? "Ready"
       : operationStatus.outcome === "success" ? "Success"
         : operationStatus.outcome === "error" ? "Error" : "Cancelled";

@@ -22,7 +22,7 @@ function requirementNodes(fields: TemplateRequirement[], colors: { name: string;
 export function AnalysisView({ analysis }: { analysis?: TemplateAnalysis }) {
   const { token } = theme.useToken();
   const headingStyle = { fontSize: 12, marginTop: token.marginXS, marginBottom: token.marginXXS };
-  if (!analysis) return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No analysis yet." />;
+  if (!analysis) return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No analysis" />;
   return (
     <ConfigProvider
       componentSize="small"
@@ -68,6 +68,9 @@ export function AnalysisView({ analysis }: { analysis?: TemplateAnalysis }) {
       </Flex>
 
       <Typography.Title level={5} style={headingStyle}>Requirements</Typography.Title>
+      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+        Requirement types describe JSON structure; formatter hints are advisory and describe value meaning.
+      </Typography.Text>
       {analysis.requirements.length
         ? (
           <Tree
@@ -94,6 +97,7 @@ export function AnalysisView({ analysis }: { analysis?: TemplateAnalysis }) {
           { title: "Kind", dataIndex: "kind", width: 88 },
           { title: "Expression", dataIndex: "expression", width: 240, ellipsis: { showTitle: true } },
           { title: "Path", dataIndex: "path", width: 220, ellipsis: { showTitle: true } },
+          { title: "Formatter hint", dataIndex: "semanticType", width: 120 },
           { title: "Location", dataIndex: "location" }
         ]}
       />

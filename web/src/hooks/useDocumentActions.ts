@@ -2,7 +2,7 @@ import { Form } from "antd";
 import { useRef, useState, type Dispatch, type RefObject, type SetStateAction } from "react";
 import { analyzeTemplate, AnalysisFailure } from "../services/analysis";
 import { generateDocument, GenerationFailure } from "../services/generation";
-import { SampleJson, type SampleJsonSettings } from "../services/sampleJson";
+import { requestSampleJson, SampleJsonFailure, type SampleJsonSettings } from "../services/sampleJsonRequest";
 import type { Diagnostic, GeneratedDocument, TemplateAnalysis, Dataset, DiagnosticsTab, Problem, Tab, TemplateEntry } from "../types";
 
 type Operation = "generate" | "analyze" | "generate-json";
@@ -70,18 +70,40 @@ interface Props {
   openDiagnostics(tab: DiagnosticsTab): void;
   setActive: Dispatch<SetStateAction<Tab>>;
   addDataset(record: Omit<Dataset, "id">): void;
-  confirmDiscard(record: Dataset | undefined, title: string, content: string, okText: string): Promise<boolean>;
+  onSettingsRevision: RefObject<number>;
 }
 
-export function useDocumentActions({ template, datasetId, json, selectedTemplate, currentTemplate, contentRevision, datasetRecord, setErrors, openDiagnostics, setActive, addDataset, confirmDiscard }: Props) {
+export function useDocumentActions({ template, datasetId, json, selectedTemplate, currentTemplate, contentRevision, datasetRecord, setErrors, openDiagnostics, setActive, addDataset, onSettingsRevision }: Props) {
   const [result, setResult] = useState<GeneratedDocument>();
   const [resultInputs, setResultInputs] = useState<{ datasetId: string | undefined; json: string; template: File; templateSource: "Example file" | "Local file" }>();
   const [analysis, setAnalysis] = useState<TemplateAnalysis>();
-  const analysisCache = useRef<{ source: File; analysis: TemplateAnalysis } | undefined>(undefined);
-  const [sampleJson] = useState(() => new SampleJson(Math.random));
-  const [jsonSettingsOpen, setJsonSettingsOpen] = useState(false);
+  const [analysisWireResult, setAnalysisWireResult] = useState<unknown>();
+  const [sampleCandidate, setSampleCandidate] = useState<{ json: string; warnings: Diagnostic[]; template: File; datasetId: string | undefined; revision: number; settingsRevision: number; requestId: number }>();
+  const [sampleFailure, setSampleFailure] = useState<Diagnostic[]>();
+  const [jsonSettingsOpen, setJsonSettingsOpenState] = useState(false);
+  const dialogSessionRevision = useRef(0);
   const [jsonSettings] = Form.useForm<SampleJsonSettings>();
   const { operationStatus, setOperationStatus, runningOperation, pending, setPending, operationId, request, startOperation, finishOperation, invalidateOperation } = useDocumentActionLifecycle();
+
+  function setJsonSettingsOpen(open: boolean) {
+    dialogSessionRevision.current += 1;
+    setJsonSettingsOpenState(open);
+  }
+
+  function captureSampleValidation() {
+    const expectedOperation = operationId.current;
+    const expectedContentRevision = contentRevision.current;
+    const expectedSettingsRevision = onSettingsRevision.current;
+    const expectedTemplate = currentTemplate.current;
+    const expectedDatasetId = datasetRecord.current.id;
+    const expectedDialogSession = dialogSessionRevision.current;
+    return () => operationId.current === expectedOperation &&
+      contentRevision.current === expectedContentRevision &&
+      onSettingsRevision.current === expectedSettingsRevision &&
+      currentTemplate.current === expectedTemplate &&
+      datasetRecord.current.id === expectedDatasetId &&
+      dialogSessionRevision.current === expectedDialogSession;
+  }
 
   async function generate() {
     if (pending || runningOperation.current || jsonSettingsOpen) return;
@@ -93,15 +115,6 @@ export function useDocumentActions({ template, datasetId, json, selectedTemplate
       openDiagnostics("problems");
       return;
     }
-    try {
-      JSON.parse(json);
-    } catch {
-      setErrors(diagnostic("Invalid JSON", "Fix the JSON syntax before generating a document.").map(item => ({ ...item, action: "Generate" })));
-      finishOperation("error");
-      openDiagnostics("problems");
-      return;
-    }
-
     const operation = operationId.current;
     const expectedRevision = contentRevision.current;
     const controller = new AbortController();
@@ -136,10 +149,10 @@ export function useDocumentActions({ template, datasetId, json, selectedTemplate
     return [...value.errors.map(item => ({ ...item, action, severity: "Error" as const })), ...value.warnings.map(item => ({ ...item, action, severity: "Warning" as const }))];
   }
 
-  async function analyze(settings?: SampleJsonSettings) {
-    if (pending || runningOperation.current || !template || (!settings && jsonSettingsOpen)) return;
+  async function analyze() {
+    if (pending || runningOperation.current || !template || jsonSettingsOpen) return;
     invalidateOperation();
-    const action: OperationAction = settings ? "Generate Dataset" : "Analyze";
+    const action: OperationAction = "Analyze";
     startOperation(action);
     const operation = operationId.current;
     const expectedRevision = contentRevision.current;
@@ -147,29 +160,21 @@ export function useDocumentActions({ template, datasetId, json, selectedTemplate
     const controller = new AbortController();
     request.current = controller;
     setErrors([]);
-    setPending(settings ? "generate-json" : "analyze");
-    if (!settings) {
-      analysisCache.current = undefined;
-      openDiagnostics("analysis");
-    }
+    setPending("analyze");
+    openDiagnostics("analysis");
     try {
-      const analyzed = settings && analysisCache.current?.source === source ? analysisCache.current.analysis : await analyzeTemplate(source, controller.signal);
+      const analyzed = await analyzeTemplate(source, controller.signal);
       if (operationId.current !== operation || contentRevision.current !== expectedRevision || currentTemplate.current !== source) return;
-      analysisCache.current = { source, analysis: analyzed };
-      setAnalysis(analyzed);
-      setErrors(analysisProblems(analyzed, action));
-      if (settings) {
-        const proposed = sampleJson.generate(analyzed.requirements, settings);
-        // Finish before selecting the new dataset, which invalidates pending input work.
-        finishOperation("success");
-        addDataset({ name: generatedDatasetFilename(source.name), kind: "generated", text: proposed });
-        setJsonSettingsOpen(false);
-      } else finishOperation("success");
+      setAnalysis(analyzed.analysis);
+      setAnalysisWireResult(analyzed.wireResult);
+      setErrors(analysisProblems(analyzed.analysis, action));
+      finishOperation("success");
     } catch (error) {
       if (operationId.current !== operation || contentRevision.current !== expectedRevision) return;
       if (error instanceof DOMException && error.name === "AbortError") { finishOperation("cancelled"); return; }
       if (error instanceof AnalysisFailure && error.analysis) {
         setAnalysis(error.analysis);
+        setAnalysisWireResult(error.wireResult);
         const problems = analysisProblems(error.analysis, action);
         setErrors(error.analysis.errors.length ? problems : [...problems, ...error.diagnostics.map(item => ({ ...item, action }))]);
       } else {
@@ -177,10 +182,7 @@ export function useDocumentActions({ template, datasetId, json, selectedTemplate
         setErrors(problems.map(item => ({ ...item, action })));
       }
       finishOperation("error");
-      if (settings) {
-        setJsonSettingsOpen(false);
-        openDiagnostics("problems");
-      }
+      openDiagnostics("problems");
     } finally {
       if (operationId.current === operation) {
         request.current = undefined;
@@ -189,28 +191,63 @@ export function useDocumentActions({ template, datasetId, json, selectedTemplate
     }
   }
 
-  async function submitJsonSettings() {
-    if (pending || runningOperation.current) return;
+  async function submitJsonSettings(settings: SampleJsonSettings) {
+    if (pending || runningOperation.current || !template) return;
+    invalidateOperation();
     const started = performance.now();
+    startOperation("Generate Dataset", started);
     const operation = operationId.current;
     const expectedRevision = contentRevision.current;
+    const source = template;
+    const selectedDatasetId = datasetRecord.current.id;
+    const settingsRevision = onSettingsRevision.current;
+    const controller = new AbortController();
+    request.current = controller;
+    setSampleCandidate(undefined);
+    setSampleFailure(undefined);
+    setErrors([]);
+    setPending("generate-json");
     try {
-      const settings = await jsonSettings.validateFields();
+      const response = await requestSampleJson(source, settings, controller.signal);
+      if (operationId.current !== operation || contentRevision.current !== expectedRevision || currentTemplate.current !== source || datasetRecord.current.id !== selectedDatasetId || onSettingsRevision.current !== settingsRevision) return;
+      const serialized = JSON.stringify(response.data, null, 2);
+      setSampleCandidate({ json: serialized, warnings: response.warnings, template: source, datasetId: selectedDatasetId, revision: expectedRevision, settingsRevision, requestId: operation });
+      setSampleFailure(undefined);
+      setErrors(response.warnings.map(item => ({ ...item, action: "Generate Dataset", severity: "Warning" })));
+      finishOperation("success");
+    } catch (error) {
       if (operationId.current !== operation || contentRevision.current !== expectedRevision) return;
-      if (!await confirmDiscard(datasetRecord.current, "Generate dataset?", "Replace the current dataset, discarding unsaved changes?", "Replace")) return;
-      if (operationId.current !== operation || contentRevision.current !== expectedRevision) return;
-      await analyze(settings);
-    } catch {
-      if (operationId.current !== operation || contentRevision.current !== expectedRevision) return;
-      startOperation("Generate Dataset", started);
-      setErrors(diagnostic("Invalid settings", "Items per collection must be a positive integer.").map(item => ({ ...item, action: "Generate Dataset" })));
+      if (error instanceof DOMException && error.name === "AbortError") { finishOperation("cancelled"); return; }
+      const problems = error instanceof SampleJsonFailure ? error.diagnostics : diagnostic("Sample generation failed", "The sample could not be generated.");
+      setSampleFailure(problems);
+      setErrors(problems.map(item => ({ ...item, action: "Generate Dataset" })));
       finishOperation("error");
+      openDiagnostics("problems");
+    } finally {
+      if (operationId.current === operation) { request.current = undefined; setPending(undefined); }
     }
   }
 
+  function acceptSample() {
+    const candidate = sampleCandidate;
+    if (!candidate || operationId.current !== candidate.requestId || contentRevision.current !== candidate.revision || currentTemplate.current !== candidate.template || datasetRecord.current.id !== candidate.datasetId || onSettingsRevision.current !== candidate.settingsRevision) return;
+    addDataset({ name: generatedDatasetFilename(candidate.template.name), kind: "generated", text: candidate.json });
+    setErrors(current => current.filter(item => item.action !== "Generate Dataset"));
+    setSampleCandidate(undefined);
+    setSampleFailure(undefined);
+    setJsonSettingsOpen(false);
+  }
+
+  function invalidateSample() {
+    setSampleCandidate(undefined);
+    setSampleFailure(undefined);
+    setErrors(current => current.filter(item => item.action !== "Generate Dataset"));
+    invalidateOperation();
+  }
+
   function clearAnalysis() {
-    analysisCache.current = undefined;
     setAnalysis(undefined);
+    setAnalysisWireResult(undefined);
   }
 
   function closeResult() {
@@ -222,6 +259,8 @@ export function useDocumentActions({ template, datasetId, json, selectedTemplate
   function resetDocumentActions() {
     setResult(undefined);
     setResultInputs(undefined);
+    setSampleCandidate(undefined);
+    setSampleFailure(undefined);
     clearAnalysis();
     runningOperation.current = undefined;
     setOperationStatus({ outcome: "ready" });
@@ -233,5 +272,5 @@ export function useDocumentActions({ template, datasetId, json, selectedTemplate
     request.current?.abort();
   }
 
-  return { result, resultInputs, analysis, clearAnalysis, closeResult, resetDocumentActions, disposeDocumentActions, jsonSettingsOpen, setJsonSettingsOpen, jsonSettings, operationStatus, pending, invalidateOperation, generate, analyze, submitJsonSettings };
+  return { result, resultInputs, analysis, analysisWireResult, sampleCandidate, sampleFailure, acceptSample, clearAnalysis, closeResult, resetDocumentActions, disposeDocumentActions, jsonSettingsOpen, setJsonSettingsOpen, captureSampleValidation, jsonSettings, operationStatus, pending, invalidateOperation: invalidateSample, generate, analyze, submitJsonSettings };
 }

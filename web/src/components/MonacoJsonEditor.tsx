@@ -15,9 +15,14 @@ interface Props {
   wordWrap?: boolean;
   onWordWrapChange?(enabled: boolean): void;
   fileCommands?: { open(): void; save?(): void; saveAs?(): void };
+  readOnly?: boolean;
+  ariaLabel?: string;
+  minimap?: boolean;
+  stickyScroll?: boolean;
 }
 
-export function MonacoJsonEditor({ value, datasetId, onChange, ref, wordWrap = false, onWordWrapChange, fileCommands }: Props) {
+export function MonacoJsonEditor({ value, datasetId, onChange, ref, wordWrap = false, onWordWrapChange, fileCommands,
+  readOnly = false, ariaLabel = "Dataset", minimap = true, stickyScroll = true }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const props = useRef({ onChange, onWordWrapChange, fileCommands, wordWrap });
@@ -47,12 +52,18 @@ export function MonacoJsonEditor({ value, datasetId, onChange, ref, wordWrap = f
       model,
       theme: "vs",
       automaticLayout: true,
-      minimap: { enabled: true },
+      minimap: { enabled: minimap },
       glyphMargin: false,
+      lineNumbers: "on",
+      folding: true,
+      stickyScroll: { enabled: stickyScroll },
       scrollBeyondLastLine: false,
+      scrollbar: { vertical: "auto", horizontal: "auto" },
       fontFamily: "ui-monospace, SFMono-Regular, Consolas, monospace",
       fontSize: 12,
-      ariaLabel: "Dataset",
+      ariaLabel,
+      readOnly,
+      domReadOnly: readOnly,
       pasteAs: { enabled: false },
       wordWrap: props.current.wordWrap ? "on" : "off"
     });

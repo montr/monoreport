@@ -7,6 +7,11 @@ namespace MonoReport.Core.Templates;
 
 public sealed record TemplateRequirement
 {
+    public const string ObjectType = "object";
+    public const string ArrayType = "array";
+    public const string ValueType = "value";
+    public const string BooleanType = "boolean";
+
     public TemplateRequirement(string name, string type, IEnumerable<TemplateRequirement>? fields = null)
     {
         Name = name ?? throw new ArgumentNullException(nameof(name));

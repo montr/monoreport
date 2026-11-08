@@ -10,13 +10,13 @@ import examplesRegistry from "../public/examples.json";
 
 vi.mock("./components/MonacoJsonEditor", async () => {
   const { useImperativeHandle } = await import("react");
-  return { MonacoJsonEditor: ({ value, onChange, ref, wordWrap, onWordWrapChange }: { value: string; onChange(value: string): void; ref: import("react").Ref<import("./components/MonacoJsonEditor").JsonEditorCommands>; wordWrap: boolean; onWordWrapChange(enabled: boolean): void }) => {
+  return { MonacoJsonEditor: ({ value, onChange, ref, wordWrap, onWordWrapChange, readOnly, ariaLabel = "Dataset" }: { value: string; onChange(value: string): void; ref: import("react").Ref<import("./components/MonacoJsonEditor").JsonEditorCommands>; wordWrap: boolean; onWordWrapChange(enabled: boolean): void; readOnly?: boolean; ariaLabel?: string }) => {
     useImperativeHandle(ref, () => ({
       async format() { onChange(JSON.stringify(JSON.parse(value), null, 2)); },
       async copy() { await navigator.clipboard.writeText(value); },
       toggleWrap() { onWordWrapChange(!wordWrap); }
     }));
-    return <div className="monaco-editor"><textarea aria-label="Dataset" data-word-wrap={wordWrap} value={value} onChange={event => onChange(event.target.value)} /></div>;
+    return <div className="monaco-editor"><textarea aria-label={ariaLabel} data-word-wrap={wordWrap} readOnly={readOnly} value={value} onChange={event => onChange(event.target.value)} /></div>;
   } };
 });
 
@@ -64,6 +64,8 @@ const success = (bytes = new Uint8Array([80, 75, 7, 8]), mediaType = mime, filen
 };
 const analysis = (requirements: unknown[] = [{ name: "Company", type: "object", fields: [{ name: "Name", type: "value" }] }], valid = true) =>
   new Response(JSON.stringify({ valid, errors: valid ? [] : [{ code: "template.invalid_structure", message: "Invalid block" }], warnings: [], requirements, occurrences: [] }), { status: 200, headers: { "Content-Type": "application/json" } });
+const sampleJson = (data: unknown = { Company: { Name: "Sample Name 1" } }, warnings: unknown[] = []) =>
+  new Response(JSON.stringify({ data, warnings }), { status: 200, headers: { "Content-Type": "application/json" } });
 
 function mockPlaygroundFetch(api: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response> = async () => { throw new Error("Unexpected API request"); }) {
   const apiMock = vi.fn(api);
@@ -110,12 +112,8 @@ async function generateJson(user: ReturnType<typeof userEvent.setup>, count = 10
   await user.click(await screen.findByRole("menuitem", { name: "Generate Dataset..." }));
   const dialog = await screen.findByRole("dialog");
   if (count !== 10) fireEvent.change(within(dialog).getByRole("spinbutton", { name: "Items per collection" }), { target: { value: String(count) } });
-  const dirty = Boolean(screen.queryByLabelText("Dataset modified"));
-  await user.click(within(dialog).getByRole("button", { name: "OK" }));
-  if (dirty) {
-    const confirmation = await screen.findByRole("dialog", { name: "Generate dataset?" });
-    await user.click(within(confirmation).getByRole("button", { name: "Replace" }));
-  }
+  await user.click(within(dialog).getByRole("button", { name: "Generate sample" }));
+  await user.click(await within(dialog).findByRole("button", { name: "Replace Dataset" }));
 }
 
 function expectResultOutdated(outdated = true) {
@@ -843,9 +841,13 @@ describe("MonoReport playground", () => {
     expect(screen.getByText("Template XLSX preview")).toBeInTheDocument();
   });
 
-  it("formats and copies valid JSON while invalid JSON remains unchanged and never requests", async () => {
+  it("formats and copies valid JSON while Generate reports invalid JSON from the API", async () => {
     const user = userEvent.setup();
-    const { apiMock } = mockPlaygroundFetch();
+    const { apiMock } = mockPlaygroundFetch(async () => new Response(JSON.stringify({
+      title: "Invalid request",
+      detail: "The data field must contain one valid JSON value.",
+      code: "data.invalid_json"
+    }), { status: 400, headers: { "Content-Type": "application/problem+json" } }));
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     await screen.findByText("Template preview");
     const editor = screen.getByLabelText("Dataset");
@@ -861,8 +863,8 @@ describe("MonoReport playground", () => {
     expect(editor).toHaveValue("{");
     expect(screen.getByText("Invalid JSON")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Generate document" }));
-    expect(screen.getByText("Fix the JSON syntax before generating a document.")).toBeInTheDocument();
-    expect(apiMock).not.toHaveBeenCalled();
+    expect(await screen.findByText(/data.invalid_json/)).toBeInTheDocument();
+    expect(apiMock).toHaveBeenCalledOnce();
   });
 
   it("restores Word wrap across application remounts and persists both states without changing unrelated storage", async () => {
@@ -1175,7 +1177,9 @@ describe("MonoReport playground", () => {
     const user = userEvent.setup();
     const response = success();
     const expectedDocumentBytes = new Uint8Array([80, 75, 7, 8]);
-    const responses = [response, new Response(JSON.stringify({ title: "Failed", detail: "Incompatible", code: "generation.invalid_data" }), { status: 422, headers: { "Content-Type": "application/problem+json" } })];
+    const responses = [response,
+      new Response(JSON.stringify({ title: "Invalid request", detail: "The data field must contain one valid JSON value.", code: "data.invalid_json" }), { status: 400, headers: { "Content-Type": "application/problem+json" } }),
+      new Response(JSON.stringify({ title: "Failed", detail: "Incompatible", code: "generation.invalid_data" }), { status: 422, headers: { "Content-Type": "application/problem+json" } })];
     const { apiMock } = mockPlaygroundFetch(async () => responses.shift()!);
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     await screen.findByText("Template preview");
@@ -1193,8 +1197,8 @@ describe("MonoReport playground", () => {
     await user.click(screen.getByRole("button", { name: "Generate document" }));
     expectResultOutdated();
     expect(screen.getByRole("status")).toHaveTextContent("Error");
-    expect(screen.getByText("Invalid JSON", { selector: ".issue-heading strong" })).toBeInTheDocument();
-    expect(apiMock).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("data.invalid_json", { selector: ".issue-heading strong" })).toBeInTheDocument();
+    expect(apiMock).toHaveBeenCalledTimes(2);
     fireEvent.change(screen.getByLabelText("Dataset"), { target: { value: "{}" } });
     await user.click(screen.getByRole("button", { name: "Generate document" }));
     expect(await screen.findByText(/generation.invalid_data/)).toBeInTheDocument();
@@ -1205,6 +1209,36 @@ describe("MonoReport playground", () => {
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
     await documentCommand(user, "Download");
     expect(URL.createObjectURL).toHaveBeenCalledWith(previewSources.at(-1));
+  });
+
+  it("reports HTTP 413 for a large Dataset while retaining the Dataset and previous result preview", async () => {
+    const user = userEvent.setup();
+    const oversizedProblem = new Response(JSON.stringify({
+      title: "Request too large",
+      detail: "The whole request exceeds the configured size limit.",
+      code: "request.too_large"
+    }), { status: 413, headers: { "Content-Type": "application/problem+json" } });
+    const responses = [success(), oversizedProblem];
+    const { apiMock } = mockPlaygroundFetch(async () => responses.shift()!);
+    render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
+    await screen.findByText("Template preview");
+    await user.click(screen.getByRole("button", { name: "Generate document" }));
+    await screen.findByText("Result preview");
+
+    const largeDataset = JSON.stringify({ Rows: Array.from({ length: 20_000 }, (_, index) => `Sample Name ${index + 1}`) });
+    fireEvent.change(screen.getByLabelText("Dataset"), { target: { value: largeDataset } });
+    await user.click(screen.getByRole("button", { name: "Generate document" }));
+
+    expect(await screen.findByText("request.too_large", { selector: ".issue-heading strong" })).toBeInTheDocument();
+    expect(screen.getAllByText("request.too_large", { selector: ".issue-heading strong" })).toHaveLength(1);
+    expect(screen.getByLabelText("Dataset")).toHaveValue(largeDataset);
+    expect(screen.getByText("Result preview")).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Result" })).toBeChecked();
+    expectResultOutdated();
+    expect(apiMock).toHaveBeenCalledTimes(2);
+    const [url, init] = apiMock.mock.calls[1] as [string, RequestInit];
+    expect(url).toBe("/api/documents/render");
+    expect(((init.body as FormData).get("data") as string)).toBe(largeDataset);
   });
 
   it("retains XLSX result format and download bytes after switching and closing the template", async () => {
@@ -1348,15 +1382,12 @@ describe("MonoReport playground", () => {
     await user.click(screen.getByRole("button", { name: "Generate actions" }));
     expect(await screen.findByRole("menuitem", { name: "Analyze Template" })).toHaveAttribute("aria-disabled", "true");
     expect(screen.getByRole("status")).toHaveTextContent("Cancelled");
-    expect(screen.getByText("No analysis yet.")).toBeInTheDocument();
+    expect(screen.getByText("No analysis")).toBeInTheDocument();
   });
 
-  it("analyzes only on explicit action, adds a dataset, and retains an outdated Result", async () => {
+  it("samples through the server and retains an outdated Result until replacement", async () => {
     const user = userEvent.setup();
-    const responses = [success(), analysis([
-      { name: "Company", type: "object", fields: [{ name: "Name", type: "value" }] },
-      { name: "Orders", type: "array", fields: [{ name: "Number", type: "value" }] }
-    ])];
+    const responses = [success(), sampleJson()];
     const { apiMock } = mockPlaygroundFetch(async () => responses.shift()!);
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     await selectTemplate(user);
@@ -1367,26 +1398,19 @@ describe("MonoReport playground", () => {
     await generateJson(user, 1);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 
-    await waitFor(() => expect(screen.getByLabelText("Dataset")).toHaveValue(JSON.stringify({ Company: { Name: "" }, Orders: [{ Number: "" }] }, null, 2)));
+    await waitFor(() => expect(screen.getByLabelText("Dataset")).toHaveValue(JSON.stringify({ Company: { Name: "Sample Name 1" } }, null, 2)));
     expectResultOutdated();
     expect(screen.getByRole("status")).toHaveTextContent("Success");
     expect(screen.getByText("Result preview")).toBeInTheDocument();
-    const [, analysisInit] = apiMock.mock.calls[1] as [string, RequestInit];
-    expect(((analysisInit.body as FormData).get("template") as File).name).toBe("sample.template.docx");
+    const [sampleUrl, sampleInit] = apiMock.mock.calls[1] as [string, RequestInit];
+    expect(sampleUrl).toBe("/api/documents/sample");
+    expect(((sampleInit.body as FormData).get("template") as File).name).toBe("sample.template.docx");
   });
 
-  it("generates an editable JSON scaffold from the original XLSX and nested requirements", async () => {
+  it("requests an XLSX sample from the server without posting analysis data", async () => {
     const user = userEvent.setup();
     const xlsx = new File([new Uint8Array([80, 75])], "source.xlsx", { type: xlsxMime });
-    const payload = analysis([
-      { name: "Report", type: "object", fields: [
-        { name: "Title", type: "value" },
-        { name: "Active", type: "boolean" },
-        { name: "Rows", type: "array", fields: [{ name: "Amount", type: "value" }] }
-      ] },
-      { name: "Footer", type: "value" }
-    ]);
-    const { apiMock } = mockPlaygroundFetch(async () => payload);
+    const { apiMock } = mockPlaygroundFetch(async () => sampleJson());
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     await screen.findByText("Template preview");
     await selectTemplate(user, xlsx);
@@ -1394,17 +1418,17 @@ describe("MonoReport playground", () => {
     fireEvent.change(editor, { target: { value: "" } });
     await generateJson(user, 1);
 
-    await waitFor(() => expect(editor).toHaveValue(JSON.stringify({ Report: { Title: "", Active: false, Rows: [{ Amount: "" }] }, Footer: "" }, null, 2)));
+    await waitFor(() => expect(editor).toHaveValue(JSON.stringify({ Company: { Name: "Sample Name 1" } }, null, 2)));
     expect(apiMock).toHaveBeenCalledOnce();
     const [url, init] = apiMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe("/api/documents/analyze");
+    expect(url).toBe("/api/documents/sample");
     expect((init.body as FormData).get("template")).toBe(xlsx);
-    expect((init.body as FormData).has("data")).toBe(false);
+    expect((init.body as FormData).get("itemsPerCollection")).toBe("1");
   });
 
   it("protects dirty Dataset content when generated data would replace it", async () => {
     const user = userEvent.setup();
-    const { apiMock } = mockPlaygroundFetch(async () => analysis());
+    const { apiMock } = mockPlaygroundFetch(async () => sampleJson());
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     await screen.findByText("Template preview");
     const editor = screen.getByLabelText("Dataset");
@@ -1412,13 +1436,17 @@ describe("MonoReport playground", () => {
     await user.click(screen.getByRole("button", { name: "Generate actions" }));
     await user.click(await screen.findByRole("menuitem", { name: "Generate Dataset..." }));
     const settings = await screen.findByRole("dialog", { name: "Generate Dataset" });
-    await user.click(within(settings).getByRole("button", { name: "OK" }));
-    await user.click(within(await screen.findByRole("dialog", { name: "Generate dataset?" })).getByRole("button", { name: "Cancel" }));
+    await user.click(within(settings).getByRole("button", { name: "Generate sample" }));
+    await waitFor(() => expect(within(settings).getByLabelText("Sample JSON preview")).toBeInTheDocument());
+    expect(within(settings).getByText("Replacing the Dataset will discard unsaved changes.")).toBeInTheDocument();
     expect(editor).toHaveValue("keep me");
-    expect(apiMock).not.toHaveBeenCalled();
-    await user.click(within(settings).getByRole("button", { name: "OK" }));
-    await user.click(within(await screen.findByRole("dialog", { name: "Generate dataset?" })).getByRole("button", { name: "Replace" }));
-    await waitFor(() => expect(editor).toHaveValue(JSON.stringify({ Company: { Name: "" } }, null, 2)));
+    expect(apiMock).toHaveBeenCalledOnce();
+    vi.spyOn(navigator.clipboard, "writeText").mockRejectedValueOnce(new Error("Clipboard denied"));
+    await user.click(within(settings).getByRole("button", { name: "Copy" }));
+    expect(await screen.findByText("The sample JSON could not be copied to the clipboard.")).toBeInTheDocument();
+    expect(within(settings).getByLabelText("Sample JSON preview")).toBeInTheDocument();
+    await user.click(within(settings).getByRole("button", { name: "Replace Dataset" }));
+    await waitFor(() => expect(editor).toHaveValue(JSON.stringify({ Company: { Name: "Sample Name 1" } }, null, 2)));
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   });
 
@@ -1435,7 +1463,7 @@ describe("MonoReport playground", () => {
       resolvers[0](analysis());
     });
     expect(editor).toHaveValue("edited during analysis");
-    expect(screen.getByText("No analysis yet.")).toBeInTheDocument();
+    expect(screen.getByText("No analysis")).toBeInTheDocument();
     expect(screen.queryByText("Company")).not.toBeInTheDocument();
 
     await analyzeTemplate(user);
@@ -1446,7 +1474,7 @@ describe("MonoReport playground", () => {
     });
     await waitFor(() => expect(screen.getByText("replacement.docx")).toBeInTheDocument());
     expect(editor).toHaveValue("edited during analysis");
-    expect(screen.getByText("No analysis yet.")).toBeInTheDocument();
+    expect(screen.getByText("No analysis")).toBeInTheDocument();
     expect(screen.queryByText("Stale")).not.toBeInTheDocument();
   });
 
@@ -1467,7 +1495,7 @@ describe("MonoReport playground", () => {
 
     await waitFor(() => expect(screen.getByText(docx.name)).toBeInTheDocument());
     expect(editor).toHaveValue(sampleData);
-    expect(screen.getByText("No analysis yet.")).toBeInTheDocument();
+    expect(screen.getByText("No analysis")).toBeInTheDocument();
     expect(screen.queryByText("Stale XLSX")).not.toBeInTheDocument();
     expect(screen.getByText("Template preview")).toBeInTheDocument();
   });
@@ -1489,7 +1517,7 @@ describe("MonoReport playground", () => {
 
     await waitFor(() => expect(screen.getByText(xlsx.name)).toBeInTheDocument());
     expect(editor).toHaveValue(sampleData);
-    expect(screen.getByText("No analysis yet.")).toBeInTheDocument();
+    expect(screen.getByText("No analysis")).toBeInTheDocument();
     expect(screen.queryByText("Stale DOCX")).not.toBeInTheDocument();
     expect(screen.getByText("Template XLSX preview")).toBeInTheDocument();
   });
@@ -1502,7 +1530,7 @@ describe("MonoReport playground", () => {
       warnings: [], requirements: [], occurrences: [] }), { status: 200 }));
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     await selectTemplate(user, new File([new Uint8Array([80, 75])], "source.xlsx", { type: xlsxMime }));
-    await generateJson(user, 1);
+    await analyzeTemplate(user);
     expect(await screen.findByText("template.unmatched_brace", { selector: ".issue-heading strong" })).toBeInTheDocument();
     expect(screen.getByText(/Invoice reference: \{Name/, { selector: ".issue p" })).toHaveTextContent("Invoice.Name · /xl/worksheets/sheet1.xml · B12");
     expect(screen.getByLabelText("Dataset")).toHaveValue(sampleData);
@@ -1664,11 +1692,11 @@ describe("MonoReport playground", () => {
     await user.click(await screen.findByRole("menuitem", { name: "Generate Dataset..." }));
     const dialog = await screen.findByRole("dialog");
     const count = within(dialog).getByRole("spinbutton", { name: "Items per collection" });
-    expect(within(dialog).getByRole("radio", { name: "Random" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("radio", { name: "Filled" })).toBeInTheDocument();
     expect(within(dialog).getByText("Values", { exact: true })).toBeInTheDocument();
     expect(count).toHaveValue("10");
     expect(count).not.toHaveAttribute("aria-valuemax");
-    expect(within(dialog).getByRole("radio", { name: "Empty" })).toBeChecked();
+    expect(within(dialog).getByRole("radio", { name: "Filled" })).toBeChecked();
     await user.click(within(dialog).getByRole("button", { name: "Close" }));
     expect(apiMock).not.toHaveBeenCalled();
     expect(screen.getByLabelText("Dataset")).toHaveValue(sampleData);
@@ -1692,23 +1720,22 @@ describe("MonoReport playground", () => {
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Success"));
   });
 
-  it("does not start generation when settings are cancelled during form validation", async () => {
+  it("closes the sample review without replacing the current dataset", async () => {
     const user = userEvent.setup();
-    const { apiMock } = mockPlaygroundFetch(async () => analysis());
+    const { apiMock } = mockPlaygroundFetch(async () => sampleJson());
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     await screen.findByText("Template preview");
     await user.click(screen.getByRole("button", { name: "Generate actions" }));
     await user.click(await screen.findByRole("menuitem", { name: "Generate Dataset..." }));
     const dialog = await screen.findByRole("dialog");
-    fireEvent.click(within(dialog).getByRole("button", { name: "OK" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Generate sample" }));
     fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(apiMock).not.toHaveBeenCalled();
-    expect(screen.getByRole("status")).toHaveTextContent("Ready");
     expect(screen.getByLabelText("Dataset")).toHaveValue(sampleData);
   });
 
-  it("rejects invalid settings without a request or dataset and reports the error in Problems", async () => {
+  it("rejects invalid settings without a request or dataset", async () => {
     const user = userEvent.setup();
     const { apiMock } = mockPlaygroundFetch();
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
@@ -1719,30 +1746,30 @@ describe("MonoReport playground", () => {
     const count = within(dialog).getByRole("spinbutton", { name: "Items per collection" });
     for (const value of ["0", "-2", "1.5", ""]) {
       fireEvent.change(count, { target: { value } });
-      await user.click(within(dialog).getByRole("button", { name: "OK" }));
-      expect(await within(dialog).findByText("Enter a positive integer.")).toBeInTheDocument();
+      await user.click(within(dialog).getByRole("button", { name: "Generate sample" }));
       expect(count).toHaveValue(value);
     }
     expect(apiMock).not.toHaveBeenCalled();
     await user.click(within(dialog).getByRole("button", { name: "Close" }));
     expect(screen.getByLabelText("Dataset")).toHaveValue(sampleData);
-    expect(screen.getByRole("status")).toHaveTextContent("Error");
-    await user.click(screen.getByRole("button", { name: "Workspace status: Error" }));
-    expect(screen.getByRole("tabpanel", { name: "Problems 1" })).toHaveTextContent("Invalid settings");
+    expect(screen.getByRole("status")).toHaveTextContent("Ready");
   });
 
   it("renders actual nested analysis, occurrences and warnings, then reuses it across JSON edits and dataset creation", async () => {
     const user = userEvent.setup();
     const payload = {
       valid: true, errors: [],
+      retainedWireField: "preserved",
       warnings: [{ code: "template.notice", message: "A supplied template warning", field: "Rows", part: "/xl/worksheets/sheet1.xml", location: "C4", formatter: "format", dataPath: "$.Rows" }],
       requirements: [{ name: "Rows", type: "array", fields: [{ name: "Name", type: "value" }, { name: "Enabled", type: "boolean" }, { name: "Tags", type: "array" }] }],
       occurrences: [
-        { kind: "for", expression: "{For:Rows}", path: "$.Rows", part: "/xl/worksheets/sheet1.xml", location: "C4" },
+        { kind: "for", expression: "{For:Rows}", path: "$.Rows", part: "/xl/worksheets/sheet1.xml", location: "C4", semanticType: "number" },
         { kind: "if", expression: "{If:Rows[0].Description contains 'a long value'}", path: "$.Rows[0].Description/Details", part: "/xl/worksheets/sheet1.xml", location: "C5" }
       ]
     };
-    const { apiMock } = mockPlaygroundFetch(async () => new Response(JSON.stringify(payload), { status: 200 }));
+    const { apiMock } = mockPlaygroundFetch(async input => String(input) === "/api/documents/sample"
+      ? sampleJson()
+      : new Response(JSON.stringify(payload), { status: 200 }));
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     await screen.findByText("Template preview");
     await analyzeTemplate(user);
@@ -1753,6 +1780,14 @@ describe("MonoReport playground", () => {
     expect(within(panel).getByText("{If:Rows[0].Description contains 'a long value'}")).toBeInTheDocument();
     expect(within(panel).getByText("$.Rows[0].Description/Details")).toBeInTheDocument();
     expect(within(panel).getAllByText("C4")).toHaveLength(2);
+    expect(within(panel).getByText("number")).toBeInTheDocument();
+    expect(within(panel).getByText(/Requirement types describe JSON structure/)).toBeInTheDocument();
+    expect(within(panel).getAllByText("Formatter hint").length).toBeGreaterThan(0);
+    const clipboard = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
+    const analysisActions = screen.getByRole("toolbar", { name: "Analysis actions" });
+    expect(await within(analysisActions).findByRole("button", { name: "Copy" })).toBeEnabled();
+    await user.click(within(analysisActions).getByRole("button", { name: "Copy" }));
+    await waitFor(() => expect(clipboard).toHaveBeenCalledWith(JSON.stringify(payload, null, 2)));
     expect(screen.getByLabelText("Dataset")).toHaveValue(sampleData);
     expect(screen.queryByText("Result preview")).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Dataset"), { target: { value: '{"keep":"dirty"}' } });
@@ -1760,24 +1795,23 @@ describe("MonoReport playground", () => {
     await user.click(await screen.findByRole("menuitem", { name: "Generate Dataset..." }));
     const dialog = await screen.findByRole("dialog");
     fireEvent.change(within(dialog).getByRole("spinbutton", { name: "Items per collection" }), { target: { value: "3" } });
-    await user.click(within(dialog).getByRole("radio", { name: "Random" }));
-    await user.click(within(dialog).getByRole("button", { name: "OK" }));
-    await user.click(within(await screen.findByRole("dialog", { name: "Generate dataset?" })).getByRole("button", { name: "Replace" }));
+    await user.click(within(dialog).getByRole("radio", { name: "Filled" }));
+    await user.click(within(dialog).getByRole("button", { name: "Generate sample" }));
+    await user.click(await within(dialog).findByRole("button", { name: "Replace Dataset" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     const data = JSON.parse((screen.getByLabelText("Dataset") as HTMLTextAreaElement).value);
-    expect(data.Rows).toHaveLength(3);
-    expect(data.Rows[0]).toEqual({ Name: expect.stringMatching(/^Sample \d+$/), Enabled: expect.any(Boolean), Tags: [] });
-    expect(apiMock).toHaveBeenCalledOnce();
+    expect(data).toEqual({ Company: { Name: "Sample Name 1" } });
+    expect(apiMock).toHaveBeenCalledTimes(2);
     await generateJson(user, 2);
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    expect(apiMock).toHaveBeenCalledOnce();
-    expect(JSON.parse((screen.getByLabelText("Dataset") as HTMLTextAreaElement).value).Rows).toHaveLength(2);
+    expect(apiMock).toHaveBeenCalledTimes(3);
+    expect(JSON.parse((screen.getByLabelText("Dataset") as HTMLTextAreaElement).value)).toEqual({ Company: { Name: "Sample Name 1" } });
     expect(selectedExample()).toHaveTextContent("sample-generated.json");
-    await diagnosticsTab(user, "Problems 1");
-    expect(await screen.findByText("template.notice", { selector: ".issue-heading strong" })).toBeInTheDocument();
+    await diagnosticsTab(user, "Analysis");
+    expect(await screen.findByText("A supplied template warning")).toBeInTheDocument();
   });
 
-  it("preserves structured invalid analysis and its warning/occurrence details, and never caches it for Generate Dataset", async () => {
+  it("preserves displayed invalid analysis while sample generation uses its own endpoint", async () => {
     const user = userEvent.setup();
     const payload = {
       valid: false,
@@ -1787,7 +1821,8 @@ describe("MonoReport playground", () => {
       occurrences: [{ kind: "field", expression: "{Name", path: "$.Name", part: "/word/document.xml", location: "paragraph 8" }]
     };
     let first = true;
-    const { apiMock } = mockPlaygroundFetch(async () => {
+    const { apiMock } = mockPlaygroundFetch(async input => {
+      if (String(input) === "/api/documents/sample") return sampleJson();
       if (first) { first = false; return analysis(); }
       return new Response(JSON.stringify(payload), { status: 200 });
     });
@@ -1796,6 +1831,7 @@ describe("MonoReport playground", () => {
     await analyzeTemplate(user);
     expect(await screen.findByText("Company")).toBeInTheDocument();
     await analyzeTemplate(user);
+    await diagnosticsTab(user, "Analysis");
     const panel = await screen.findByRole("tabpanel", { name: "Analysis" });
     expect(await within(panel).findByText("Invalid", { exact: true })).toBeInTheDocument();
     expect(within(panel).getByText("Name")).toBeInTheDocument();
@@ -1806,15 +1842,44 @@ describe("MonoReport playground", () => {
     await generateJson(user);
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(apiMock).toHaveBeenCalledTimes(3);
-    expect(screen.getByLabelText("Dataset")).toHaveValue(sampleData);
-    expect(screen.getByRole("status")).toHaveTextContent("Error");
-    expect(await screen.findByText("template.bad", { selector: ".issue-heading strong" })).toBeInTheDocument();
-    expect(screen.getByText("template.warning", { selector: ".issue-heading strong" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Dataset")).toHaveValue(JSON.stringify({ Company: { Name: "Sample Name 1" } }, null, 2));
+    expect(screen.getByRole("status")).toHaveTextContent("Success");
+    await diagnosticsTab(user, "Analysis");
+    expect(screen.getByText("Bad template block")).toBeInTheDocument();
+    expect(screen.getByText("Additional warning")).toBeInTheDocument();
+  });
+
+  it("keeps the displayed and copied analysis paired when a later request has no analysis payload", async () => {
+    const user = userEvent.setup();
+    const firstWire = { valid: true, errors: [], warnings: [], requirements: [{ name: "Original", type: "value" }], occurrences: [], serverRevision: "first" };
+    const responses = [
+      new Response(JSON.stringify(firstWire), { status: 200 }),
+      new Response(JSON.stringify({ title: "Analysis failed", detail: "Temporary failure", code: "request.invalid_input" }), { status: 422 })
+    ];
+    mockPlaygroundFetch(async () => responses.shift()!);
+    const clipboard = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
+    render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
+    await screen.findByText("Template preview");
+    await analyzeTemplate(user);
+    expect(await screen.findByText("Original")).toBeInTheDocument();
+    await analyzeTemplate(user);
+    expect(await screen.findByText("Temporary failure")).toBeInTheDocument();
+    await diagnosticsTab(user, "Analysis");
+
+    const panel = await screen.findByRole("tabpanel", { name: "Analysis" });
+    expect(within(panel).getByText("Valid", { exact: true })).toBeInTheDocument();
+    expect(within(panel).getByText("Original")).toBeInTheDocument();
+    await user.click(within(screen.getByRole("toolbar", { name: "Analysis actions" })).getByRole("button", { name: "Copy" }));
+
+    await waitFor(() => expect(clipboard).toHaveBeenCalledWith(JSON.stringify(firstWire, null, 2)));
   });
 
   it("clears analysis when the template changes and performs a fresh analysis for new data", async () => {
     const user = userEvent.setup();
-    const { apiMock } = mockPlaygroundFetch(async () => analysis([{ name: "Rows", type: "array", fields: [{ name: "Name", type: "value" }] }]));
+    const clipboard = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
+    const { apiMock } = mockPlaygroundFetch(async input => String(input) === "/api/documents/sample"
+      ? sampleJson()
+      : analysis([{ name: "Rows", type: "array", fields: [{ name: "Name", type: "value" }] }]));
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     await screen.findByText("Template preview");
     await analyzeTemplate(user);
@@ -1822,32 +1887,83 @@ describe("MonoReport playground", () => {
     const replacement = new File([new Uint8Array([80, 75])], "new.xlsx", { type: xlsxMime });
     await selectTemplate(user, replacement);
     expect(screen.queryByText("Rows")).not.toBeInTheDocument();
-    expect(screen.getByText("No analysis yet.")).toBeInTheDocument();
+    expect(screen.getByText("No analysis")).toBeInTheDocument();
+    await diagnosticsTab(user, "Analysis");
+    await user.click(within(screen.getByRole("toolbar", { name: "Analysis actions" })).getByRole("button", { name: "Copy" }));
+    await waitFor(() => expect(clipboard).toHaveBeenCalledWith("{}"));
     await generateJson(user);
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    expect(JSON.parse((screen.getByLabelText("Dataset") as HTMLTextAreaElement).value).Rows).toEqual(Array.from({ length: 10 }, () => ({ Name: "" })));
+    expect(JSON.parse((screen.getByLabelText("Dataset") as HTMLTextAreaElement).value)).toEqual({ Company: { Name: "Sample Name 1" } });
     expect(selectedExample()).toHaveTextContent("new-generated.json");
     expect(apiMock).toHaveBeenCalledTimes(2);
+    expect(apiMock.mock.calls[1][0]).toBe("/api/documents/sample");
     expect(((apiMock.mock.calls[1][1] as RequestInit).body as FormData).get("template")).toBe(replacement);
   });
 
-  it("rejects aggregate overflow atomically, retains cached analysis, and allows a smaller complete dataset", async () => {
+  it("rejects server sample failures without a candidate and accepts a later sample", async () => {
     const user = userEvent.setup();
-    const { apiMock } = mockPlaygroundFetch(async () => analysis([{ name: "Rows", type: "array", fields: [{ name: "Items", type: "array", fields: [{ name: "Name", type: "value" }] }] }]));
+    let samples = 0;
+    const { apiMock } = mockPlaygroundFetch(async input => {
+      if (String(input) === "/api/documents/sample" && samples++ === 0) return new Response(JSON.stringify({
+        title: "Sample generation failed",
+        detail: "The 1,000,000 element limit was exceeded.",
+        code: "sample.element_limit",
+        errors: [
+          { code: "sample.element_limit", message: "The 1,000,000 element limit was exceeded.", part: "/word/document.xml", location: "paragraph 3" },
+          { code: "sample.template_issue", message: "A separate template limitation.", location: "paragraph 4" }
+        ]
+      }), { status: 422 });
+      return sampleJson();
+    });
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     await screen.findByText("Template preview");
     fireEvent.change(screen.getByLabelText("Dataset"), { target: { value: '{"keep":true}' } });
-    await generateJson(user, 316);
-    expect(await screen.findByText(/would exceed 100,000 array elements in total/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Generate actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Generate Dataset..." }));
+    const dialog = await screen.findByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: "Generate sample" }));
+    expect(await within(dialog).findByText(/The 1,000,000 element limit was exceeded/)).toBeInTheDocument();
+    expect(within(dialog).getAllByText(/The 1,000,000 element limit was exceeded/)).toHaveLength(1);
+    expect(within(dialog).getByText(/\/word\/document.xml/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/A separate template limitation/)).toBeInTheDocument();
+    expect(within(dialog).queryByRole("button", { name: "Replace Dataset" })).not.toBeInTheDocument();
     expect(screen.getByLabelText("Dataset")).toHaveValue('{"keep":true}');
     expect(selectedExample()).toHaveTextContent("sample.json");
-    expect(screen.getByRole("status")).toHaveTextContent("Error");
-    expect(selectedExample()).not.toHaveTextContent(/^Generated/);
+    await user.click(within(dialog).getByRole("button", { name: "Close" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     await generateJson(user, 2);
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    expect(apiMock).toHaveBeenCalledOnce();
-    expect(JSON.parse((screen.getByLabelText("Dataset") as HTMLTextAreaElement).value)).toEqual({ Rows: [{ Items: [{ Name: "" }, { Name: "" }] }, { Items: [{ Name: "" }, { Name: "" }] }] });
+    expect(apiMock).toHaveBeenCalledTimes(2);
+    expect(JSON.parse((screen.getByLabelText("Dataset") as HTMLTextAreaElement).value)).toEqual({ Company: { Name: "Sample Name 1" } });
     expect(selectedExample()).toHaveTextContent("sample-generated.json");
+  });
+
+  it("clears sample diagnostics on replacement and retains later Generate diagnostics", async () => {
+    const user = userEvent.setup();
+    const sampleWarning = { code: "sample.unresolved_shape", message: "Sample-only warning", location: "paragraph 2" };
+    const generateWarning = { message: "Generate warning", code: "generation.notice", field: "Name" };
+    const { apiMock } = mockPlaygroundFetch(async input => String(input) === "/api/documents/sample"
+      ? sampleJson({}, [sampleWarning])
+      : success(new Uint8Array([80, 75, 7, 8]), mime, "document.docx", [generateWarning]));
+    render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
+    await screen.findByText("Template preview");
+    await user.click(screen.getByRole("button", { name: "Generate actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Generate Dataset..." }));
+    const dialog = await screen.findByRole("dialog", { name: "Generate Dataset" });
+    await user.click(within(dialog).getByRole("button", { name: "Generate sample" }));
+    expect(await within(dialog).findByText(/Sample-only warning/)).toBeInTheDocument();
+    expect(within(dialog).queryByText(/discard unsaved changes/)).not.toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Sample JSON preview")).toHaveAttribute("readonly");
+    await user.click(await within(dialog).findByRole("button", { name: "Replace Dataset" }));
+    await diagnosticsTab(user, "Problems");
+    expect(await screen.findByText("No problems")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Generate document" }));
+
+    await waitFor(() => expect(apiMock).toHaveBeenCalledTimes(2));
+    expect(await screen.findByRole("tab", { name: "Problems 1" })).toBeInTheDocument();
+    expect(document.querySelector(".issue p")).toHaveTextContent("Generate warning");
+    expect(screen.queryByText("Sample-only warning")).not.toBeInTheDocument();
   });
 
   it("shows compact operation status and measured duration without an Output history", async () => {
@@ -1858,13 +1974,17 @@ describe("MonoReport playground", () => {
     const { apiMock } = mockPlaygroundFetch(() => new Promise<Response>(resolve => resolvers.push(resolve)));
     const view = render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     await screen.findByText("Template preview");
-    await generateJson(user, 1);
-    expect(screen.getByRole("status")).toHaveTextContent("Analyzing...");
+    await user.click(screen.getByRole("button", { name: "Generate actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Generate Dataset..." }));
+    const sampleDialog = await screen.findByRole("dialog");
+    await user.click(within(sampleDialog).getByRole("button", { name: "Generate sample" }));
+    expect(screen.getByRole("status")).toHaveTextContent("Generating sample...");
     now = 1125;
     await act(async () => {
-      resolvers[0](analysis());
+      resolvers[0](sampleJson());
     });
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    await within(sampleDialog).findByRole("button", { name: "Replace Dataset" });
+    await user.click(within(sampleDialog).getByRole("button", { name: "Replace Dataset" }));
     expect(screen.getByRole("status")).toHaveTextContent("Success");
     expect(screen.getByRole("contentinfo")).toHaveTextContent("125 ms");
     now = 2000;
@@ -1883,7 +2003,7 @@ describe("MonoReport playground", () => {
     });
     await screen.findByText("Result preview");
     expect(screen.getByRole("status")).toHaveTextContent("Success");
-    expect(apiMock.mock.calls.map(([url]) => String(url))).toEqual(["/api/documents/analyze", "/api/documents/analyze", "/api/documents/render"]);
+    expect(apiMock.mock.calls.map(([url]) => String(url))).toEqual(["/api/documents/sample", "/api/documents/analyze", "/api/documents/render"]);
     expect(screen.getByRole("status")).toHaveTextContent("Success");
     expect(screen.getByRole("contentinfo")).toHaveTextContent("450 ms");
     expect(screen.getByRole("status").textContent).not.toMatch(/\d{1,2}:\d{2}/);
@@ -1907,8 +2027,10 @@ describe("MonoReport playground", () => {
     mockPlaygroundFetch(() => new Promise<Response>(resolve => resolvers.push(resolve)));
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     await screen.findByText("Template preview");
-    await generateJson(user);
-    const dialog = screen.getByRole("dialog");
+    await user.click(screen.getByRole("button", { name: "Generate actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Generate Dataset..." }));
+    const dialog = await screen.findByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: "Generate sample" }));
     await user.click(within(dialog).getByRole("button", { name: "Close" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(screen.getByRole("status")).toHaveTextContent("Cancelled");
@@ -1929,8 +2051,10 @@ describe("MonoReport playground", () => {
     const user = userEvent.setup();
     const { apiMock } = mockPlaygroundFetch();
     const response = success();
+    const clipboard = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
     const warning = { code: "template.notice", message: "Review this field", part: "/word/document.xml", location: "paragraph 2" };
-    apiMock.mockResolvedValueOnce(response).mockResolvedValueOnce(new Response(JSON.stringify({ valid: true, errors: [], warnings: [warning], requirements: [], occurrences: [] })));
+    apiMock.mockResolvedValueOnce(response).mockResolvedValueOnce(new Response(JSON.stringify({ valid: true, errors: [], warnings: [warning], requirements: [], occurrences: [] })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ data: {}, warnings: [warning] }), { status: 200 }));
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     await screen.findByText("Template preview");
     await user.click(screen.getByRole("button", { name: "Generate document" }));
@@ -1943,8 +2067,11 @@ describe("MonoReport playground", () => {
     const buttons = within(actions).getAllByRole("button");
     expect(buttons.map(button => button.getAttribute("aria-label"))).toEqual(["Clear", "Copy"]);
     await user.click(buttons[0]);
-    expect(screen.queryByRole("toolbar", { name: "Problems actions" })).not.toBeInTheDocument();
+    expect(within(actions).getByRole("button", { name: "Clear" })).toBeEnabled();
+    expect(within(actions).getByRole("button", { name: "Copy" })).toBeEnabled();
     expect(await within(panel).findByText("No problems")).toBeInTheDocument();
+    await user.click(within(actions).getByRole("button", { name: "Copy" }));
+    await waitFor(() => expect(clipboard).toHaveBeenCalledWith("[]"));
     expect(screen.getByRole("tab", { name: "Problems" })).toBeInTheDocument();
     expect(screen.getByLabelText("Dataset")).toHaveValue(sampleData);
     expect(screen.getByText("Result preview")).toBeInTheDocument();
@@ -1958,10 +2085,9 @@ describe("MonoReport playground", () => {
     // A new operation publishes its diagnostics normally, even when it reuses cached analysis.
     await generateJson(user);
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    expect(apiMock).toHaveBeenCalledTimes(2);
-    await diagnosticsTab(user, "Problems 1");
-    expect(screen.getByText("template.notice", { selector: ".issue-heading strong" })).toBeInTheDocument();
-    expect(within(screen.getByRole("tabpanel", { name: "Problems 1" })).getByText(/Review this field/)).toBeInTheDocument();
+    expect(apiMock).toHaveBeenCalledTimes(3);
+    await diagnosticsTab(user, "Problems");
+    expect(await within(screen.getByRole("tabpanel", { name: "Problems" })).findByText("No problems")).toBeInTheDocument();
   });
 
   it("copies every current diagnostic with source metadata and retains diagnostics when clipboard access fails", async () => {
@@ -2036,7 +2162,10 @@ describe("MonoReport playground", () => {
     });
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     await screen.findByText("Template preview");
-    await generateJson(user);
+    await user.click(screen.getByRole("button", { name: "Generate actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Generate Dataset..." }));
+    const dialog = await screen.findByRole("dialog", { name: "Generate Dataset" });
+    await user.click(within(dialog).getByRole("button", { name: "Generate sample" }));
     expect(apiMock).toHaveBeenCalledOnce();
     await user.keyboard("{Escape}");
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
@@ -2047,11 +2176,11 @@ describe("MonoReport playground", () => {
     });
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Cancelled"));
     expect(screen.getByLabelText("Dataset")).toHaveValue(sampleData);
-    apiMock.mockResolvedValueOnce(analysis());
+    apiMock.mockResolvedValueOnce(sampleJson());
     await generateJson(user);
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(apiMock).toHaveBeenCalledTimes(2);
-    expect(JSON.parse((screen.getByLabelText("Dataset") as HTMLTextAreaElement).value)).toEqual({ Company: { Name: "" } });
+    expect(JSON.parse((screen.getByLabelText("Dataset") as HTMLTextAreaElement).value)).toEqual({ Company: { Name: "Sample Name 1" } });
   });
 
   it("keeps Dataset shortcuts available for an empty editor", async () => {

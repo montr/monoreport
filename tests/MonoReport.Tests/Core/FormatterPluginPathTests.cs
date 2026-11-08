@@ -65,11 +65,32 @@ public sealed class FormatterPluginPathTests
         using var input = new MemoryStream(template);
         var analysis = provider.GetRequiredService<TemplateAnalyzer>().Analyze(input);
         Assert.True(analysis.Valid, string.Join("; ", analysis.Errors.Select(error => error.Message)));
+        Assert.Equal("date", Assert.Single(analysis.Occurrences).SemanticType);
         Assert.Equal("replaced:7", DocxFixture.Text(DocxFixture.Read(Generate(provider, template, """{"Value":7}"""))));
 
         var rejected = DocxFixture.Create(DocxFixture.P(DocxFixture.Run("{Value number \"0.00\"}")));
         using var rejectedInput = new MemoryStream(rejected);
         Assert.False(provider.GetRequiredService<TemplateAnalyzer>().Analyze(rejectedInput).Valid);
+    }
+
+    [Fact]
+    public void Built_in_formatter_metadata_is_captured_per_occurrence_and_boolean_hints_are_structural()
+    {
+        using var provider = new ServiceCollection().AddMonoReport().BuildServiceProvider();
+        var template = DocxFixture.Create(
+            DocxFixture.P(DocxFixture.Run("{Amount number \"0.00\"}")),
+            DocxFixture.P(DocxFixture.Run("{When date \"yyyy-MM-dd\"}")),
+            DocxFixture.P(DocxFixture.Run("{If:Enabled}")),
+            DocxFixture.P(DocxFixture.Run("{Enabled}")),
+            DocxFixture.P(DocxFixture.Run("{/If}")),
+            DocxFixture.P(DocxFixture.Run("{Name upper}")));
+        using var input = new MemoryStream(template);
+
+        var analysis = provider.GetRequiredService<TemplateAnalyzer>().Analyze(input);
+
+        Assert.True(analysis.Valid, string.Join("; ", analysis.Errors.Select(error => error.Message)));
+        Assert.Equal(new string?[] {"number", "date", "boolean", null},
+            analysis.Occurrences.Where(item => item.Kind == "field").Select(item => item.SemanticType));
     }
 
     [Fact]
@@ -173,7 +194,10 @@ public sealed class FormatterPluginPathTests
 
     private sealed class ReplacementFormatter : IFormatter
     {
-        public FormatterMetadata Metadata { get; } = new([new FormatterParameter("replacement", typeof(string), true)]);
+        public FormatterMetadata Metadata { get; } = new([new FormatterParameter("replacement", typeof(string), true)])
+        {
+            SemanticType = SemanticType.Date
+        };
 
         public FormatterValidationResult Validate(IReadOnlyDictionary<string, FormatterOperand> parameters)
         {

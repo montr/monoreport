@@ -15,5 +15,7 @@ public static class ApiDiagnosticCodes
     public const string CultureInvalid = "culture.invalid";
     public const string FormatterNotFound = "formatter.not_found";
     public const string FormatterInvalidValue = "formatter.invalid_value";
+    public const string SampleCountInvalid = "sample.count_invalid";
+    public const string SampleValuesInvalid = "sample.values_invalid";
     public const string ServerInternalError = "server.internal_error";
 }

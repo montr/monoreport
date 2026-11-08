@@ -111,6 +111,31 @@ public sealed class OpenApiContractTests
     }
 
     [Fact]
+    public async Task OpenApi_describes_sample_settings_json_value_warnings_and_failure_codes()
+    {
+        using var factory = new WebApplicationFactory<Program>();
+        using var client = factory.CreateClient();
+        using var response = await client.GetAsync("/openapi/v1.json");
+        response.EnsureSuccessStatusCode();
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var sample = json.RootElement.GetProperty("paths").GetProperty("/api/documents/sample").GetProperty("post");
+        var request = sample.GetProperty("requestBody").GetProperty("content").GetProperty("multipart/form-data")
+            .GetProperty("schema");
+        Assert.Equal(new[] {"template"}, request.GetProperty("required").EnumerateArray()
+            .Select(item => item.GetString()));
+        var requestProperties = request.GetProperty("properties");
+        Assert.True(requestProperties.TryGetProperty("itemsPerCollection", out _));
+        Assert.True(requestProperties.TryGetProperty("values", out _));
+        var success = sample.GetProperty("responses").GetProperty("200").GetProperty("content")
+            .GetProperty("application/json").GetProperty("schema");
+        Assert.Equal(new[] {"data", "warnings"}, success.GetProperty("required").EnumerateArray()
+            .Select(item => item.GetString()).Order());
+        var failure = sample.GetProperty("responses").GetProperty("422");
+        Assert.Contains(DiagnosticCodes.SampleElementLimit, failure.GetProperty("description").GetString());
+        Assert.Contains(DiagnosticCodes.SampleIncompatibleDemand, failure.GetProperty("description").GetString());
+    }
+
+    [Fact]
     public async Task OpenApi_error_code_lists_match_the_endpoint_diagnostic_contract()
     {
         using var factory =
@@ -182,7 +207,8 @@ public sealed class OpenApiContractTests
         response.EnsureSuccessStatusCode();
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         var paths = json.RootElement.GetProperty("paths");
-        Assert.Equal(new[] {"/api/documents/analyze", "/api/documents/render", "/api/formatters", "/api/formatters/{name}/execute"},
+        Assert.Equal(new[] {"/api/documents/analyze", "/api/documents/render", "/api/documents/sample",
+                "/api/formatters", "/api/formatters/{name}/execute"},
             paths.EnumerateObject().Select(item => item.Name).Order());
         var list = paths.GetProperty("/api/formatters").GetProperty("get");
         Assert.False(list.TryGetProperty("requestBody", out _));

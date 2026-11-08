@@ -63,7 +63,7 @@ public sealed partial class XlsxTemplatePlanner(
                 .ToDictionary(marker => marker.Cell.Id.Address.Row, marker => marker.CollectionPath!);
             var sheetDependencies = new List<PlannedDependency>();
             foreach (var marker in controls.Where(marker => marker.Collection is not null))
-                sheetDependencies.Add(new PlannedDependency("for", marker.Collection!, marker.CollectionPath!, "array",
+                sheetDependencies.Add(new PlannedDependency(PlannedDependency.ForKind, marker.Collection!, marker.CollectionPath!, TemplateRequirement.ArrayType,
                     sheet.Part,
                     marker.Location, Order(marker.Cell.Id.Address)));
             var cells = ImmutableArray.CreateBuilder<XlsxCellPlan>();
@@ -131,7 +131,7 @@ public sealed partial class XlsxTemplatePlanner(
                         var canonical = basis + (path.CurrentElement || path.Segments.Count == 0
                             ? string.Empty
                             : "." + string.Join('.', path.Segments));
-                        sheetDependencies.Add(new PlannedDependency("field", token.Expression, canonical, "value",
+                        sheetDependencies.Add(new PlannedDependency(PlannedDependency.FieldKind, token.Expression, canonical, TemplateRequirement.ValueType,
                             sheet.Part,
                             location, Order(cell.Id.Address) + token.Start));
                     }

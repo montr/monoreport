@@ -9,7 +9,10 @@ namespace MonoReport.Core.Formatting;
 internal sealed partial class DateFormatter : IFormatter
 {
     private static readonly FormatterMetadata MetadataValue =
-        new([new FormatterParameter("pattern", typeof(string), true)], "pattern");
+        new([new FormatterParameter("pattern", typeof(string), true)], "pattern")
+        {
+            SemanticType = SemanticType.Date
+        };
 
     public FormatterMetadata Metadata => MetadataValue;
 

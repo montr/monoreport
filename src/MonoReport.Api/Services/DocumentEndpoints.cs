@@ -1,11 +1,14 @@
 using System;
 using System.Globalization;
+using System.Linq;
+using System.Numerics;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
+using MonoReport.Api.Models;
 
 namespace MonoReport.Api.Services;
 
@@ -13,10 +16,12 @@ public sealed class DocumentEndpoints(
     MultipartRequestReader reader,
     DocumentGenerator generator,
     TemplateAnalyzer analyzer,
+    SampleJsonGenerator samples,
     GenerationOptionsFactory options,
     IOptions<JsonOptions> jsonOptions)
 {
     private readonly TemplateAnalyzer _analyzer = analyzer ?? throw new ArgumentNullException(nameof(analyzer));
+    private readonly SampleJsonGenerator _samples = samples ?? throw new ArgumentNullException(nameof(samples));
     private readonly DocumentGenerator _generator = generator ?? throw new ArgumentNullException(nameof(generator));
 
     private readonly JsonSerializerOptions _jsonOptions =
@@ -28,7 +33,7 @@ public sealed class DocumentEndpoints(
     public async Task<IResult> Generate(HttpContext context)
     {
         context.Response.Headers.Append(HeaderNames.Vary, HeaderNames.Accept);
-        var form = await _reader.Read(context.Request, false, context.RequestAborted);
+        var form = await _reader.Read(context.Request, MultipartRequestOperation.Generate, context.RequestAborted);
         JsonDocument data;
         try
         {
@@ -120,8 +125,37 @@ public sealed class DocumentEndpoints(
 
     public async Task<IResult> Analyze(HttpContext context)
     {
-        var form = await _reader.Read(context.Request, true, context.RequestAborted);
+        var form = await _reader.Read(context.Request, MultipartRequestOperation.Analyze, context.RequestAborted);
         using var template = form.Files.GetFile("template")!.OpenReadStream();
         return Results.Json(_analyzer.Analyze(template));
+    }
+
+    public async Task<IResult> Sample(HttpContext context)
+    {
+        var form = await _reader.Read(context.Request, MultipartRequestOperation.Sample, context.RequestAborted);
+        var count = new BigInteger(SampleJsonOptions.DefaultItemsPerCollection);
+        if (form.TryGetValue(SampleJsonRequestFields.ItemsPerCollection, out var countValues))
+        {
+            var text = countValues.ToString();
+            if (text.Length == 0 || text.Any(character => character is < '0' or > '9') ||
+                !BigInteger.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out count) ||
+                count <= BigInteger.Zero)
+                throw new RequestInputException(400, ApiDiagnosticCodes.SampleCountInvalid,
+                    SampleJsonRequestFields.ItemsPerCollection);
+        }
+
+        var mode = SampleJsonValues.Filled;
+        if (form.TryGetValue(SampleJsonRequestFields.Values, out var valueFields))
+            mode = valueFields.ToString() switch
+            {
+                SampleJsonRequestFields.Filled => SampleJsonValues.Filled,
+                SampleJsonRequestFields.Empty => SampleJsonValues.Empty,
+                _ => throw new RequestInputException(400, ApiDiagnosticCodes.SampleValuesInvalid,
+                    SampleJsonRequestFields.Values)
+            };
+
+        using var template = form.Files.GetFile("template")!.OpenReadStream();
+        var result = _samples.Generate(template, new SampleJsonOptions {ItemsPerCollection = count, Values = mode});
+        return Results.Json(new SampleJsonResponse(result.Data, result.Warnings), _jsonOptions);
     }
 }

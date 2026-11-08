@@ -63,6 +63,12 @@ html,body,#root,.app {
   background: #fff;
 }
 
+.app > .ant-alert,
+.source > .ant-alert,
+.preview > .ant-alert {
+  margin: 8px 12px 0;
+}
+
 .context-name {
   flex: 1;
   min-width: 0;
@@ -75,6 +81,14 @@ html,body,#root,.app {
   width: 100%;
   height: 100%;
   position: relative;
+  overflow: hidden;
+}
+
+.sample-preview-editor {
+  height: min(48vh, 480px);
+  min-height: 180px;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 4px;
   overflow: hidden;
 }
 
@@ -222,6 +236,10 @@ footer a:hover {
   gap: 8px;
   padding: 6px 4px;
   border-bottom: 1px solid #e4e7ed;
+}
+
+.diagnostic-list {
+  padding: 4px;
 }
 
 .issue>span {

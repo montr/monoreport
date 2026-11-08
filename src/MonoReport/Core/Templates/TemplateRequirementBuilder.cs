@@ -8,10 +8,14 @@ namespace MonoReport.Core.Templates;
 internal sealed class TemplateRequirementBuilder
 {
     private readonly List<TemplateOccurrence> _occurrences = [];
+    private readonly HashSet<string> _booleanPaths = new(StringComparer.Ordinal);
     private readonly Scope _root = new();
 
     internal IReadOnlyList<TemplateRequirement> Requirements => _root.Items.Select(ToPublic).ToArray();
-    internal IReadOnlyList<TemplateOccurrence> Occurrences => _occurrences;
+    internal IReadOnlyList<TemplateOccurrence> Occurrences => _occurrences.Select(item =>
+        item.SemanticType is null && item.Kind == PlannedDependency.FieldKind && _booleanPaths.Contains(item.Path)
+            ? item with {SemanticType = "boolean"}
+            : item).ToArray();
 
     internal IReadOnlyList<StructuralDiagnostic> Diagnostics => Conflicted(_root)
         .SelectMany(node => node.Uses.Select(use => new StructuralDiagnostic(
@@ -21,8 +25,10 @@ internal sealed class TemplateRequirementBuilder
 
     internal void Add(PlannedDependency dependency)
     {
+        if (dependency.Kind == PlannedDependency.IfKind) _booleanPaths.Add(dependency.CanonicalPath);
+        var semanticType = dependency.Expression.Formatter?.SemanticType?.ToString().ToLowerInvariant();
         _occurrences.Add(new TemplateOccurrence(dependency.Kind, dependency.Expression.Source, dependency.CanonicalPath,
-            dependency.Part, dependency.Location));
+            dependency.Part, dependency.Location) {SemanticType = semanticType});
         if (dependency.Expression.Path?.CurrentElement == true) return;
         var components = Components(dependency.CanonicalPath);
         if (components.Count == 0) return;
@@ -33,7 +39,8 @@ internal sealed class TemplateRequirementBuilder
             var component = components[index];
             path += "." + component.Name + (component.Array ? "[]" : string.Empty);
             var last = index == components.Count - 1;
-            var needed = component.Array ? "array" : last ? dependency.RequirementType : "object";
+            var needed = component.Array ? TemplateRequirement.ArrayType :
+                last ? dependency.RequirementType : TemplateRequirement.ObjectType;
             if (!scope.ByName.TryGetValue(component.Name, out var node))
             {
                 node = new Node(component.Name, needed, path);
@@ -47,7 +54,8 @@ internal sealed class TemplateRequirementBuilder
                 return;
             }
 
-            if (node.Type == "value" && needed == "boolean") node.Type = "boolean";
+            if (node.Type == TemplateRequirement.ValueType && needed == TemplateRequirement.BooleanType)
+                node.Type = TemplateRequirement.BooleanType;
             if (!last) scope = node.Children;
         }
     }
@@ -64,7 +72,8 @@ internal sealed class TemplateRequirementBuilder
     private static bool Compatible(string current, string needed)
     {
         return current == needed ||
-               (current is "value" or "boolean" && needed is "value" or "boolean");
+               (current is TemplateRequirement.ValueType or TemplateRequirement.BooleanType &&
+                needed is TemplateRequirement.ValueType or TemplateRequirement.BooleanType);
     }
 
     private static IReadOnlyList<(string Name, bool Array)> Components(string path)

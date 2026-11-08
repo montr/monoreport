@@ -13,7 +13,7 @@ public sealed class ApiOperationTransformer : IOpenApiOperationTransformer
     public async Task TransformAsync(OpenApiOperation operation, OpenApiOperationTransformerContext context,
         CancellationToken cancellationToken)
     {
-        if (context.Description.RelativePath == "api/formatters/{name}/execute")
+        if (context.Description.RelativePath == ApiRoutePaths.FormatterExecution.TrimStart('/'))
         {
             operation.RequestBody = new OpenApiRequestBody
             {
@@ -31,15 +31,22 @@ public sealed class ApiOperationTransformer : IOpenApiOperationTransformer
             return;
         }
 
-        if (context.Description.RelativePath == "api/formatters")
+        if (context.Description.RelativePath == ApiRoutePaths.Formatters.TrimStart('/'))
         {
             DescribeFormatterResponses(operation);
             return;
         }
 
-        if (context.Description.RelativePath is not ("api/documents/render" or "api/documents/analyze"))
+        if (context.Description.RelativePath == ApiRoutePaths.DocumentSample.TrimStart('/'))
+        {
+            await DescribeSampleOperation(operation, context, cancellationToken);
             return;
-        var generation = context.Description.RelativePath == "api/documents/render";
+        }
+
+        var generation = context.Description.RelativePath == ApiRoutePaths.DocumentRender.TrimStart('/');
+        var analysis = context.Description.RelativePath == ApiRoutePaths.DocumentAnalyze.TrimStart('/');
+        if (!generation && !analysis)
+            return;
         var requestCodes = generation
             ? new[]
             {
@@ -226,6 +233,124 @@ public sealed class ApiOperationTransformer : IOpenApiOperationTransformer
                 _ => ApiDiagnosticCodes.ServerInternalError
             });
             if (generation && status == "422")
+            {
+                schema.Required!.Add("errors");
+                schema.Required.Add("limitReached");
+                schema.Properties!["limitReached"] = new OpenApiSchema {Type = JsonSchemaType.Boolean};
+                schema.Properties["errors"] = new OpenApiSchema
+                {
+                    Type = JsonSchemaType.Array,
+                    Items = new OpenApiSchema
+                    {
+                        Type = JsonSchemaType.Object,
+                        Required = new HashSet<string> {"code", "message"},
+                        Properties = new Dictionary<string, IOpenApiSchema>
+                        {
+                            ["code"] = new OpenApiSchema {Type = JsonSchemaType.String},
+                            ["message"] = new OpenApiSchema {Type = JsonSchemaType.String},
+                            ["field"] = new OpenApiSchema {Type = JsonSchemaType.String | JsonSchemaType.Null},
+                            ["part"] = new OpenApiSchema {Type = JsonSchemaType.String | JsonSchemaType.Null},
+                            ["location"] = new OpenApiSchema {Type = JsonSchemaType.String | JsonSchemaType.Null},
+                            ["formatter"] = new OpenApiSchema {Type = JsonSchemaType.String | JsonSchemaType.Null},
+                            ["dataPath"] = new OpenApiSchema {Type = JsonSchemaType.String | JsonSchemaType.Null}
+                        }
+                    }
+                };
+            }
+        }
+    }
+
+    private async Task DescribeSampleOperation(OpenApiOperation operation,
+        OpenApiOperationTransformerContext context, CancellationToken cancellationToken)
+    {
+        operation.Summary = "Generate deterministic sample JSON from a Word or XLSX template";
+        operation.Description =
+            $"Inspects the supplied template and returns a deterministic JSON value with ordered advisory warnings. {SampleJsonRequestFields.ItemsPerCollection} defaults to {SampleJsonOptions.DefaultItemsPerCollection} and {SampleJsonRequestFields.Values} defaults to {SampleJsonRequestFields.Filled}; {SampleJsonRequestFields.Empty} retains the applicable structure and uses empty scalar values. A successful sample is not a validation guarantee and may need editing before document generation.";
+        operation.RequestBody = new OpenApiRequestBody
+        {
+            Required = true,
+            Content = new Dictionary<string, OpenApiMediaType>
+            {
+                ["multipart/form-data"] = new()
+                {
+                    Schema = new OpenApiSchema
+                    {
+                        Type = JsonSchemaType.Object,
+                        Required = new HashSet<string> {"template"},
+                        AdditionalPropertiesAllowed = false,
+                        Properties = new Dictionary<string, IOpenApiSchema>
+                        {
+                            ["template"] = new OpenApiSchema
+                            {
+                                Type = JsonSchemaType.String, Format = "binary",
+                                Description = "Required nonempty DOCX or XLSX template."
+                            },
+                            [SampleJsonRequestFields.ItemsPerCollection] = new OpenApiSchema
+                            {
+                                Type = JsonSchemaType.String,
+                                Description = $"Optional positive decimal integer text; default {SampleJsonOptions.DefaultItemsPerCollection}."
+                            },
+                            [SampleJsonRequestFields.Values] = new OpenApiSchema
+                            {
+                                Type = JsonSchemaType.String,
+                                Description = "Optional '" + SampleJsonRequestFields.Filled + "' or '" +
+                                              SampleJsonRequestFields.Empty + "'; default '" +
+                                              SampleJsonRequestFields.Filled + "'."
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        var success = (OpenApiResponse) operation.Responses!["200"];
+        var warningSchema = await context.GetOrCreateSchemaAsync(typeof(GenerationDiagnostic),
+            cancellationToken: cancellationToken);
+        success.Description = "Complete sample JSON value and ordered warnings; warnings do not prevent success.";
+        success.Content = new Dictionary<string, OpenApiMediaType>
+        {
+            ["application/json"] = new()
+            {
+                Schema = new OpenApiSchema
+                {
+                    Type = JsonSchemaType.Object,
+                    Required = new HashSet<string> {"data", "warnings"},
+                    Properties = new Dictionary<string, IOpenApiSchema>
+                    {
+                        ["data"] = new OpenApiSchema {Description = "The generated JSON value."},
+                        ["warnings"] = new OpenApiSchema
+                        {
+                            Type = JsonSchemaType.Array,
+                            Items = (IOpenApiSchema) warningSchema,
+                            Description = "Ordered actionable sample limitations; an empty array when none exist."
+                        }
+                    }
+                }
+            }
+        };
+
+        foreach (var (status, response) in operation.Responses)
+        {
+            if (status == "200" || response is not OpenApiResponse concrete) continue;
+            var codes = status switch
+            {
+                "400" => string.Join(", ", ApiDiagnosticCodes.RequestMissingInput,
+                    ApiDiagnosticCodes.RequestEmptyInput, ApiDiagnosticCodes.RequestDuplicateInput,
+                    ApiDiagnosticCodes.RequestInvalidInput, ApiDiagnosticCodes.RequestUnexpectedInput,
+                    ApiDiagnosticCodes.SampleCountInvalid, ApiDiagnosticCodes.SampleValuesInvalid),
+                "413" => ApiDiagnosticCodes.RequestTooLarge,
+                "415" => ApiDiagnosticCodes.RequestUnsupportedMediaType,
+                "422" => string.Join(", ", DiagnosticCodes.TemplateInvalidPackage,
+                    DiagnosticCodes.TemplateInvalidXml, DiagnosticCodes.TemplateUnsupportedStructure,
+                    DiagnosticCodes.TemplateInvalidExpression, DiagnosticCodes.TemplateInvalidContext,
+                    DiagnosticCodes.TemplateInvalidStructure, DiagnosticCodes.TemplateRequirementConflict,
+                    DiagnosticCodes.TemplateTrackedRevision, DiagnosticCodes.XlsxInvalidPrintArea,
+                    DiagnosticCodes.XlsxUnsupportedFeature, DiagnosticCodes.XlsxInvalidPackage,
+                    DiagnosticCodes.SampleElementLimit, DiagnosticCodes.SampleIncompatibleDemand),
+                _ => ApiDiagnosticCodes.ServerInternalError
+            };
+            var schema = DescribeProblemResponse(concrete, codes);
+            if (status == "422")
             {
                 schema.Required!.Add("errors");
                 schema.Required.Add("limitReached");

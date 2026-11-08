@@ -21,6 +21,9 @@ public static class MonoReportServiceCollectionExtensions
 
         services.TryAddTransient<DocumentGenerator>();
         services.TryAddTransient<TemplateAnalyzer>();
+        services.TryAddTransient<SampleJsonGenerator>();
+        services.TryAddTransient<DocxSampleJsonGenerator>();
+        services.TryAddTransient<XlsxSampleJsonGenerator>();
         services.TryAddTransient<PackageFormatDetector>();
         services.TryAddTransient<DocxGenerator>();
         services.TryAddTransient<DocxTemplateAnalyzer>();

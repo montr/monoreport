@@ -326,7 +326,7 @@ public sealed partial class DocxTemplatePlanner(TemplateLanguageParser parser)
                     }
 
                     if (TryCanonical(expression.Path, loops, out var fieldPath))
-                        dependencies.Add(new PlannedDependency("field", expression, fieldPath, "value", part,
+                        dependencies.Add(new PlannedDependency(PlannedDependency.FieldKind, expression, fieldPath, TemplateRequirement.ValueType, part,
                             paragraph.Location,
                             paragraph.PositionAt(token.Start)));
                     else
@@ -343,7 +343,7 @@ public sealed partial class DocxTemplatePlanner(TemplateLanguageParser parser)
                         break;
                     }
 
-                    dependencies.Add(new PlannedDependency("for", expression, arrayPath, "array", part,
+                    dependencies.Add(new PlannedDependency(PlannedDependency.ForKind, expression, arrayPath, TemplateRequirement.ArrayType, part,
                         paragraph.Location,
                         paragraph.SourceOrder + token.Start));
                     loops.Add(arrayPath + "[]");
@@ -351,7 +351,7 @@ public sealed partial class DocxTemplatePlanner(TemplateLanguageParser parser)
                     break;
                 case TemplateExpressionKind.If:
                     if (TryCanonical(expression.Path!, loops, out var booleanPath))
-                        dependencies.Add(new PlannedDependency("if", expression, booleanPath, "boolean", part,
+                        dependencies.Add(new PlannedDependency(PlannedDependency.IfKind, expression, booleanPath, TemplateRequirement.BooleanType, part,
                             paragraph.Location,
                             paragraph.PositionAt(token.Start)));
                     else

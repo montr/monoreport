@@ -5,7 +5,8 @@ import { ProblemsLabel } from "./ProblemsLabel";
 import type { Workspace } from "../hooks/useWorkspace";
 
 export function DiagnosticsPanel({ model }: { model: Workspace["diagnosticsPanel"] }) {
-  const { token, diagnosticsTab, setDiagnosticsTab, changeProblemsOpen, errors, setErrors, copyProblems, analysis } = model;
+  const { token, diagnosticsTab, setDiagnosticsTab, changeProblemsOpen, errors, setErrors, copyProblems,
+    copyAnalysis, analysis, analysisWireResult } = model;
   function renderProblem(error: typeof errors[number], index: number) {
     const severity = error.severity ?? "Error";
     const Icon = severity === "Warning" ? ExclamationCircleFilled : CloseCircleFilled;
@@ -51,41 +52,64 @@ export function DiagnosticsPanel({ model }: { model: Workspace["diagnosticsPanel
         label: <ProblemsLabel count={errors.length} />,
         children: (
           <>
-            {errors.length > 0 && (
-              <Flex
-                role="toolbar"
-                aria-label="Problems actions"
-                align="center"
-                gap={token.paddingXXS}
-                style={{ marginTop: token.paddingXXS, marginBottom: token.marginXXS }}
-              >
-                <Tooltip title="Clear">
-                  <Button
-                    size="small"
-                    type="text"
-                    icon={<DeleteOutlined />}
-                    aria-label="Clear"
-                    onClick={() => setErrors([])}
-                  />
-                </Tooltip>
-                <Tooltip title="Copy">
-                  <Button
-                    size="small"
-                    type="text"
-                    icon={<CopyOutlined />}
-                    aria-label="Copy"
-                    onClick={() => void copyProblems()}
-                  />
-                </Tooltip>
-              </Flex>
-            )}
+            <Flex
+              role="toolbar"
+              aria-label="Problems actions"
+              align="center"
+              gap={token.paddingXXS}
+              style={{ marginTop: token.paddingXXS, marginBottom: token.marginXXS }}
+            >
+              <Tooltip title="Copy">
+                <Button
+                  size="small"
+                  type="text"
+                  icon={<CopyOutlined />}
+                  aria-label="Copy"
+                  onClick={() => void copyProblems()}
+                />
+              </Tooltip>
+              <Tooltip title="Clear">
+                <Button
+                  size="small"
+                  type="text"
+                  icon={<DeleteOutlined />}
+                  aria-label="Clear"
+                  onClick={() => setErrors([])}
+                />
+              </Tooltip>
+            </Flex>
             {errors.length
-              ? <div>{errors.map(renderProblem)}</div>
+              ? <div className="diagnostic-list">{errors.map(renderProblem)}</div>
               : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No problems" />}
           </>
         )
       },
-      { key: "analysis", label: "Analysis", children: <AnalysisView analysis={analysis} /> }
+      {
+        key: "analysis",
+        label: "Analysis",
+        children: (
+          <>
+            <Flex
+              role="toolbar"
+              aria-label="Analysis actions"
+              align="center"
+              gap={token.paddingXXS}
+              style={{ marginTop: token.paddingXXS, marginBottom: token.marginXXS }}
+            >
+              <Tooltip title="Copy">
+                <Button
+                  size="small"
+                  type="text"
+                  icon={<CopyOutlined />}
+                  aria-label="Copy"
+                  onClick={() => void copyAnalysis()}
+                />
+              </Tooltip>
+            </Flex>
+            <AnalysisView analysis={analysis} />
+          </>
+        )
+      }
     ];
   }
 
@@ -123,15 +147,17 @@ export function DiagnosticsPanel({ model }: { model: Workspace["diagnosticsPanel
           activeKey={diagnosticsTab}
           onChange={key => setDiagnosticsTab(key as Workspace["diagnosticsPanel"]["diagnosticsTab"])}
           tabBarExtraContent={(
-            <Tooltip title="Hide diagnostics">
-              <Button
-                size="small"
-                type="text"
-                icon={<CloseOutlined />}
-                aria-label="Hide diagnostics"
-                onClick={() => changeProblemsOpen(false)}
-              />
-            </Tooltip>
+            <Flex role="toolbar" aria-label="Diagnostics actions" align="center" gap={token.paddingXXS}>
+              <Tooltip title="Hide diagnostics">
+                <Button
+                  size="small"
+                  type="text"
+                  icon={<CloseOutlined />}
+                  aria-label="Hide diagnostics"
+                  onClick={() => changeProblemsOpen(false)}
+                />
+              </Tooltip>
+            </Flex>
           )}
           items={getTabItems()}
         />

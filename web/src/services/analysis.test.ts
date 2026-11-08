@@ -15,7 +15,7 @@ describe("analysis client", () => {
     vi.stubGlobal("fetch", fetchMock);
     const template = new File([new Uint8Array([80, 75])], "template.docx");
 
-    await expect(analyzeTemplate(template)).resolves.toEqual(valid);
+    await expect(analyzeTemplate(template)).resolves.toEqual({ analysis: valid, wireResult: valid });
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("/api/documents/analyze");
     expect(init.method).toBe("POST");

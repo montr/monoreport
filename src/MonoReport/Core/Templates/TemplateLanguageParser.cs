@@ -254,7 +254,7 @@ public sealed class TemplateLanguageParser(IServiceProvider provider, FormatterP
             return false;
         }
 
-        formatter = new TemplateFormatter(name, bound);
+        formatter = new TemplateFormatter(name, bound) {SemanticType = metadata.SemanticType};
         return true;
     }
 

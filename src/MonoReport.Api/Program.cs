@@ -91,11 +91,16 @@ app.UseStaticFiles();
 
 app.MapHealthChecks("/health");
 
-app.MapPost("/api/documents/analyze", (HttpContext context, DocumentEndpoints endpoints) => endpoints.Analyze(context))
+app.MapPost(ApiRoutePaths.DocumentAnalyze, (HttpContext context, DocumentEndpoints endpoints) => endpoints.Analyze(context))
     .WithName("AnalyzeTemplate").Produces<TemplateAnalysisResult>()
     .ProducesProblem(400).ProducesProblem(413).ProducesProblem(415).ProducesProblem(500);
 
-app.MapPost("/api/documents/render",
+app.MapPost(ApiRoutePaths.DocumentSample, (HttpContext context, DocumentEndpoints endpoints) => endpoints.Sample(context))
+    .WithName("GenerateSampleJson").WithSummary("Generate deterministic sample JSON from a Word or XLSX template")
+    .Produces<SampleJsonResponse>().ProducesProblem(400).ProducesProblem(413).ProducesProblem(415)
+    .ProducesProblem(422).ProducesProblem(500);
+
+app.MapPost(ApiRoutePaths.DocumentRender,
         (HttpContext context, DocumentEndpoints endpoints) => endpoints.Generate(context))
     .WithName("GenerateDocument").Produces(200,
         contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
@@ -103,10 +108,10 @@ app.MapPost("/api/documents/render",
     .Produces(200, contentType: "multipart/mixed")
     .ProducesProblem(400).ProducesProblem(413).ProducesProblem(415).ProducesProblem(422).ProducesProblem(500);
 
-app.MapGet("/api/formatters", (FormatterEndpoints endpoints) => endpoints.List())
+app.MapGet(ApiRoutePaths.Formatters, (FormatterEndpoints endpoints) => endpoints.List())
     .WithName("ListFormatters").WithSummary("List registered formatters and their parameter metadata")
     .Produces<FormatterDescription[]>().ProducesProblem(500);
-app.MapPost("/api/formatters/{name}/execute",
+app.MapPost(ApiRoutePaths.FormatterExecution,
         (HttpContext context, string name, FormatterEndpoints endpoints) => endpoints.Execute(context, name))
     .WithName("ExecuteFormatter").WithSummary("Format a JSON value using a registered formatter")
     .Produces<FormatterExecutionResult>()

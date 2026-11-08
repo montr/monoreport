@@ -23,4 +23,9 @@ public static class DiagnosticCodes
     public const string XlsxUnsafeNumber = "generation.xlsx_unsafe_number";
     public const string XlsxMissingValue = "generation.xlsx_missing_value";
     public const string XlsxInvalidPackage = "template.xlsx_invalid_package";
+    public const string SampleElementLimit = "sample.element_limit";
+    public const string SampleUnresolvedShape = "sample.unresolved_shape";
+    public const string SampleSemanticConflict = "sample.semantic_conflict";
+    public const string SampleIncompatibleDemand = "sample.incompatible_demand";
+    public const string SampleUnavailableAncestor = "sample.unavailable_ancestor";
 }

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Http;
+using MonoReport;
 using MonoReport.Core.Diagnostics;
 using MonoReport.Core.Templates;
 
@@ -26,6 +27,8 @@ public sealed class ApiProblemFactory
 
     public IResult Create(HttpContext context, TemplateException error)
     {
+        var sampleRequest = string.Equals(context.Request.Path.Value, ApiRoutePaths.DocumentSample,
+            System.StringComparison.Ordinal);
         var extensions = new Dictionary<string, object?>
         {
             ["code"] = error.Code,
@@ -35,7 +38,10 @@ public sealed class ApiProblemFactory
             ["limitReached"] = error.LimitReached
         };
         return Results.Problem(statusCode: 422, type: $"urn:monoreport:error:{error.Code}",
-            title: "Document generation failed", detail: SafeMessage(error.Code), extensions: extensions);
+            title: sampleRequest ? "Sample generation failed" : "Document generation failed",
+            detail: error.Code is DiagnosticCodes.SampleElementLimit or DiagnosticCodes.SampleIncompatibleDemand
+                ? error.Message
+                : SafeMessage(error.Code), extensions: extensions);
     }
 
     public string SafeMessage(string code)
@@ -52,6 +58,10 @@ public sealed class ApiProblemFactory
             ApiDiagnosticCodes.RequestUnsupportedMediaType => "The request content type is not supported.",
             ApiDiagnosticCodes.DataInvalidJson => "The data field must contain one valid JSON value.",
             ApiDiagnosticCodes.CultureInvalid => "The culture name is invalid.",
+            ApiDiagnosticCodes.SampleCountInvalid =>
+                SampleJsonRequestFields.ItemsPerCollection + " must be a positive decimal integer.",
+            ApiDiagnosticCodes.SampleValuesInvalid => SampleJsonRequestFields.Values + " must be " +
+                SampleJsonRequestFields.Filled + " or " + SampleJsonRequestFields.Empty + ".",
             ApiDiagnosticCodes.FormatterNotFound => "The requested formatter is not registered.",
             ApiDiagnosticCodes.FormatterInvalidValue => "The value cannot be formatted as requested.",
             DiagnosticCodes.TemplateInvalidPackage =>
@@ -79,6 +89,8 @@ public sealed class ApiProblemFactory
                 "The XLSX package is inconsistent. Repair or re-save the workbook with valid parts and relationships.",
             DiagnosticCodes.XlsxUnsafeFormula =>
                 "The XLSX formula reference cannot be transformed safely; re-author it using explicit retained A1 operands.",
+            DiagnosticCodes.SampleElementLimit => $"The sample exceeds the {SampleJsonLimits.MaximumArrayElements:N0} element limit; reduce itemsPerCollection.",
+            DiagnosticCodes.SampleIncompatibleDemand => "Shared template collections have incompatible sample requirements.",
             _ => "The server could not complete the operation."
         };
     }

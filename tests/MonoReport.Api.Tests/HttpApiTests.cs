@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using Microsoft.AspNetCore.Mvc.Testing;
+using MonoReport;
 using MonoReport.Cli.Tests;
 using MonoReport.Docx;
 using Xunit;
@@ -42,6 +43,78 @@ public sealed class HttpApiTests
         Assert.False(tags.TryGetProperty("fields", out _));
         Assert.Equal(new[] {"$.Customer.Name", "$.Customer.Name", "$.Tags", "$.Tags[]"},
             root.GetProperty("occurrences").EnumerateArray().Select(item => item.GetProperty("path").GetString()));
+    }
+
+    [Fact]
+    public async Task Sample_returns_a_json_value_and_ordered_warnings_in_one_response()
+    {
+        using var factory = new WebApplicationFactory<Program>();
+        using var client = factory.CreateClient();
+        var template = DocxFixture.Create(DocxFixture.P(DocxFixture.Run("{Name}")));
+        using var form = Form(template);
+
+        using var response = await client.PostAsync("/api/documents/sample", form);
+
+        response.EnsureSuccessStatusCode();
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal("Sample Name 1", json.RootElement.GetProperty("data").GetProperty("Name").GetString());
+        Assert.Empty(json.RootElement.GetProperty("warnings").EnumerateArray());
+
+        var unknownTemplate = DocxFixture.Create(
+            DocxFixture.P(DocxFixture.Run("{For:Unknown}")),
+            DocxFixture.P(DocxFixture.Run("literal")),
+            DocxFixture.P(DocxFixture.Run("{/For}")));
+        using var warningForm = Form(unknownTemplate);
+        using var warningResponse = await client.PostAsync("/api/documents/sample", warningForm);
+        warningResponse.EnsureSuccessStatusCode();
+        using var warningJson = JsonDocument.Parse(await warningResponse.Content.ReadAsStringAsync());
+        Assert.Empty(warningJson.RootElement.GetProperty("data").GetProperty("Unknown").EnumerateArray());
+        Assert.Equal("sample.unresolved_shape",
+            warningJson.RootElement.GetProperty("warnings")[0].GetProperty("code").GetString());
+    }
+
+    [Fact]
+    public async Task Sample_budget_failure_returns_actionable_problem_without_candidate_data()
+    {
+        using var factory = new WebApplicationFactory<Program>();
+        using var client = factory.CreateClient();
+        var template = DocxFixture.Create(
+            DocxFixture.P(DocxFixture.Run("{For:Items}")),
+            DocxFixture.P(DocxFixture.Run("{.}")),
+            DocxFixture.P(DocxFixture.Run("{/For}")));
+        using var form = Form(template);
+        form.Add(new StringContent(SampleJsonLimits.PreflightSentinel.ToString(System.Globalization.CultureInfo.InvariantCulture)), "itemsPerCollection");
+
+        using var response = await client.PostAsync("/api/documents/sample", form);
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        using var problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal("sample.element_limit", problem.RootElement.GetProperty("code").GetString());
+        Assert.Contains("1,000,000", problem.RootElement.GetProperty("detail").GetString());
+        Assert.False(problem.RootElement.GetProperty("limitReached").GetBoolean());
+        Assert.DoesNotContain(problem.RootElement.EnumerateObject(), item => item.Name == "data");
+        Assert.Contains("1,000,000", problem.RootElement.GetProperty("errors")[0].GetProperty("message").GetString());
+    }
+
+    [Theory]
+    [InlineData("itemsPerCollection", "1e2", "sample.count_invalid")]
+    [InlineData("itemsPerCollection", "0", "sample.count_invalid")]
+    [InlineData("values", "random", "sample.values_invalid")]
+    [InlineData("values", " ", "request.empty_input")]
+    public async Task Sample_rejects_invalid_settings_as_request_errors(string name, string value, string code)
+    {
+        using var factory = new WebApplicationFactory<Program>();
+        using var client = factory.CreateClient();
+        var template = DocxFixture.Create(DocxFixture.P(DocxFixture.Run("{Name}")));
+        using var form = Form(template);
+        form.Add(new StringContent(value), name);
+
+        using var response = await client.PostAsync("/api/documents/sample", form);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        using var problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(code, problem.RootElement.GetProperty("code").GetString());
+        Assert.False(problem.RootElement.TryGetProperty("data", out _));
     }
 
     [Fact]

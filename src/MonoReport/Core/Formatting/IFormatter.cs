@@ -16,7 +16,10 @@ public interface IFormatter
 
 public sealed record FormatterMetadata(
     IReadOnlyList<FormatterParameter> Parameters,
-    string? PositionalParameter = null);
+    string? PositionalParameter = null)
+{
+    public SemanticType? SemanticType { get; init; }
+}
 
 public sealed record FormatterParameter(string Name, Type Type, bool Required);
 
