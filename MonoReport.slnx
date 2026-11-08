@@ -1,10 +1,10 @@
 <Solution>
-    <Project Path="MonoReport.Cli/MonoReport.Cli.csproj"/>
-    <Project Path="MonoReport.Cli.Tests/MonoReport.Cli.Tests.csproj"/>
-    <Project Path="MonoReport.Api/MonoReport.Api.csproj"/>
-    <Project Path="MonoReport.Api.Tests/MonoReport.Api.Tests.csproj"/>
-    <Project Path="MonoReport.Tests/MonoReport.Tests.csproj"/>
-    <Project Path="MonoReport/MonoReport.csproj"/>
-    <Project Path="MonoReport.Formatter.Spellout/MonoReport.Formatter.Spellout.csproj"/>
-    <Project Path="MonoReport.Formatter.Spellout.Tests/MonoReport.Formatter.Spellout.Tests.csproj"/>
+    <Project Path="src/MonoReport.Cli/MonoReport.Cli.csproj"/>
+    <Project Path="tests/MonoReport.Cli.Tests/MonoReport.Cli.Tests.csproj"/>
+    <Project Path="src/MonoReport.Api/MonoReport.Api.csproj"/>
+    <Project Path="tests/MonoReport.Api.Tests/MonoReport.Api.Tests.csproj"/>
+    <Project Path="tests/MonoReport.Tests/MonoReport.Tests.csproj"/>
+    <Project Path="src/MonoReport/MonoReport.csproj"/>
+    <Project Path="src/MonoReport.Formatter.Spellout/MonoReport.Formatter.Spellout.csproj"/>
+    <Project Path="tests/MonoReport.Formatter.Spellout.Tests/MonoReport.Formatter.Spellout.Tests.csproj"/>
 </Solution>

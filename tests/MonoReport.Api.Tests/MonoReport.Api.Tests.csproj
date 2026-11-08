@@ -19,7 +19,7 @@
         </PackageReference>
     </ItemGroup>
     <ItemGroup>
-        <ProjectReference Include="../MonoReport.Api/MonoReport.Api.csproj"/>
+        <ProjectReference Include="../../src/MonoReport.Api/MonoReport.Api.csproj"/>
         <Compile Include="../MonoReport.Tests/Docx/DocxFixture.cs" Link="Docx/DocxFixture.cs"/>
         <Compile Include="../MonoReport.Tests/Xlsx/XlsxTransportFixture.cs" Link="Services/XlsxTransportFixture.cs"/>
         <Compile Include="../MonoReport.Tests/Integration/TransportFixture.cs" Link="Services/TransportFixture.cs"/>

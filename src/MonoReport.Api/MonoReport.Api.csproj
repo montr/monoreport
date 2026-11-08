@@ -2,7 +2,7 @@
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
-        <UiRoot>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../web'))</UiRoot>
+        <UiRoot>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../../web'))</UiRoot>
         <MonoReportUiDist Condition="'$(MonoReportUiDist)' == ''">$(UiRoot)/dist</MonoReportUiDist>
         <MonoReportUiVersion Condition="'$(MonoReportUiVersion)' == ''">dev</MonoReportUiVersion>
     </PropertyGroup>

@@ -21,9 +21,9 @@ public sealed class ApiHostTests
         listener.Start();
         var port = ((IPEndPoint) listener.LocalEndpoint).Port;
         listener.Stop();
-        var root = new DirectoryInfo(AppContext.BaseDirectory).Parent!.Parent!.Parent!.Parent!.FullName;
+        var root = new DirectoryInfo(AppContext.BaseDirectory).Parent!.Parent!.Parent!.Parent!.Parent!.FullName;
         var configuration = new DirectoryInfo(AppContext.BaseDirectory).Parent!.Name;
-        var dll = Path.Combine(root, "MonoReport.Api", "bin", configuration, "net10.0", "MonoReport.Api.dll");
+        var dll = Path.Combine(root, "src", "MonoReport.Api", "bin", configuration, "net10.0", "MonoReport.Api.dll");
         var start = new ProcessStartInfo("dotnet")
             {RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false};
         start.ArgumentList.Add(dll);

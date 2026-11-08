@@ -35,7 +35,7 @@ jobs:
           npm test -- --run
           npm run build
       - name: Verify production publish
-        run: dotnet publish MonoReport.Api/MonoReport.Api.csproj -c Release --no-restore -o '${{ runner.temp }}/monoreport-publish'
+        run: dotnet publish src/MonoReport.Api/MonoReport.Api.csproj -c Release --no-restore -o '${{ runner.temp }}/monoreport-publish'
 
   publish:
     if: startsWith(github.ref, 'refs/tags/v')

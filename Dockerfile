@@ -12,16 +12,16 @@ RUN MONOREPORT_VERSION="$APP_VERSION" npm run build
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS api-build
 WORKDIR /src
 COPY global.json Directory.Build.props NuGet.Config ./
-COPY MonoReport/MonoReport.csproj MonoReport/
-COPY MonoReport.Formatter.Spellout/MonoReport.Formatter.Spellout.csproj MonoReport.Formatter.Spellout/
-COPY MonoReport.Api/MonoReport.Api.csproj MonoReport.Api/
-RUN dotnet restore MonoReport.Api/MonoReport.Api.csproj
-COPY MonoReport/ MonoReport/
-COPY MonoReport.Formatter.Spellout/ MonoReport.Formatter.Spellout/
-COPY MonoReport.Api/ MonoReport.Api/
+COPY src/MonoReport/MonoReport.csproj src/MonoReport/
+COPY src/MonoReport.Formatter.Spellout/MonoReport.Formatter.Spellout.csproj src/MonoReport.Formatter.Spellout/
+COPY src/MonoReport.Api/MonoReport.Api.csproj src/MonoReport.Api/
+RUN dotnet restore src/MonoReport.Api/MonoReport.Api.csproj
+COPY src/MonoReport/ src/MonoReport/
+COPY src/MonoReport.Formatter.Spellout/ src/MonoReport.Formatter.Spellout/
+COPY src/MonoReport.Api/ src/MonoReport.Api/
 COPY --from=ui-build /src/web/dist /ui-dist
 ARG APP_VERSION=dev
-RUN dotnet publish MonoReport.Api/MonoReport.Api.csproj -c Release --no-restore -o /app/publish \
+RUN dotnet publish src/MonoReport.Api/MonoReport.Api.csproj -c Release --no-restore -o /app/publish \
     -p:MonoReportSkipUiBuild=true -p:MonoReportUiDist=/ui-dist -p:MonoReportUiVersion="$APP_VERSION"
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime

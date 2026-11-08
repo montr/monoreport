@@ -80,11 +80,11 @@ public sealed class CliProcessTests
 
     private static async Task<(int ExitCode, byte[] Output, string Error)> Run(string[] arguments)
     {
-        var root = new DirectoryInfo(AppContext.BaseDirectory).Parent!.Parent!.Parent!.Parent!.FullName;
+        var root = new DirectoryInfo(AppContext.BaseDirectory).Parent!.Parent!.Parent!.Parent!.Parent!.FullName;
         var configuration = new DirectoryInfo(AppContext.BaseDirectory).Parent!.Name;
         var start = new ProcessStartInfo("dotnet")
             {RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false};
-        start.ArgumentList.Add(Path.Combine(root, "MonoReport.Cli", "bin", configuration, "net10.0",
+        start.ArgumentList.Add(Path.Combine(root, "src", "MonoReport.Cli", "bin", configuration, "net10.0",
             "MonoReport.Cli.dll"));
         foreach (var argument in arguments) start.ArgumentList.Add(argument);
         using var process = Process.Start(start)!;
