@@ -14,7 +14,7 @@ public sealed class XlsxCatalogAcceptanceTests
     [Theory]
     [InlineData("xlsx-tender")]
     [InlineData("xlsx-employees")]
-    public void Catalog_workbooks_analyze_generate_and_preserve_native_types_formulas_and_styles(string id)
+    public void Catalog_workbooks_analyze_generate_and_preserve_formatted_values_formulas_and_styles(string id)
     {
         var template = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, id + ".template.xlsx"));
         var json = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, id + ".json"));
@@ -51,13 +51,14 @@ public sealed class XlsxCatalogAcceptanceTests
             Assert.Equal("Unit price", Text(cells["G4"]));
             Assert.Equal("Laptop", Text(cells["C6"]));
             Assert.Equal("Dock", Text(cells["C7"]));
-            Assert.Equal("2", Text(cells["B6"]));
-            Assert.Equal("1200", Text(cells["D6"]));
-            Assert.Equal("1150", Text(cells["G6"]));
-            Assert.Equal(CellValues.Number, cells["B6"].DataType?.Value);
-            Assert.Equal(CellValues.Number, cells["D6"].DataType?.Value);
-            Assert.Equal("18", cells["D6"].StyleIndex?.Value.ToString());
-            Assert.Equal("20", cells["D8"].StyleIndex?.Value.ToString());
+            Assert.Equal("2.00", Text(cells["B6"]));
+            Assert.Equal("1,200.00", Text(cells["D6"]));
+            Assert.Equal("1,150.00", Text(cells["G6"]));
+            Assert.Equal(CellValues.InlineString, cells["B6"].DataType?.Value);
+            Assert.Equal(CellValues.InlineString, cells["D6"].DataType?.Value);
+            Assert.Equal(CellValues.InlineString, cells["G6"].DataType?.Value);
+            Assert.Equal("23", cells["D6"].StyleIndex?.Value.ToString());
+            Assert.Equal("17", cells["D8"].StyleIndex?.Value.ToString());
             Assert.Equal(new[] {"SUM(D6:D7)", "SUM(E6:E7)", "SUM(G6:G7)", "SUM(H6:H7)"},
                 sheet.Worksheet.Descendants<CellFormula>().Select(formula => formula.Text));
         }

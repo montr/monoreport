@@ -2065,8 +2065,8 @@ describe("MonoReport playground", () => {
     const panel = screen.getByRole("tabpanel", { name: "Problems 1" });
     const actions = screen.getByRole("toolbar", { name: "Problems actions" });
     const buttons = within(actions).getAllByRole("button");
-    expect(buttons.map(button => button.getAttribute("aria-label"))).toEqual(["Clear", "Copy"]);
-    await user.click(buttons[0]);
+    expect(buttons.map(button => button.getAttribute("aria-label"))).toEqual(["Copy", "Clear"]);
+    await user.click(within(actions).getByRole("button", { name: "Clear" }));
     expect(within(actions).getByRole("button", { name: "Clear" })).toBeEnabled();
     expect(within(actions).getByRole("button", { name: "Copy" })).toBeEnabled();
     expect(await within(panel).findByText("No problems")).toBeInTheDocument();
