@@ -1,6 +1,6 @@
 # Feature 018 — Implementation Plan
 
-**Status:** Implementation complete; submitted for Product Owner review on 2026-11-08.
+**Status:** Accepted (2026-11-09). All six completed stages are Accepted by the Product Owner; the unresolved large-Dataset Chrome crash is tracked separately.
 
 ## 1. Authority and success criteria
 
@@ -21,7 +21,7 @@
 
 ## 3. Stage 1 — Add advisory semantic evidence
 
-**Status:** Review (2026-11-08).
+**Status:** Accepted (2026-11-09).
 
 1. Dependencies: approved Implementation Plan. Before edits, inspect relevant existing tests and run the focused parser/formatter/analyzer baseline; record existing failures separately.
 2. Add the Core Number/Date/Boolean enum, nullable init-only metadata property, and captured parsed-invocation evidence. Number, Date, and Spellout declare input meaning; casing and unchanged custom formatters remain unspecified. Preserve formatter parameter validation, registration precedence, lifetimes, aliases, positional constructors, and deconstruction.
@@ -31,7 +31,7 @@
 
 ## 4. Stage 2 — Establish bounded sample construction and DOCX support
 
-**Status:** Review (2026-11-08).
+**Status:** Accepted (2026-11-09).
 
 1. Dependencies: Stage 1. Add `SampleJsonGenerator`, options, result, and constructor-injected format services using existing TryAdd composition. Options contain only positive arbitrary-size integer ItemsPerCollection (default 10) and Filled/Empty (default Filled). Return detached JsonElement data and read-only ordered GenerationDiagnostic warnings; argument errors and TemplateException failures return no candidate.
 2. Buffer the caller stream once from its current position, detect actual package content, and inspect read-only. Keep caller ownership and bytes intact; retain no package-backed objects in the result. Verify non-seekable input, current-position reading, format detection, invalid packages, disposal independence, and repeated service calls without leaked operation state.
@@ -44,7 +44,7 @@
 
 ## 5. Stage 3 — Implement XLSX samples with a complexity checkpoint
 
-**Status:** Review (2026-11-08).
+**Status:** Accepted (2026-11-09).
 
 1. Dependencies: Stages 1–2. First extract source-only inspection as described in Section 2. Verify Analyze parity for valid plans and representative invalid package, controls/PrintArea, merge/unsupported-feature, formula and defined-name cases before adding construction. Preserve static finalization behavior; dynamic Generate stays unchanged.
 2. Build a small XLSX-owned description using sheet controls, vertical layouts, horizontal nodes, parsed cells and source locations. Keep identities for root properties, headers, numeric levels/ancestors, and intersection tuples. Merge shared collection demands across regions and worksheets before counting or materializing.
@@ -58,7 +58,7 @@
 
 ## 6. Stage 4 — Expose the sample HTTP operation
 
-**Status:** Review (2026-11-08).
+**Status:** Accepted (2026-11-09).
 
 1. Dependencies: Stages 2–3 and their complexity checkpoint. Add a thin POST `/api/documents/sample` handler, typed success contract, route/OpenAPI descriptions and explicit multipart operation handling. Settings are `itemsPerCollection` and `values`; the endpoint calls the library rather than Analyzer DTO conversion.
 2. Require exactly one nonempty template file. Reject unknown fields and blank, duplicate, wrong-representation or invalid settings with existing request conventions. Omission gives defaults; counts are positive decimal integer text without fraction/exponent syntax, parsed without a fixed integer ceiling. Values are `filled` or `empty`.
@@ -69,7 +69,7 @@
 
 ## 7. Stage 5 — Integrate Playground review and acceptance
 
-**Status:** Review (2026-11-08).
+**Status:** Accepted (2026-11-09).
 
 1. Dependencies: Stage 4; analysis hint display/raw-result retention can be prepared after Stage 1. Add a typed API service and a focused sample coordination hook using existing operation/revision guards. Remove browser sample inference and its obsolete tests only once the server-backed flow replaces it. Do not leave duplicate sampling rules or use the analysis cache as sample input.
 2. Extend the existing Ant Design dataset dialog with Filled/Empty in that order, default count 10, Generate sample, diagnostics, Copy, Replace Dataset and Cancel. Reuse Monaco in read-only JSON mode with line numbers, folding, and scrolling; keep the dialog responsive. Place diagnostics above preview, show the editing/Generate-after-replacement and unsaved-change explanations, and permanently describe the nested total and 1,000,000 overall limit below the count field. Remove the pre-generation discard prompt.
@@ -81,7 +81,7 @@
 
 ## 8. Stage 6 — Verify compatibility and submit for acceptance
 
-**Status:** Review (2026-11-08).
+**Status:** Accepted (2026-11-09).
 
 1. Dependencies: Stages 1–5. Run relevant tests first at each stage; once changes stabilize, run affected .NET test projects (engine, Spellout, API, CLI) and the web suite/typecheck/build once as the final regression pass. Request separate approval before any unexpectedly resource-intensive suite; browser automation and broad performance testing are outside this plan. Record commands, results, pre-existing failures and material gaps in the implementation handoff within this plan.
 2. Map Feature acceptance criteria to evidence: AC1 and AC10 to metadata/inspection parity and existing engine/API/CLI regressions; AC2 to DOCX sample/render cases; AC3 to XLSX hierarchy/tuple/render cases; AC4 to deterministic modes/count/budget cases; AC5 to invalid templates, warnings/fallbacks and incompatible demands; AC6 to HTTP contracts; AC7–8 to guarded review/acceptance tests; AC9 to advisory display and full-result copying.
@@ -108,6 +108,8 @@
 
 ## 11. Implementation handoff
 
+The entries below preserve the chronological implementation and review history. Their pending/Review statements describe the status at the time; the Product Owner acceptance in Section 12 supersedes those statements and the earlier crash-mitigation assessment.
+
 1. Verification passed: `dotnet test tests/MonoReport.Tests/MonoReport.Tests.csproj --no-restore` (1,117 passed on the latest full run); `dotnet test tests/MonoReport.Formatter.Spellout.Tests/MonoReport.Formatter.Spellout.Tests.csproj --no-restore` (56 passed); `dotnet test tests/MonoReport.Api.Tests/MonoReport.Api.Tests.csproj --no-restore` (196 passed); and `dotnet test tests/MonoReport.Cli.Tests/MonoReport.Cli.Tests.csproj --no-restore` (32 passed). The .NET projects were run serially because they share build outputs.
 2. Web verification passed: `npm test -- --run --reporter=dot` (12 files, 161 tests passed), `npm run typecheck`, and `npm run build` (Webpack production build succeeded). After the final dialog markup cleanup, focused Playground/service tests passed again (8 tests), with typecheck and production build repeated successfully. `git diff --check` passed.
 3. Stage 3's complexity checkpoint passed against the XLSX analyzer, binding, hierarchy, two-axis, nested, formula, and compatibility tests. Representative vertical, horizontal, combined, footer-first, shared-collection, and unavailable-ancestor cases are covered; no binder or Generate scheduling changes were required.
@@ -125,3 +127,12 @@
 15. The Sample preview Copy button now uses `CopyOutlined` with no visible text, retains its current position, callback, and accessible name, and leaves Problems/Analysis actions unchanged. `npm run typecheck` and `git diff --check` passed. No cosmetic test or browser inspection was run. Feature remains in Review pending Product Owner acceptance.
 16. Corrected stale `xlsx-tender` catalog expectations: its Quantity/Value fields use `N2`, so generated values are formatted inline text (`2.00`, `1,200.00`, `1,150.00`) per the compatibility contract; D6/D8 style indices were also synchronized to the current template output. Focused XLSX catalog acceptance tests passed (2). No engine or contract changes. Feature remains in Review pending Product Owner acceptance.
 17. Synchronized the Problems action-order assertion with the approved Copy then Clear order and had the test locate Clear by accessible name. `App.test.tsx` passed (91 tests), typecheck and `git diff --check` passed. Feature remains in Review pending Product Owner acceptance.
+
+## 12. Product Owner acceptance — 2026-11-09
+
+1. **Feature and Stages 1–6: Accepted (2026-11-09).** The Product Owner explicitly approved acceptance with the known large-Dataset Chrome crash tracked separately. The [final acceptance review](implementation-review.md#product-owner-acceptance--2026-11-09) maps AC1–AC10 to the implementation and recorded verification evidence. Earlier review findings and status transitions remain historical records; the F-06 correction and later passing regressions supersede its reopened status.
+2. Acceptance reuses the recorded full engine/API/Spellout/CLI and web regression evidence together with subsequent focused corrections, catalog tests, typechecks, and builds. Those checks were run at the snapshots described in the handoff, not all against a single final snapshot. This acceptance task inspected current source/tests and documentation without rerunning tests, builds, browser automation, or large-payload stress tests.
+3. **Known limitation remains unresolved.** Chrome can crash during Generate with a very large Dataset, particularly after HTTP 413. The Product Owner reports that removing the redundant client-side JSON parse did not resolve the observed crash. The root cause remains unconfirmed; the earlier likely-contributor assessment is not a proven explanation or a fix. The bounded 413 regression verifies failure-state handling, not browser stability under the reported workload. This defect is not accepted as correct behavior.
+4. The crash is tracked in [a separate follow-up task outside Feature 018](../../tasks/large-dataset-chrome-crash.md), also linked from the Engineering Backlog. It includes reproduction evidence, missing diagnostic details, and the unconfirmed hypothesis that an incomplete or erroneous XLSX response may reach the preview pipeline. Recording the task does not implement a correction or authorize disruptive reproduction.
+5. The approved sample limit remains 1,000,000 aggregate array elements; Generate retains its separately configured whole-request byte limit. Valid sample construction does not promise that every candidate fits Generate's request cap, renders without editing, or avoids the unresolved Chrome crash. Spreadsheet visual fidelity and live-browser large-payload behavior were not newly verified.
+6. User-facing documentation recommendations remain outstanding as listed in the [acceptance review](implementation-review.md#remaining-user-facing-documentation). No application code, tests, API contracts, compatibility contracts, user-facing documentation, or Git index/history were changed for acceptance.

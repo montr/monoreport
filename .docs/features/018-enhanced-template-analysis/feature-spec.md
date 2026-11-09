@@ -1,6 +1,6 @@
 # Feature Spec — Enhanced Template Analysis & Sample JSON Generation
 
-**Status:** Feature Spec approved by the Product Owner on 2026-11-08; implementation remains in Review with approved acceptance corrections recorded below.
+**Status:** Accepted (2026-11-09). The Product Owner approved Feature acceptance with the known large-Dataset Chrome crash tracked separately; the crash is unresolved and is not accepted as correct behavior.
 
 **Feature directory:** `.docs/features/018-enhanced-template-analysis/`
 
@@ -108,4 +108,11 @@ This Feature must preserve existing template syntax, generation semantics, and D
 5. Verify that UI stale-result protection aligns with existing Dataset editing and generation behavior.
 6. Identify necessary updates to user-facing documentation, but do not edit those documents without separate Product Owner approval.
 
-**Approval:** The Product Owner approved this Feature Spec and the [architecture](architecture-assessment.md) on 2026-11-08 and authorized implementation planning. The [Implementation Plan](implementation-plan.md) is prepared for review. Code implementation requires Product Owner approval of the plan.
+**Approval:** The Product Owner approved this Feature Spec, the [architecture](architecture-assessment.md), and the [Implementation Plan](implementation-plan.md) on 2026-11-08, then accepted the completed Feature and all six stages on 2026-11-09. See the [acceptance record](implementation-review.md#product-owner-acceptance--2026-11-09) for acceptance-criteria evidence and verification boundaries.
+
+## 10. Acceptance record — 2026-11-09
+
+1. **Feature: Accepted (2026-11-09).** Acceptance includes the recorded Product Owner-approved corrections and final UI refinements. The later approved empty Analysis Copy behavior supersedes the initial disabled-without-analysis wording in Section 6, item 10: Copy remains enabled and safely copies `{}` when no analysis exists; an existing result copies its complete stored wire payload.
+2. Chrome can crash during Generate with a very large Dataset, particularly after HTTP 413. Removing the redundant client-side JSON parse did not resolve the observed crash. The root cause remains unconfirmed; acceptance does not mark this defect fixed or accept it as correct behavior.
+3. The remaining crash is tracked outside Feature 018 in [the separate follow-up task](../../tasks/large-dataset-chrome-crash.md). The possibility that an incomplete or erroneous XLSX response reaches the preview pipeline is an investigation hypothesis, not an established cause. No crash correction or broader performance guarantee is included in this acceptance.
+4. Remaining user-facing documentation work is recorded in the [final acceptance review](implementation-review.md#remaining-user-facing-documentation). No user-facing documentation or compatibility contract is changed by this acceptance task.

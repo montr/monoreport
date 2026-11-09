@@ -1,6 +1,6 @@
 # Feature 018 — Architecture Assessment
 
-**Status:** Architecture approved by the Product Owner on 2026-11-08; Feature Spec approved on the same date. Implementation remains in Review; the Playground and allocation decisions below include Product Owner-approved acceptance corrections dated 2026-11-08.
+**Status:** Accepted (2026-11-09). Architecture and Feature Spec were approved by the Product Owner on 2026-11-08; the completed Feature and all six implementation stages were accepted on 2026-11-09. The unresolved large-Dataset Chrome crash is tracked in a [separate follow-up task](../../tasks/large-dataset-chrome-crash.md), not accepted as correct behavior. The assessment below retains its architectural decisions; subsequent approved UI refinements and final acceptance are recorded in the [review history](implementation-review.md).
 
 ## 1. Authority and boundaries
 
@@ -96,4 +96,4 @@
 5. UI risk: candidate acceptance can race with edits, cancellation, context switches, settings changes, and later requests. Verify these behavioral guards and copy failure; no cosmetic/framework tests or browser automation are required by this architecture.
 6. No unresolved product decision blocks this approved architecture. HTTP names/error mapping and deterministic conflict/fallback details above resolve the decisions explicitly delegated to architecture. The Product Owner approved architecture and authorized implementation planning on 2026-11-08. If source inspection during planning shows incompatible shared collection cases need a materially different fallback or broader abstraction, return for approval rather than expand scope.
 7. Necessary future documentation corrections: document the new sample API/settings/errors, explain Filled/Empty and aggregate expansion limits, describe advisory occurrence hints and the preview/copy/replacement workflow, and retain the distinction from data validation. README, API guidance, and DOCX/XLSX authoring guides may need targeted updates; no user-facing documentation is modified by this architecture task.
-8. This assessment is based on code/spec/contract inspection and previous investigations. No implementation, test execution, benchmark or browser automation was performed for the assessment. Stages and verification details are documented in the separate [Implementation Plan](implementation-plan.md), pending Product Owner approval.
+8. This assessment is based on code/spec/contract inspection and previous investigations. No implementation, test execution, benchmark or browser automation was performed for the assessment. Stages and verification details are documented in the separate [Implementation Plan](implementation-plan.md), approved on 2026-11-08 and Accepted with all six stages on 2026-11-09.
