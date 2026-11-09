@@ -4,6 +4,8 @@ MonoReport generates DOCX and XLSX documents from templates and JSON data — re
 
 **Use the editors you already know.** Create and maintain templates in Microsoft Word, Excel, or other compatible editors. No need to learn a new report designer or specialized editing tools.
 
+**No Microsoft Office required on the server.** MonoReport generates DOCX and XLSX documents without installing Word or Excel.
+
 **Preserve your document design.** Generated documents retain the template's layout, formatting, tables, styles, and supported Excel formulas.
 
 **Separate data from presentation.** Templates define the appearance, while JSON provides the content. Reuse templates with different data to generate consistent documents.

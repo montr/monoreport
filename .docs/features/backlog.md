@@ -184,17 +184,9 @@ An equivalent workflow should be supported in Excel, accounting for cell, range,
 
 **Priority:** After Feature 012 stabilizes. Not a blocker for XLSX development.
 
-## Documentation Refresh (README-first)
+## README Visual Examples
 
-Review and rewrite MonoReport's user-facing documentation as a separate Feature.
-
-1. Keep README as the main, coherent entry point for users. Move large standalone topics (DOCX/XLSX compatibility, architecture, etc.) into separate documents only when justified, with links from README.
-2. Emphasize the data-first approach: explain structured input data and JSON, not just document templates. Clearly illustrate the workflow: template + data → generated document.
-3. Restore and review illustrations, including the template, JSON input, and generated document. Prefer visual examples before detailed API documentation.
-4. Review product positioning, supported capabilities, limitations, getting-started instructions, CLI/API examples, and documentation consistency across DOCX and XLSX.
-5. Remove outdated information, unnecessary dependency/version details, duplication, and implementation-oriented explanations that are not useful to users. Preserve practical examples and working commands.
-
-Start with a documentation audit and an agreed update plan. Do not rewrite documentation incrementally during unrelated Feature implementation.
+1. Consider adding illustrations of the template, JSON input, and generated document to the already refreshed README. Keep README concise and avoid duplicating the existing DOCX/XLSX guides.
 
 ## XLSX Engine Architecture Review
 
