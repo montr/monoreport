@@ -1,0 +1,91 @@
+{
+  "package": "@silurus/ooxml",
+  "version": "0.89.8",
+  "instrumentation": "Private Node parser adapter used only for research; proposed Plan B uses public browser APIs.",
+  "input": "In-memory three-sheet XLSX package with distinct sheetIds, hidden middle sheet, quoted name, global/local shadow and dynamic name.",
+  "sheets": [
+    {
+      "name": "First",
+      "sheetId": 10,
+      "rId": "rId1"
+    },
+    {
+      "name": "Hidden",
+      "sheetId": 42,
+      "rId": "rId2",
+      "visibility": "hidden"
+    },
+    {
+      "name": "O'Brien",
+      "sheetId": 99,
+      "rId": "rId3"
+    }
+  ],
+  "definitions": [
+    {
+      "sheetIndex": 0,
+      "sheetName": "First",
+      "definedNames": [
+        {
+          "name": "Region",
+          "formula": "'O''Brien'!$D$4:$F$8"
+        },
+        {
+          "name": "Dynamic",
+          "formula": "OFFSET(First!$A$1,0,0,2,2)"
+        },
+        {
+          "name": "Region",
+          "formula": "First!$B$2:$C$5"
+        },
+        {
+          "name": "_xlnm.Print_Area",
+          "formula": "First!$B$2:$C$5"
+        }
+      ]
+    },
+    {
+      "sheetIndex": 1,
+      "sheetName": "Hidden",
+      "definedNames": [
+        {
+          "name": "Region",
+          "formula": "'O''Brien'!$D$4:$F$8"
+        },
+        {
+          "name": "Dynamic",
+          "formula": "OFFSET(First!$A$1,0,0,2,2)"
+        }
+      ]
+    },
+    {
+      "sheetIndex": 2,
+      "sheetName": "O'Brien",
+      "definedNames": [
+        {
+          "name": "Region",
+          "formula": "'O''Brien'!$D$4:$F$8"
+        },
+        {
+          "name": "Dynamic",
+          "formula": "OFFSET(First!$A$1,0,0,2,2)"
+        },
+        {
+          "name": "_xlnm.Print_Area",
+          "formula": "'O''Brien'!$D$4:$F$8"
+        }
+      ]
+    }
+  ],
+  "public_api": {
+    "workbookLoad": true,
+    "workbookGetWorksheet": true,
+    "viewerFromWorkbook": true,
+    "viewerGoToSheet": true,
+    "viewerScrollToCell": true,
+    "viewerSetSelection": true,
+    "viewerGetWorksheet": false,
+    "viewerSetShowPrintArea": false,
+    "evidenceBoundary": "Public method presence verified in fresh published package; browser navigation was not executed."
+  }
+}

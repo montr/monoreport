@@ -1,0 +1,123 @@
+{
+  "date": "2026-11-10",
+  "status": "passed",
+  "process_exit_code": 0,
+  "platform": "macOS aarch64",
+  "source_restore": {
+    "upstream_files": 13,
+    "monoreport_files": 8,
+    "all_manifest_hashes_match": true,
+    "upstream_source": "fresh checksum-verified exact-commit archive",
+    "monoreport_source": "fresh git archive of recorded base plus archived integration patch",
+    "existing_temporary_sources_or_dependency_trees_reused": false
+  },
+  "toolchain": {
+    "node": "26.13.0",
+    "npm": "12.2.2",
+    "pnpm": "11.13.0",
+    "rust": "1.99.1",
+    "rust_target": "wasm32-unknown-unknown",
+    "wasm_pack": "0.15.1",
+    "wasm_bindgen": "0.2.118"
+  },
+  "phases": [
+    {
+      "name": "download-node",
+      "exit_code": 0
+    },
+    {
+      "name": "install-npm",
+      "exit_code": 0
+    },
+    {
+      "name": "download-rustup",
+      "exit_code": 0
+    },
+    {
+      "name": "install-rust",
+      "exit_code": 0
+    },
+    {
+      "name": "download-wasm-pack",
+      "exit_code": 0
+    },
+    {
+      "name": "install-pnpm",
+      "exit_code": 0
+    },
+    {
+      "name": "download-upstream",
+      "exit_code": 0
+    },
+    {
+      "name": "install-upstream",
+      "exit_code": 0
+    },
+    {
+      "name": "install-frontend",
+      "exit_code": 0
+    },
+    {
+      "name": "build-library",
+      "exit_code": 0
+    },
+    {
+      "name": "parser-tests",
+      "exit_code": 0
+    },
+    {
+      "name": "legacy-typecheck",
+      "exit_code": 0
+    },
+    {
+      "name": "library-tests",
+      "exit_code": 0
+    },
+    {
+      "name": "library-typecheck",
+      "exit_code": 0
+    },
+    {
+      "name": "api-symmetry",
+      "exit_code": 0
+    },
+    {
+      "name": "frontend-tests",
+      "exit_code": 0
+    },
+    {
+      "name": "frontend-typecheck",
+      "exit_code": 0
+    },
+    {
+      "name": "frontend-build",
+      "exit_code": 0
+    }
+  ],
+  "counts": {
+    "rust_parser_tests": 2,
+    "library_tests": 171,
+    "library_test_files": 11,
+    "frontend_tests": 181,
+    "frontend_test_files": 13
+  },
+  "generated_wasm_sha256": {
+    "original_local_build": "8ae9a9a77b475b964a04d4019e14cabfb708b9c18b4e2eaf314e18050e7c59e3",
+    "fresh_reproduction": "d6cf1024d0cdee9171983c862ae90e3fefe7a76ba53dfdce3c75e442b0f05b08"
+  },
+  "byte_identical_generated_artifacts_claimed": false,
+  "evidence": "verification.log contains normalized logs for the final fresh run; reproduce.sh contains the exact commands.",
+  "earlier_attempt": {
+    "all_recorded_build_test_phases_passed": true,
+    "process_exit_code": 127,
+    "npm": "11.20.0 bundled with downloaded Node",
+    "harness_issue": "The archiver edited the reproduction script while it was running, causing a trailing command-offset error. The finalized script explicitly pins npm 12.2.2 and was rerun unchanged from a second empty workspace. No implementation patch was fixed."
+  },
+  "limitations": [
+    "No browser automation or visual validation was performed.",
+    "Original code review findings remain unresolved.",
+    "Generated WASM hashes differ; functional and exact source reproducibility, not byte-identical builds, is verified.",
+    "Bootstrap paths for Intel macOS/Linux are not validated.",
+    "pnpm 11.13.0 is deprecated upstream; it was retained, not silently upgraded."
+  ]
+}

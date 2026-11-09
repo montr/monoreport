@@ -3,7 +3,10 @@
   box-sizing: border-box;
 }
 
-html,body,#root,.app {
+html,
+body,
+#root,
+.app {
   height: 100%;
   margin: 0;
 }
@@ -34,7 +37,8 @@ html,body,#root,.app {
   overflow: hidden;
 }
 
-.source,.preview {
+.source,
+.preview {
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -54,9 +58,9 @@ html,body,#root,.app {
   background: var(--ant-color-bg-container);
 }
 
-.app > .ant-alert,
-.source > .ant-alert,
-.preview > .ant-alert {
+.app>.ant-alert,
+.source>.ant-alert,
+.preview>.ant-alert {
   margin: var(--ant-margin-xs) var(--ant-margin-sm) 0;
 }
 
@@ -94,7 +98,8 @@ html,body,#root,.app {
   position: relative;
 }
 
-.canvas>.ant-empty,.canvas>.ant-upload-wrapper {
+.canvas>.ant-empty,
+.canvas>.ant-upload-wrapper {
   align-self: center;
 }
 
@@ -210,7 +215,7 @@ footer a:hover {
   align-items: safe center;
 }
 
-.document-preview > .ant-alert {
+.document-preview>.ant-alert {
   margin-bottom: var(--ant-margin-xs);
 }
 
@@ -262,8 +267,8 @@ footer a:hover {
   overflow: hidden;
 }
 
-.xlsx-preview > .ant-alert,
-.xlsx-preview > .preview-loading {
+.xlsx-preview>.ant-alert,
+.xlsx-preview>.preview-loading {
   flex: none;
   margin: var(--ant-margin-xs);
 }
@@ -293,11 +298,11 @@ footer a:hover {
   color: var(--ant-color-text-secondary);
 }
 
-.xlsx-cell-address {
+.xlsx-name-box {
   flex: none;
-  min-width: 58px;
+  width: 100px;
+  max-width: 35%;
   font-variant-numeric: tabular-nums;
-  color: var(--ant-color-text);
 }
 
 .xlsx-formula-label {

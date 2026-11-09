@@ -1,0 +1,326 @@
+diff --git a/web/package.json b/web/package.json
+index aeca8c1..d2d8e6b 100644
+--- a/web/package.json
++++ b/web/package.json
+@@ -4,6 +4,7 @@
+   "type": "module",
+   "scripts": {
+     "dev": "webpack serve --mode development",
++    "ooxml:local": "node scripts/local-ooxml.mjs",
+     "test": "vitest",
+     "typecheck": "tsc --noEmit",
+     "build": "webpack --mode production"
+diff --git a/web/src/components/XlsxPreview.test.tsx b/web/src/components/XlsxPreview.test.tsx
+index c2ece45..e32922c 100644
+--- a/web/src/components/XlsxPreview.test.tsx
++++ b/web/src/components/XlsxPreview.test.tsx
+@@ -1,14 +1,18 @@
+ import { act, render, screen, waitFor } from "@testing-library/react";
++import userEvent from "@testing-library/user-event";
+ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+ import type { CellAddress, XlsxRangeSelectionContext, XlsxSelectionContext, XlsxSelectionContextCell, XlsxViewerOptions } from "@silurus/ooxml/xlsx";
+ import { XlsxPreview } from "./XlsxPreview";
+ 
+-const { create, load, destroy } = vi.hoisted(() => ({ create: vi.fn(), load: vi.fn(), destroy: vi.fn() }));
++const { create, load, destroy, setShowPrintArea, support } = vi.hoisted(() => ({
++  create: vi.fn(), load: vi.fn(), destroy: vi.fn(), setShowPrintArea: vi.fn(), support: { enabled: true }
++}));
+ vi.mock("@silurus/ooxml/xlsx", () => ({
+   XlsxViewer: class {
+     constructor(...args: unknown[]) { create(...args); }
+     load = load;
+     destroy = destroy;
++    setShowPrintArea = support.enabled ? setShowPrintArea : undefined;
+   }
+ }));
+ 
+@@ -56,6 +60,8 @@ describe("XLSX preview boundary", () => {
+     create.mockReset();
+     load.mockReset().mockResolvedValue(undefined);
+     destroy.mockReset();
++    setShowPrintArea.mockReset();
++    support.enabled = true;
+   });
+   afterEach(() => vi.unstubAllGlobals());
+ 
+@@ -72,6 +78,46 @@ describe("XLSX preview boundary", () => {
+     expect(failure).toHaveTextContent(/Template XLSX preview could not be rendered/);
+   });
+ 
++  it.each(["Template", "Result"])("toggles native Print Area decoration in %s without reloading or changing the formula bar", async label => {
++    const user = userEvent.setup();
++    render(<XlsxPreview source={source()} label={label} />);
++    const toggle = await screen.findByRole("checkbox", { name: "Show Print Area" });
++    expect(toggle).not.toBeChecked();
++    expect(setShowPrintArea).toHaveBeenLastCalledWith(false);
++    select(context({ row: 1, col: 1 }, [cell(1, 1, "Selected value")]));
++
++    await user.click(toggle);
++    expect(toggle).toBeChecked();
++    expect(setShowPrintArea).toHaveBeenLastCalledWith(true);
++    expect(screen.getByRole("textbox", { name: `${label} formula or value` })).toHaveValue("Selected value");
++    await user.click(toggle);
++    expect(setShowPrintArea).toHaveBeenLastCalledWith(false);
++    expect(load).toHaveBeenCalledOnce();
++  });
++
++  it("applies the display preference to a replacement viewer and detaches a failed session", async () => {
++    const user = userEvent.setup();
++    const view = render(<XlsxPreview source={source()} label="Template" />);
++    await user.click(await screen.findByRole("checkbox", { name: "Show Print Area" }));
++    view.rerender(<XlsxPreview source={source()} label="Result" />);
++    await waitFor(() => expect(load).toHaveBeenCalledTimes(2));
++    expect(screen.getByRole("checkbox", { name: "Show Print Area" })).toBeChecked();
++    expect(setShowPrintArea).toHaveBeenLastCalledWith(true);
++    expect(destroy).toHaveBeenCalledOnce();
++    act(() => (create.mock.calls[1][1] as XlsxViewerOptions).onError!(new Error("failed")));
++    expect(screen.queryByRole("checkbox", { name: "Show Print Area" })).not.toBeInTheDocument();
++    expect(destroy).toHaveBeenCalledTimes(2);
++  });
++
++  it("keeps the published viewer usable when it has no Print Area API", async () => {
++    support.enabled = false;
++    render(<XlsxPreview source={source()} label="Template" />);
++    await waitFor(() => expect(load).toHaveBeenCalledOnce());
++    expect(screen.queryByRole("checkbox", { name: "Show Print Area" })).not.toBeInTheDocument();
++    expect(screen.queryByText(/could not be rendered/)).not.toBeInTheDocument();
++    expect(setShowPrintArea).not.toHaveBeenCalled();
++  });
++
+   it("loads private source bytes with read-only worker settings and destroys owned resources on unmount", async () => {
+     const bytes = new ArrayBuffer(3);
+     const blob = source(bytes);
+diff --git a/web/src/components/XlsxPreview.tsx b/web/src/components/XlsxPreview.tsx
+index 6ad3781..df87f61 100644
+--- a/web/src/components/XlsxPreview.tsx
++++ b/web/src/components/XlsxPreview.tsx
+@@ -1,6 +1,7 @@
+-import { Alert, Flex, Input, Spin, Typography } from "antd";
++import { Alert, Checkbox, Flex, Input, Spin, Typography } from "antd";
+ import { useEffect, useRef, useState } from "react";
+ import type { XlsxSelectionContext, XlsxViewer } from "@silurus/ooxml/xlsx";
++import { useXlsxPrintArea } from "../hooks/useXlsxPrintArea";
+ 
+ interface Props {
+   source: Blob | File;
+@@ -14,6 +15,7 @@ export function XlsxPreview({ source, label }: Props) {
+   const host = useRef<HTMLDivElement>(null);
+   const [status, setStatus] = useState<PreviewStatus>();
+   const [formulaBar, setFormulaBar] = useState<FormulaBar>();
++  const { visible, available, attachViewer, changeVisibility } = useXlsxPrintArea();
+ 
+   useEffect(() => {
+     const container = host.current;
+@@ -29,6 +31,7 @@ export function XlsxPreview({ source, label }: Props) {
+     function dispose() {
+       const owned = viewer;
+       viewer = undefined;
++      attachViewer(undefined);
+       owned?.destroy();
+       sessionHost.remove();
+     }
+@@ -78,6 +81,7 @@ export function XlsxPreview({ source, label }: Props) {
+       });
+       // Self-owned loading lets destroy() release the workbook and its workers.
+       if (!current) { dispose(); return; }
++      attachViewer(viewer);
+       await viewer.load(bytes);
+       if (current) setStatus(undefined);
+     })().catch(failed);
+@@ -86,7 +90,7 @@ export function XlsxPreview({ source, label }: Props) {
+       current = false;
+       dispose();
+     };
+-  }, [source, label]);
++  }, [source, label, attachViewer]);
+ 
+   return (
+     <div className="xlsx-preview">
+@@ -100,6 +104,13 @@ export function XlsxPreview({ source, label }: Props) {
+             </Flex>
+           )
+       )}
++      {available && (
++        <Flex className="xlsx-preview-controls" align="center">
++          <Checkbox checked={visible} onChange={event => changeVisibility(event.target.checked)}>
++            Show Print Area
++          </Checkbox>
++        </Flex>
++      )}
+       <div className="xlsx-formula-bar" role="group" aria-label={`${label} formula bar`}>
+         <span className="xlsx-cell-address" aria-label={`${label} active cell`}>
+           {formulaBar?.address ?? ""}
+diff --git a/web/src/styles.css b/web/src/styles.css
+index 48d8eb6..09f82b4 100644
+--- a/web/src/styles.css
++++ b/web/src/styles.css
+@@ -281,6 +281,11 @@ footer a:hover {
+   height: 100%;
+ }
+ 
++.xlsx-preview-controls {
++  flex: none;
++  padding: var(--ant-padding-xxs) var(--ant-padding-xs);
++}
++
+ .xlsx-formula-bar {
+   display: flex;
+   align-items: center;
+diff --git a/web/vitest.config.ts b/web/vitest.config.ts
+index de21e29..770a52e 100644
+--- a/web/vitest.config.ts
++++ b/web/vitest.config.ts
+@@ -3,6 +3,11 @@ import react from "@vitejs/plugin-react";
+ 
+ export default defineConfig({
+   plugins: [react()],
++  resolve: {
++    alias: process.env.MONOREPORT_OOXML_XLSX
++      ? [{ find: "@silurus/ooxml/xlsx", replacement: process.env.MONOREPORT_OOXML_XLSX }]
++      : []
++  },
+   test: {
+     globals: true,
+     environment: "jsdom",
+diff --git a/web/webpack.config.cjs b/web/webpack.config.cjs
+index b21b9fa..b8ced8f 100644
+--- a/web/webpack.config.cjs
++++ b/web/webpack.config.cjs
+@@ -41,7 +41,12 @@ module.exports = {
+     clean: true,
+     publicPath: "/"
+   },
+-  resolve: { extensions: [".tsx", ".ts", ".js"] },
++  resolve: {
++    extensions: [".tsx", ".ts", ".js"],
++    alias: process.env.MONOREPORT_OOXML_XLSX
++      ? { "@silurus/ooxml/xlsx$": process.env.MONOREPORT_OOXML_XLSX }
++      : {}
++  },
+   // @silurus/ooxml 0.89.7's optional legacyXls loader uses a runtime import URL.
+   // MonoReport never configures legacyXls; suppress only this known warning.
+   // Reassess on viewer upgrades or legacy support: Feature 013 plan, section 11.
+diff --git a/web/scripts/local-ooxml.mjs b/web/scripts/local-ooxml.mjs
+new file mode 100644
+index 0000000..bd64d0c
+--- /dev/null
++++ b/web/scripts/local-ooxml.mjs
+@@ -0,0 +1,82 @@
++import { spawnSync } from "node:child_process";
++import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
++import { createRequire } from "node:module";
++import { tmpdir } from "node:os";
++import path from "node:path";
++import { fileURLToPath, pathToFileURL } from "node:url";
++
++const webRoot = fileURLToPath(new URL("../", import.meta.url));
++const [source, action, ...args] = process.argv.slice(2);
++const actions = new Set(["build-library", "dev", "test", "typecheck", "build"]);
++if (!source || !actions.has(action)) {
++  throw new Error("Usage: npm run ooxml:local -- <upstream-source-directory> <build-library|dev|test|typecheck|build> [arguments]");
++}
++const sourceRoot = path.resolve(source);
++const sourcePackage = JSON.parse(readFileSync(path.join(sourceRoot, "package.json"), "utf8"));
++if (sourcePackage.name !== "@silurus/ooxml" || sourcePackage.version !== "0.89.8") {
++  throw new Error("The local build requires the @silurus/ooxml 0.89.8 source tree.");
++}
++const distribution = path.join(sourceRoot, "packages/xlsx/dist");
++const localEntry = path.join(distribution, "xlsx.mjs");
++const localTypes = path.join(distribution, "types/index.d.ts");
++
++function run(command, arguments_, cwd = sourceRoot, env = process.env) {
++  const result = spawnSync(command, arguments_, { cwd, env, stdio: "inherit" });
++  if (result.error) throw result.error;
++  if (result.status !== 0) throw new Error(`${command} exited with ${result.status ?? result.signal}`);
++}
++
++if (action === "build-library") {
++  const require = createRequire(path.join(sourceRoot, "package.json"));
++  const tsc = path.join(sourceRoot, "node_modules/typescript/bin/tsc");
++  run("wasm-pack", ["build", "--target", "web", "--out-dir", "../src/wasm", "--", "--locked"],
++    path.join(sourceRoot, "packages/xlsx/parser"));
++  run(process.execPath, ["scripts/append-wasm-reinit.mjs", "packages/xlsx/src/wasm/xlsx_parser.js"]);
++  run(process.execPath, [tsc, "--build", "packages/core"]);
++  const { default: configuration } = await import(pathToFileURL(path.join(sourceRoot, "vite.config.ts")));
++  const { build } = await import(pathToFileURL(require.resolve("vite")));
++  // Reuse the release configuration, including its self-contained render worker.
++  // Limit entry points to XLSX so unchanged DOCX/PPTX parsers need not be built.
++  const base = configuration({ command: "build", mode: "runtime", isSsrBuild: false, isPreview: false });
++  await build({
++    ...base,
++    configFile: false,
++    root: sourceRoot,
++    build: {
++      ...base.build,
++      outDir: distribution,
++      lib: {
++        ...base.build.lib,
++        entry: { xlsx: path.join(sourceRoot, "src/xlsx.ts") },
++        formats: ["es"]
++      }
++    }
++  });
++  run(process.execPath, ["scripts/build-model-source-sidecars.mjs", "xlsx"]);
++  run(process.execPath, [tsc, "-p", "packages/xlsx/tsconfig.declarations.json"]);
++} else {
++  readFileSync(localTypes);
++  const { XlsxViewer } = await import(pathToFileURL(localEntry));
++  if (typeof XlsxViewer.prototype.setShowPrintArea !== "function") {
++    throw new Error("Build the local Print Area library before using it in Playground.");
++  }
++  const env = { ...process.env, MONOREPORT_OOXML_XLSX: localEntry };
++  if (action === "typecheck") {
++    const directory = mkdtempSync(path.join(tmpdir(), "monoreport-ooxml-typecheck-"));
++    try {
++      const config = path.join(directory, "tsconfig.json");
++      writeFileSync(config, JSON.stringify({
++        extends: path.join(webRoot, "tsconfig.json"),
++        compilerOptions: {
++          paths: { "@silurus/ooxml/xlsx": [localTypes] },
++          typeRoots: [path.join(webRoot, "node_modules/@types"), path.join(webRoot, "node_modules")]
++        }
++      }));
++      run("npm", ["run", "typecheck", "--", "--project", config, ...args], webRoot, env);
++    } finally {
++      rmSync(directory, { recursive: true });
++    }
++  } else {
++    run("npm", ["run", action, "--", ...args], webRoot, env);
++  }
++}
+diff --git a/web/src/hooks/useXlsxPrintArea.ts b/web/src/hooks/useXlsxPrintArea.ts
+new file mode 100644
+index 0000000..191bfb7
+--- /dev/null
++++ b/web/src/hooks/useXlsxPrintArea.ts
+@@ -0,0 +1,30 @@
++import { useCallback, useRef, useState } from "react";
++import type { XlsxViewer } from "@silurus/ooxml/xlsx";
++
++type PrintAreaViewer = XlsxViewer & { setShowPrintArea(show: boolean): void };
++
++function supportsPrintArea(viewer: XlsxViewer | undefined): viewer is PrintAreaViewer {
++  return !!viewer && "setShowPrintArea" in viewer && typeof viewer.setShowPrintArea === "function";
++}
++
++export function useXlsxPrintArea() {
++  const current = useRef<XlsxViewer | undefined>(undefined);
++  const preference = useRef(false);
++  const [visible, setVisible] = useState(false);
++  const [available, setAvailable] = useState(false);
++
++  const attachViewer = useCallback((viewer: XlsxViewer | undefined) => {
++    current.current = viewer;
++    const supported = supportsPrintArea(viewer);
++    if (supported) viewer.setShowPrintArea(preference.current);
++    setAvailable(supported);
++  }, []);
++
++  const changeVisibility = useCallback((show: boolean) => {
++    preference.current = show;
++    if (supportsPrintArea(current.current)) current.current.setShowPrintArea(show);
++    setVisible(show);
++  }, []);
++
++  return { visible, available, attachViewer, changeVisibility };
++}

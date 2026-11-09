@@ -1,0 +1,154 @@
+{
+  "feature": "019-xlsx-print-area-visualization",
+  "archived_on": "2026-11-10",
+  "upstream": {
+    "repository": "https://github.com/yukiyokotani/office-open-xml-viewer",
+    "base_commit": "ed52f8747e6b0b25f7ebbdb3cb942b7a95f8f41b",
+    "release_tag": "v0.89.8",
+    "package": "@silurus/ooxml",
+    "package_version": "0.89.8",
+    "source_archive_url": "https://codeload.github.com/yukiyokotani/office-open-xml-viewer/tar.gz/ed52f8747e6b0b25f7ebbdb3cb942b7a95f8f41b",
+    "source_archive_sha256": "65aece1e351b28a923ea2883e0435b80ea0dea7e287bf68dd7ca76643662f9db",
+    "patch": "print-area-0.89.8.patch",
+    "patch_sha256": "d4b4d9438e3c01e9dbe8194ca550b4f56adce44c2d6785fdd0294f3ec7133cc4",
+    "files": [
+      {
+        "path": "packages/legacy-office/parser/src/xls/names.rs",
+        "sha256": "23729030a9c4a7d610d7e420d19d74a0c3b42b8f1bd94ac916963a54765d2763"
+      },
+      {
+        "path": "packages/xlsx/api/public-api-baseline.d.ts",
+        "sha256": "8f6ec52ecb32e1eb2f79efd8bcda31d7439054213068ee4216cc41cd95e0bec8"
+      },
+      {
+        "path": "packages/xlsx/model/src/lib.rs",
+        "sha256": "d1701b8c8911f66dbdd221a28cadc47d01aae53dfaab08595ee5f257303ad11c"
+      },
+      {
+        "path": "packages/xlsx/model/src/retained.rs",
+        "sha256": "035025cb84867b402e9e781a074e02672b5545a4c31c030a2c89f3fdabcb1c74"
+      },
+      {
+        "path": "packages/xlsx/parser/src/lib.rs",
+        "sha256": "f36dd41001e97d3675a13a67ae10cc2788a81a74715b867cbcd54948e6c42785"
+      },
+      {
+        "path": "packages/xlsx/src/internal/sheet-surface.test.ts",
+        "sha256": "85b277ab41e43b506c93aab068242be43dfe89901ca58cae19c5da656017637a"
+      },
+      {
+        "path": "packages/xlsx/src/internal/sheet-surface.ts",
+        "sha256": "598d99f18e7b6a4b67e073a23df1b182d3ec66ddc2917918f8d50a299cc8acc3"
+      },
+      {
+        "path": "packages/xlsx/src/internal/viewer/print-area-overlay.ts",
+        "sha256": "6e4004f39f21fd9aa4fdd79eecc5d3aacb99cc152d1ca6c6559b471553aed3a9"
+      },
+      {
+        "path": "packages/xlsx/src/internal/viewer/range-overlay.ts",
+        "sha256": "9b94ce73f964e349748cba1b69333d981cde6c62b3d4a45487a28cdb2cdb35c8"
+      },
+      {
+        "path": "packages/xlsx/src/internal/viewer/selection-overlay.ts",
+        "sha256": "24f76cd9f09e6615acd503db46019a323b6f4cececf8c4cebb4372612dd51819"
+      },
+      {
+        "path": "packages/xlsx/src/print-area.test.ts",
+        "sha256": "a07d936674c0408b5f4de3a9eedd797c28d548a2a22a458e2f9b3a7d204079a4"
+      },
+      {
+        "path": "packages/xlsx/src/types.ts",
+        "sha256": "ac90ddc174fadf0b2075c25847673c2a475ae3201ccaec69e6d086f04f564805"
+      },
+      {
+        "path": "packages/xlsx/src/viewer.ts",
+        "sha256": "000f3a84dbf3571a5b52d9fa42f18a359dab31eda42b8376ce825859034f37c0"
+      }
+    ],
+    "npm_tarball_integrity": "sha512-t5dJ+pLGUTmjDjGNV9wE1cdRqFg5vDSVZN7I7okMSiMNnCR9tdk0P7O9yZ8EtXgtV2rToF7E4L6Lbca7yt+4+w==",
+    "provenance_endpoint": "https://registry.npmjs.org/-/npm/v1/attestations/@silurus%2fooxml@0.89.8"
+  },
+  "monoreport": {
+    "base_commit": "5b9cb57879643082cf1cb6f57618b69816258ba5",
+    "integration_patch": "monoreport-integration.patch",
+    "integration_patch_sha256": "7d24d5e997021d4665ae542d5aecddaf368d70643e4f67278fe57e44659203f2",
+    "files": [
+      {
+        "path": "web/package.json",
+        "sha256": "9b6fecf5c2445300c7ff8c6afba35430ac09bd976896ee34a8bcc4655c394fee"
+      },
+      {
+        "path": "web/src/components/XlsxPreview.test.tsx",
+        "sha256": "6a9127dfd6cf036d38b4bf161a94af553eb948e25cfa05c70937137b6019685d"
+      },
+      {
+        "path": "web/src/components/XlsxPreview.tsx",
+        "sha256": "ad980d80cc47052f8b92e0722fef93c1fa8f5fd8791d679b4acfe5689e32c3b3"
+      },
+      {
+        "path": "web/src/styles.css",
+        "sha256": "7656b371a967a1207eafc62fdacecb18e78c734dd9f9d4e553828d8fbe662569"
+      },
+      {
+        "path": "web/vitest.config.ts",
+        "sha256": "7a72e7116cd46b0bb94dd28fd89527b55f4093f62bc50cf290fcf9bfe40565ef"
+      },
+      {
+        "path": "web/webpack.config.cjs",
+        "sha256": "1849abb9ee33771c23e56ad2e72a1b011ec3d29a6da989c883ac3dc2ed613b25"
+      },
+      {
+        "path": "web/scripts/local-ooxml.mjs",
+        "sha256": "452b70e15b914a1392c6960aece183b882c3703d921c2358e4b934daf5b2f2f6"
+      },
+      {
+        "path": "web/src/hooks/useXlsxPrintArea.ts",
+        "sha256": "4053d9ee32871833a3fef2bc5d43d62d6e772145092fb1eb0c9377722c5d19ee"
+      }
+    ],
+    "repository": "git@github.com:montr/monoreport.git"
+  },
+  "toolchain": {
+    "node": "26.13.0",
+    "npm": "12.2.2",
+    "pnpm": "11.13.0",
+    "rust": "1.99.1",
+    "rust_target": "wasm32-unknown-unknown",
+    "wasm_pack": "0.15.1",
+    "wasm_bindgen": "0.2.118"
+  },
+  "archive_validation": {
+    "byte_identical_to_original_patch": true,
+    "upstream_patch_covers_all_modified_source_files": true,
+    "upstream_file_count": 13,
+    "monoreport_file_count": 8,
+    "source_copy_policy": "Patches and metadata only; no complete upstream source tree, dependencies, or generated build artifacts."
+  },
+  "fresh_reproduction": {
+    "status": "passed",
+    "results": "verification-results.json",
+    "log": "verification.log",
+    "source_hash_match_count": 21,
+    "browser_validation": "not performed",
+    "byte_identical_generated_artifacts_claimed": false,
+    "script_sha256": "1530dc30d6be2dad3b27ee110df8d3be6a146dc3e0a3d920ab00c27eb6cc18c7"
+  },
+  "supporting_artifacts": [
+    {
+      "path": "reproduce.sh",
+      "sha256": "1530dc30d6be2dad3b27ee110df8d3be6a146dc3e0a3d920ab00c27eb6cc18c7"
+    },
+    {
+      "path": "published-api-probe.json",
+      "sha256": "b3d80a45ccc64515e9b35486134a367fa1c7d98f75704e93d67e50235da77f2b"
+    },
+    {
+      "path": "verification-results.json",
+      "sha256": "c6078b1b4721e5e31f6a0311e62cbd1fe61056bdff51270b86de58e919a4df3f"
+    },
+    {
+      "path": "verification.log",
+      "sha256": "b4116ffcc5148bfd21627be6255a9e079fb4899ade008eadf6a6bee42582e65a"
+    }
+  ]
+}

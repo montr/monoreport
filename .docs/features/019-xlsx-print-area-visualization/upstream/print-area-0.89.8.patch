@@ -1,0 +1,977 @@
+diff --git a/packages/legacy-office/parser/src/xls/names.rs b/packages/legacy-office/parser/src/xls/names.rs
+--- a/packages/legacy-office/parser/src/xls/names.rs
++++ b/packages/legacy-office/parser/src/xls/names.rs
+@@ -137,6 +137,7 @@
+         output.extend(visible().map(|(_, name, formula)| xlsx_model::DefinedName {
+             name: name.clone(),
+             formula: formula.clone(),
++            local_sheet_id: None,
+         }));
+         Ok(output)
+     }
+diff --git a/packages/xlsx/api/public-api-baseline.d.ts b/packages/xlsx/api/public-api-baseline.d.ts
+--- a/packages/xlsx/api/public-api-baseline.d.ts
++++ b/packages/xlsx/api/public-api-baseline.d.ts
+@@ -1262,6 +1262,8 @@
+ export interface DefinedName {
+     name: string;
+     formula: string;
++    /** Authored SpreadsheetML scope; absent for workbook-global names. */
++    localSheetId?: string;
+ }
+ type DrawingAnchorTag = 'oneCellAnchor' | 'twoCellAnchor';
+ export interface DrawingMLCustomDashSegment {
+@@ -2569,6 +2571,7 @@
+     setSelection(selection: XlsxSelectionInput): void;
+     getSelectionContext(options?: XlsxSelectionContextOptions): XlsxSelectionContext | null;
+     copySelection(): Promise<XlsxCopyResult>;
++    setShowPrintArea(show: boolean): void;
+     setSelectionColor(color: string): void;
+     setHiddenSheetMode(mode: HiddenSheetMode): Promise<void>;
+     get hiddenSheetMode(): HiddenSheetMode;
+@@ -2603,6 +2606,7 @@
+     onHyperlinkClick?: (target: HyperlinkTarget) => void;
+     enableHyperlinks?: boolean;
+     selectionColor?: string;
++    showPrintArea?: boolean;
+     findHighlightColors?: FindHighlightColors;
+     comments?: boolean | XlsxCommentsOptions;
+     hiddenSheetMode?: HiddenSheetMode;
+@@ -2643,6 +2647,7 @@
+     get selectionState(): XlsxSelectionState | null;
+     setSelection(input: XlsxSelectionInput): void;
+     getSelectionContext(options?: XlsxSelectionContextOptions): XlsxSelectionContext | null;
++    setShowPrintArea(show: boolean): void;
+     setSelectionColor(color: string): void;
+     setHiddenSheetMode(mode: HiddenSheetMode): Promise<void>;
+     get hiddenSheetMode(): HiddenSheetMode;
+diff --git a/packages/xlsx/model/src/lib.rs b/packages/xlsx/model/src/lib.rs
+--- a/packages/xlsx/model/src/lib.rs
++++ b/packages/xlsx/model/src/lib.rs
+@@ -795,6 +795,10 @@
+ pub struct DefinedName {
+     pub name: String,
+     pub formula: String,
++    /// Authored scope, retained verbatim so invalid local scope cannot be
++    /// mistaken for a workbook-global print area (ECMA-376 §18.2.5).
++    #[serde(skip_serializing_if = "Option::is_none")]
++    pub local_sheet_id: Option<String>,
+ }
+ 
+ /// A chart anchored to a rectangular range of cells (ECMA-376 §20.5 twoCellAnchor).
+diff --git a/packages/xlsx/model/src/retained.rs b/packages/xlsx/model/src/retained.rs
+--- a/packages/xlsx/model/src/retained.rs
++++ b/packages/xlsx/model/src/retained.rs
+@@ -180,7 +180,11 @@
+     error_message
+ });
+ 
+-retained_struct!(DefinedName { name, formula });
++retained_struct!(DefinedName {
++    name,
++    formula,
++    local_sheet_id
++});
+ 
+ retained_struct!(Dxf {
+     font,
+diff --git a/packages/xlsx/parser/src/lib.rs b/packages/xlsx/parser/src/lib.rs
+--- a/packages/xlsx/parser/src/lib.rs
++++ b/packages/xlsx/parser/src/lib.rs
+@@ -1368,7 +1368,11 @@
+             None => continue,
+         };
+         let formula = node.text().unwrap_or("").to_string();
+-        let definition = DefinedName { name, formula };
++        let definition = DefinedName {
++            name,
++            formula,
++            local_sheet_id: node.attribute("localSheetId").map(str::to_string),
++        };
+         if local.is_some() {
+             locals.push(definition);
+         } else {
+@@ -6827,6 +6831,17 @@
+     }
+ 
+     #[test]
++    fn print_area_inventory_preserves_scope_and_invalid_scope_text() {
++        let xml = r#"<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><definedNames><definedName name="_xlnm.Print_Area">First!$A$1:$D$4</definedName><definedName name="_xlnm.Print_Area" localSheetId="0">First!$B$2:$D$4</definedName><definedName name="_xlnm.Print_Area" localSheetId="invalid">First!$A$1</definedName><definedName name="_xlnm.Print_Area" localSheetId="1">Second!$A$1:$C$3</definedName></definedNames></workbook>"#;
++        let doc = roxmltree::Document::parse(xml).unwrap();
++        let names = parse_defined_names_for_sheet(&doc, 0);
++        assert_eq!(names.len(), 3);
++        assert_eq!(names[0].local_sheet_id, None);
++        assert_eq!(names[1].local_sheet_id.as_deref(), Some("invalid"));
++        assert_eq!(names[2].local_sheet_id.as_deref(), Some("0"));
++    }
++
++    #[test]
+     fn sheet_names_keep_workbook_globals_and_order_current_sheet_locals_last() {
+         // `Rate` is global before its local twin, `Tax` after it. Both
+         // globals stay in the sheet's inventory; the locals follow them.
+diff --git a/packages/xlsx/src/internal/sheet-surface.test.ts b/packages/xlsx/src/internal/sheet-surface.test.ts
+--- a/packages/xlsx/src/internal/sheet-surface.test.ts
++++ b/packages/xlsx/src/internal/sheet-surface.test.ts
+@@ -44,6 +44,7 @@
+     );
+     expect(area.children).toEqual([
+       canvas,
++      overlays.printArea,
+       overlays.selection,
+       overlays.find,
+       input,
+diff --git a/packages/xlsx/src/internal/sheet-surface.ts b/packages/xlsx/src/internal/sheet-surface.ts
+--- a/packages/xlsx/src/internal/sheet-surface.ts
++++ b/packages/xlsx/src/internal/sheet-surface.ts
+@@ -61,6 +61,7 @@
+ export class SheetOverlayHost {
+   /** Keep wheel scrolling inside the value list from scrolling the grid. */
+   private readonly stopValidationWheel = (event: WheelEvent): void => event.stopPropagation();
++  readonly printArea: HTMLDivElement;
+   readonly selection: HTMLDivElement;
+   readonly find: HTMLDivElement;
+   readonly comment: HTMLDivElement;
+@@ -74,6 +75,10 @@
+     options: SheetOverlayHostOptions,
+   ) {
+     const ownerDocument = area.ownerDocument ?? document;
++    this.printArea = ownerDocument.createElement('div');
++    this.printArea.style.cssText =
++      'position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden;';
++
+     this.selection = ownerDocument.createElement('div');
+     this.selection.style.cssText =
+       `position:absolute;top:0;left:0;z-index:1;pointer-events:none;overflow:hidden;width:100%;height:100%;`;
+@@ -116,6 +121,7 @@
+ 
+     // The host owns the stable stacking contract for both public facades.
+     area.appendChild(canvas);
++    area.appendChild(this.printArea);
+     area.appendChild(this.selection);
+     area.appendChild(this.find);
+     area.appendChild(input);
+diff --git a/packages/xlsx/src/internal/viewer/print-area-overlay.ts b/packages/xlsx/src/internal/viewer/print-area-overlay.ts
+new file mode 100644
+--- /dev/null
++++ b/packages/xlsx/src/internal/viewer/print-area-overlay.ts
+@@ -0,0 +1,85 @@
++import { parseA1 } from '../../a1.js';
++import type { Worksheet } from '../../types.js';
++import type { SheetOverlayHost } from '../sheet-surface.js';
++import { projectRangeOverlay, rangeBoundaryPath, rangeOverlayLayout, type RangeOverlayBounds, type RangeOverlayHost } from './range-overlay.js';
++
++const PRINT_AREA_NAME = '_xlnm.Print_Area';
++const MAX_LOCAL_SHEET_ID = 0xffffffff;
++const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
++const PRINT_AREA_COLOR = '#64748b';
++
++/** ECMA-376 §18.2.5: Print_Area is a reserved defined name, not page setup.
++ * Viewer policy: only one direct, sheet-qualified finite rectangle is drawn.
++ * Names, formulas, unions and duplicate definitions are intentionally unresolved. */
++export function resolvePrintArea(ws: Worksheet): RangeOverlayBounds | null {
++  const definitions = (ws.definedNames ?? []).filter((name) => name.name === PRINT_AREA_NAME);
++  const candidates: RegExpExecArray[] = [];
++  for (const definition of definitions) {
++    if (definition.localSheetId !== undefined
++      && (!/^[0-9]+$/.test(definition.localSheetId) || Number(definition.localSheetId) > MAX_LOCAL_SHEET_ID)) return null;
++    const reference = /^(?:'((?:[^']|'')+)'|([^'!,:\[\]]+))!(\$?[A-Z]{1,3}\$?[1-9][0-9]*)(?::(\$?[A-Z]{1,3}\$?[1-9][0-9]*))?$/.exec(definition.formula);
++    // An unresolved global definition could target this sheet; never guess.
++    if (!reference) return null;
++    const sheetName = reference[1] !== undefined ? reference[1].replace(/''/g, "'") : reference[2];
++    if (sheetName === ws.name) candidates.push(reference);
++    else if (definition.localSheetId !== undefined) return null;
++  }
++  if (candidates.length !== 1) return null;
++  const reference = candidates[0];
++  const first = parseA1(reference[3]);
++  const last = parseA1(reference[4] ?? reference[3]);
++  if (!first || !last || first.row > last.row || first.col > last.col) return null;
++  return {
++    top: first.row, left: first.col, bottom: last.row, right: last.col,
++    topEdge: true, bottomEdge: true, leftEdge: true, rightEdge: true,
++  };
++}
++
++interface PrintAreaOverlayHost extends RangeOverlayHost {
++  readonly ownerDocument: Document;
++  readonly overlayHost: SheetOverlayHost;
++  enabled(): boolean;
++}
++
++/** Noninteractive decoration with no selection/controller state or workbook writes. */
++export class PrintAreaOverlay {
++  private readonly areas = new WeakMap<Worksheet, RangeOverlayBounds | null>();
++
++  constructor(private readonly host: PrintAreaOverlayHost) {}
++
++  update(): void {
++    this.host.overlayHost.printArea.textContent = '';
++    const ws = this.host.worksheet();
++    if (!this.host.enabled() || !ws) return;
++    if (!this.areas.has(ws)) this.areas.set(ws, resolvePrintArea(ws));
++    const area = this.areas.get(ws);
++    if (!area) return;
++    const layout = rangeOverlayLayout(this.host, ws);
++    const { width, height, headerW, headerH } = layout;
++    const bodyWidth = Math.max(0, width - headerW);
++    const bodyHeight = Math.max(0, height - headerH);
++    if (bodyWidth === 0 || bodyHeight === 0) return;
++    const { fillSubpaths, overlayRects } = projectRangeOverlay(layout, area);
++    const svg = this.host.ownerDocument.createElementNS(SVG_NAMESPACE, 'svg');
++    svg.setAttribute('aria-hidden', 'true');
++    svg.setAttribute('data-xlsx-print-area', '');
++    svg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;overflow:hidden;pointer-events:none;';
++    const shade = this.host.ownerDocument.createElementNS(SVG_NAMESPACE, 'path');
++    const bodyLeft = this.host.screenX(headerW, bodyWidth);
++    shade.setAttribute('d', `M${bodyLeft} ${headerH}h${bodyWidth}v${bodyHeight}h${-bodyWidth}Z${fillSubpaths.join('')}`);
++    shade.setAttribute('fill-rule', 'evenodd');
++    shade.setAttribute('fill', PRINT_AREA_COLOR);
++    shade.setAttribute('fill-opacity', '0.12');
++    svg.appendChild(shade);
++    const boundaryPath = rangeBoundaryPath(overlayRects);
++    if (boundaryPath) {
++      const boundary = this.host.ownerDocument.createElementNS(SVG_NAMESPACE, 'path');
++      boundary.setAttribute('d', boundaryPath);
++      boundary.setAttribute('fill', 'none');
++      boundary.setAttribute('stroke', PRINT_AREA_COLOR);
++      boundary.setAttribute('stroke-width', '2');
++      svg.appendChild(boundary);
++    }
++    this.host.overlayHost.printArea.appendChild(svg);
++  }
++}
+diff --git a/packages/xlsx/src/internal/viewer/range-overlay.ts b/packages/xlsx/src/internal/viewer/range-overlay.ts
+new file mode 100644
+--- /dev/null
++++ b/packages/xlsx/src/internal/viewer/range-overlay.ts
+@@ -0,0 +1,218 @@
++import type { Worksheet } from '../../types.js';
++import { HEADER_W, HEADER_H, getGridGeometryForWorksheet } from '../../renderer.js';
++import { MAX_WORKSHEET_COL, MAX_WORKSHEET_ROW } from '../grid-geometry.js';
++
++export interface RangeOverlayHost {
++  readonly canvasArea: HTMLDivElement;
++  worksheet(): Worksheet | null;
++  scale(): number;
++  isRtl(): boolean;
++  cellRect(row: number, col: number): { x: number; y: number; w: number; h: number } | null;
++  screenX(logicalX: number, width: number): number;
++}
++
++export interface RangeOverlayBounds {
++  readonly top: number;
++  readonly bottom: number;
++  readonly left: number;
++  readonly right: number;
++  readonly topEdge: boolean;
++  readonly bottomEdge: boolean;
++  readonly leftEdge: boolean;
++  readonly rightEdge: boolean;
++}
++
++export interface RangeOverlayRect {
++  readonly x: number;
++  readonly y: number;
++  readonly width: number;
++  readonly height: number;
++  readonly top: boolean;
++  readonly right: boolean;
++  readonly bottom: boolean;
++  readonly left: boolean;
++}
++
++interface RangeBoundarySegment {
++  readonly axis: 'h' | 'v';
++  readonly fixed: number;
++  readonly start: number;
++  readonly end: number;
++}
++
++/**
++ * Build the single-Area outline from its visible frozen-pane fragments.
++ * Splitting collinear edges at every endpoint emits coincident fragment edges
++ * only once. Work is bounded by the visible fragment count, not sheet size.
++ */
++export function rangeBoundaryPath(rects: readonly RangeOverlayRect[]): string {
++  const raw: RangeBoundarySegment[] = [];
++  for (const rect of rects) {
++    const x2 = rect.x + rect.width;
++    const y2 = rect.y + rect.height;
++    if (rect.top) raw.push({ axis: 'h', fixed: rect.y, start: rect.x, end: x2 });
++    if (rect.right) raw.push({ axis: 'v', fixed: x2, start: rect.y, end: y2 });
++    if (rect.bottom) raw.push({ axis: 'h', fixed: y2, start: rect.x, end: x2 });
++    if (rect.left) raw.push({ axis: 'v', fixed: rect.x, start: rect.y, end: y2 });
++  }
++
++  const groups = new Map<string, RangeBoundarySegment[]>();
++  for (const segment of raw) {
++    const key = `${segment.axis}:${segment.fixed}`;
++    const group = groups.get(key);
++    if (group) group.push(segment);
++    else groups.set(key, [segment]);
++  }
++
++  const commands: string[] = [];
++  for (const segments of groups.values()) {
++    const points = [...new Set(segments.flatMap(({ start, end }) => [start, end]))]
++      .sort((a, b) => a - b);
++    let runStart: number | null = null;
++    let runEnd = 0;
++    const flush = () => {
++      if (runStart === null || runEnd <= runStart) return;
++      const { axis, fixed } = segments[0];
++      commands.push(axis === 'h'
++        ? `M${runStart} ${fixed}H${runEnd}`
++        : `M${fixed} ${runStart}V${runEnd}`);
++      runStart = null;
++    };
++    for (let index = 0; index + 1 < points.length; index++) {
++      const start = points[index];
++      const end = points[index + 1];
++      const covered = segments.some((segment) => segment.start < end && segment.end > start);
++      if (covered && runStart !== null && start === runEnd) {
++        runEnd = end;
++      } else {
++        flush();
++        if (covered) {
++          runStart = start;
++          runEnd = end;
++        }
++      }
++    }
++    flush();
++  }
++  return commands.join('');
++}
++
++/** Shared selection/decorations projection, bounded by the visible frozen panes. */
++export function rangeOverlayLayout(host: RangeOverlayHost, ws: Worksheet) {
++  const cs = host.scale();
++  const sp = (px: number) => Math.round(px * cs);
++  const headerW = sp(HEADER_W);
++  const headerH = sp(HEADER_H);
++  const width = host.canvasArea.clientWidth;
++  const height = host.canvasArea.clientHeight;
++  const geometry = getGridGeometryForWorksheet(ws);
++  // Match renderViewport's physical freeze materialization. A legal freeze
++  // count may cover the full sheet; it must never create million-row overlay
++  // geometry when only a handful of bands can reach this viewport.
++  const effective = geometry.effectiveFrozenBands({
++    scale: cs, width, height, headerWidth: HEADER_W, headerHeight: HEADER_H,
++    rows: ws.freezeRows ?? 0, cols: ws.freezeCols ?? 0,
++  });
++  const axes = geometry.axesAtScale(cs);
++  const frozenW = axes.col.offsetOf(effective.cols + 1);
++  const frozenH = axes.row.offsetOf(effective.rows + 1);
++  const xPanes = effective.cols > 0
++    ? [
++        { first: 1, last: effective.cols, start: headerW, end: Math.min(width, headerW + frozenW) },
++        { first: effective.cols + 1, last: MAX_WORKSHEET_COL, start: Math.min(width, headerW + frozenW), end: width },
++      ]
++    : [{ first: 1, last: MAX_WORKSHEET_COL, start: headerW, end: width }];
++  const yPanes = effective.rows > 0
++    ? [
++        { first: 1, last: effective.rows, start: headerH, end: Math.min(height, headerH + frozenH) },
++        { first: effective.rows + 1, last: MAX_WORKSHEET_ROW, start: Math.min(height, headerH + frozenH), end: height },
++      ]
++    : [{ first: 1, last: MAX_WORKSHEET_ROW, start: headerH, end: height }];
++  const visibleXPanes = xPanes.filter((pane) => pane.end > pane.start);
++  const visibleYPanes = yPanes.filter((pane) => pane.end > pane.start);
++  return { host, width, height, headerW, headerH, xPanes, yPanes, visibleXPanes, visibleYPanes };
++}
++
++export function projectRangeOverlay(
++  layout: ReturnType<typeof rangeOverlayLayout>,
++  bounds: RangeOverlayBounds,
++  kind: 'cells' | 'rows' | 'columns' | 'sheet' = 'cells',
++) {
++  const { host, width, height, visibleXPanes, visibleYPanes } = layout;
++  const seenFragments = new Set<string>();
++  const fillSubpaths: string[] = [];
++  const overlayRects: RangeOverlayRect[] = [];
++  for (const yp of visibleYPanes) for (const xp of visibleXPanes) {
++    const top = Math.max(bounds.top, yp.first);
++    const bottom = Math.min(bounds.bottom, yp.last);
++    const left = Math.max(bounds.left, xp.first);
++    const right = Math.min(bounds.right, xp.last);
++    if (top > bottom || left > right) continue;
++    const tl = host.cellRect(top, left);
++    const br = host.cellRect(bottom, right);
++    if (!tl || !br) continue;
++    const rawLeft = tl.x;
++    const rawTop = tl.y;
++    const rawRight = br.x + br.w;
++    const rawBottom = br.y + br.h;
++    const x = Math.max(rawLeft, xp.start);
++    const y = Math.max(rawTop, yp.start);
++    const x2 = Math.min(rawRight, xp.end);
++    const y2 = Math.min(rawBottom, yp.end);
++    const fragmentW = x2 - x;
++    const fragmentH = y2 - y;
++    if (fragmentW <= 0 || fragmentH <= 0) continue;
++
++    // Whole rows/columns use the outer visible grid along their unbounded
++    // axis. Only outer nonempty panes receive caps; frozen seams and clipped
++    // ordinary cell ranges remain open. This is viewer selection chrome.
++    const topCap = kind === 'columns' && yp === visibleYPanes[0];
++    const bottomCap = kind === 'columns' && yp === visibleYPanes.at(-1);
++    const leftCap = kind === 'rows' && xp === visibleXPanes[0];
++    const rightCap = kind === 'rows' && xp === visibleXPanes.at(-1);
++    const topBorder = topCap || (bounds.topEdge && top === bounds.top && rawTop >= yp.start);
++    const bottomBorder = bottomCap || (bounds.bottomEdge && bottom === bounds.bottom && rawBottom <= yp.end);
++    const leftBorder = leftCap || (bounds.leftEdge && left === bounds.left && rawLeft >= xp.start);
++    const rightBorder = rightCap || (bounds.rightEdge && right === bounds.right && rawRight <= xp.end);
++    const screenLeft = host.screenX(x, fragmentW);
++    const physicalLeftBorder = host.isRtl() ? rightBorder : leftBorder;
++    const physicalRightBorder = host.isRtl() ? leftBorder : rightBorder;
++    const fragmentKey = [
++      screenLeft, y, fragmentW, fragmentH,
++      topBorder, physicalRightBorder, bottomBorder, physicalLeftBorder,
++    ].join('|');
++    if (seenFragments.has(fragmentKey)) continue;
++    seenFragments.add(fragmentKey);
++    // Paint every fragment as a subpath in one SVG fill operation. With a
++    // single non-zero fill, overlapping selection areas form a visual union
++    // instead of stacking translucent backgrounds and becoming darker.
++    fillSubpaths.push(
++      `M${screenLeft} ${y}h${fragmentW}v${fragmentH}h${-fragmentW}Z`,
++    );
++    // A cap on the overlay's own edge (bottom, right, or the physical left
++    // edge in RTL) is inset by half the centered 2 CSS-pixel stroke so the
++    // clip keeps the whole stroke. A cap beside the row/column headers sits
++    // on the grid line, exactly where an ordinary cell selection draws it.
++    const insetX = Math.min(1, fragmentW / 2);
++    const insetY = Math.min(1, fragmentH / 2);
++    const physicalLeftCap = host.isRtl() ? rightCap : leftCap;
++    const physicalRightCap = host.isRtl() ? leftCap : rightCap;
++    const atOverlayEdge = (edge: number, limit: number) => edge <= 0 || edge >= limit;
++    const outlineLeft = screenLeft + (physicalLeftCap && atOverlayEdge(screenLeft, width) ? insetX : 0);
++    const outlineRight = screenLeft + fragmentW
++      - (physicalRightCap && atOverlayEdge(screenLeft + fragmentW, width) ? insetX : 0);
++    const outlineTop = y + (topCap && atOverlayEdge(y, height) ? insetY : 0);
++    const outlineBottom = y2 - (bottomCap && atOverlayEdge(y2, height) ? insetY : 0);
++    overlayRects.push({
++      x: outlineLeft,
++      y: outlineTop,
++      width: outlineRight - outlineLeft,
++      height: outlineBottom - outlineTop,
++      top: topBorder,
++      right: physicalRightBorder,
++      bottom: bottomBorder,
++      left: physicalLeftBorder,
++    });
++  }
++  return { fillSubpaths, overlayRects };
++}
+diff --git a/packages/xlsx/src/internal/viewer/selection-overlay.ts b/packages/xlsx/src/internal/viewer/selection-overlay.ts
+--- a/packages/xlsx/src/internal/viewer/selection-overlay.ts
++++ b/packages/xlsx/src/internal/viewer/selection-overlay.ts
+@@ -1,9 +1,9 @@
+ import type { Worksheet } from '../../types.js';
+ import type { XlsxElementContext, XlsxSelectionState } from '../../selection.js';
+-import { HEADER_W, HEADER_H, getGridGeometryForWorksheet } from '../../renderer.js';
+ import { projectXlsxElementContext, type XlsxElementHitViewport } from '../../element-context.js';
+ import { MAX_WORKSHEET_COL, MAX_WORKSHEET_ROW } from '../grid-geometry.js';
+ import type { SheetOverlayHost } from '../sheet-surface.js';
++import { projectRangeOverlay, rangeBoundaryPath, rangeOverlayLayout, type RangeOverlayRect } from './range-overlay.js';
+ 
+ /** Default cell-selection accent (Google blue), used when no `selectionColor`
+  *  option is supplied. */
+@@ -22,81 +22,6 @@
+     border: `2px solid ${color}`,
+     background: `color-mix(in srgb, ${color} 8%, transparent)`,
+   };
+-}
+-
+-interface SelectionOverlayRect {
+-  readonly x: number;
+-  readonly y: number;
+-  readonly width: number;
+-  readonly height: number;
+-  readonly top: boolean;
+-  readonly right: boolean;
+-  readonly bottom: boolean;
+-  readonly left: boolean;
+-}
+-
+-interface SelectionBoundarySegment {
+-  readonly axis: 'h' | 'v';
+-  readonly fixed: number;
+-  readonly start: number;
+-  readonly end: number;
+-}
+-
+-/**
+- * Build the single-Area outline from its visible frozen-pane fragments.
+- * Splitting collinear edges at every endpoint emits coincident fragment edges
+- * only once. Work is bounded by the visible fragment count, not sheet size.
+- */
+-function selectionBoundaryPath(rects: readonly SelectionOverlayRect[]): string {
+-  const raw: SelectionBoundarySegment[] = [];
+-  for (const rect of rects) {
+-    const x2 = rect.x + rect.width;
+-    const y2 = rect.y + rect.height;
+-    if (rect.top) raw.push({ axis: 'h', fixed: rect.y, start: rect.x, end: x2 });
+-    if (rect.right) raw.push({ axis: 'v', fixed: x2, start: rect.y, end: y2 });
+-    if (rect.bottom) raw.push({ axis: 'h', fixed: y2, start: rect.x, end: x2 });
+-    if (rect.left) raw.push({ axis: 'v', fixed: rect.x, start: rect.y, end: y2 });
+-  }
+-
+-  const groups = new Map<string, SelectionBoundarySegment[]>();
+-  for (const segment of raw) {
+-    const key = `${segment.axis}:${segment.fixed}`;
+-    const group = groups.get(key);
+-    if (group) group.push(segment);
+-    else groups.set(key, [segment]);
+-  }
+-
+-  const commands: string[] = [];
+-  for (const segments of groups.values()) {
+-    const points = [...new Set(segments.flatMap(({ start, end }) => [start, end]))]
+-      .sort((a, b) => a - b);
+-    let runStart: number | null = null;
+-    let runEnd = 0;
+-    const flush = () => {
+-      if (runStart === null || runEnd <= runStart) return;
+-      const { axis, fixed } = segments[0];
+-      commands.push(axis === 'h'
+-        ? `M${runStart} ${fixed}H${runEnd}`
+-        : `M${fixed} ${runStart}V${runEnd}`);
+-      runStart = null;
+-    };
+-    for (let index = 0; index + 1 < points.length; index++) {
+-      const start = points[index];
+-      const end = points[index + 1];
+-      const covered = segments.some((segment) => segment.start < end && segment.end > start);
+-      if (covered && runStart !== null && start === runEnd) {
+-        runEnd = end;
+-      } else {
+-        flush();
+-        if (covered) {
+-          runStart = start;
+-          runEnd = end;
+-        }
+-      }
+-    }
+-    flush();
+-  }
+-  return commands.join('');
+ }
+ 
+ let selectionMaskSequence = 0;
+@@ -141,44 +66,14 @@
+     }
+     const state = this.host.selectionState();
+     if (!state) return;
+-    const cs = this.host.scale();
+     const ws = this.host.worksheet();
+     if (!ws) return;
+-    const sp = (px: number) => Math.round(px * cs);
+-    const headerW = sp(HEADER_W);
+-    const headerH = sp(HEADER_H);
+-    const width = this.host.canvasArea.clientWidth;
+-    const height = this.host.canvasArea.clientHeight;
+-    const geometry = getGridGeometryForWorksheet(ws);
+-    // Match renderViewport's physical freeze materialization. A legal freeze
+-    // count may cover the full sheet; it must never create million-row overlay
+-    // geometry when only a handful of bands can reach this viewport.
+-    const effective = geometry.effectiveFrozenBands({
+-      scale: cs, width, height, headerWidth: HEADER_W, headerHeight: HEADER_H,
+-      rows: ws.freezeRows ?? 0, cols: ws.freezeCols ?? 0,
+-    });
+-    const axes = geometry.axesAtScale(cs);
+-    const frozenW = axes.col.offsetOf(effective.cols + 1);
+-    const frozenH = axes.row.offsetOf(effective.rows + 1);
+-    const xPanes = effective.cols > 0
+-      ? [
+-          { first: 1, last: effective.cols, start: headerW, end: Math.min(width, headerW + frozenW) },
+-          { first: effective.cols + 1, last: MAX_WORKSHEET_COL, start: Math.min(width, headerW + frozenW), end: width },
+-        ]
+-      : [{ first: 1, last: MAX_WORKSHEET_COL, start: headerW, end: width }];
+-    const yPanes = effective.rows > 0
+-      ? [
+-          { first: 1, last: effective.rows, start: headerH, end: Math.min(height, headerH + frozenH) },
+-          { first: effective.rows + 1, last: MAX_WORKSHEET_ROW, start: Math.min(height, headerH + frozenH), end: height },
+-        ]
+-      : [{ first: 1, last: MAX_WORKSHEET_ROW, start: headerH, end: height }];
+-    const visibleXPanes = xPanes.filter((pane) => pane.end > pane.start);
+-    const visibleYPanes = yPanes.filter((pane) => pane.end > pane.start);
++    const layout = rangeOverlayLayout(this.host, ws);
++    const { width, height, xPanes, yPanes } = layout;
+     const selectionColor = this.host.selectionColor() ?? DEFAULT_SELECTION_COLOR;
+     const { background } = selectionOverlayStyle(selectionColor);
+-    const seenFragments = new Set<string>();
+     const fillSubpaths: string[] = [];
+-    const overlayRects: SelectionOverlayRect[] = [];
++    const overlayRects: RangeOverlayRect[] = [];
+ 
+     for (const area of state.areas) {
+       const bounds = area.kind === 'cells'
+@@ -193,78 +88,9 @@
+             : { top: 1, bottom: MAX_WORKSHEET_ROW, left: 1, right: MAX_WORKSHEET_COL,
+                 topEdge: false, bottomEdge: false, leftEdge: false, rightEdge: false };
+ 
+-      for (const yp of visibleYPanes) for (const xp of visibleXPanes) {
+-        const top = Math.max(bounds.top, yp.first);
+-        const bottom = Math.min(bounds.bottom, yp.last);
+-        const left = Math.max(bounds.left, xp.first);
+-        const right = Math.min(bounds.right, xp.last);
+-        if (top > bottom || left > right) continue;
+-        const tl = this.host.cellRect(top, left);
+-        const br = this.host.cellRect(bottom, right);
+-        if (!tl || !br) continue;
+-        const rawLeft = tl.x;
+-        const rawTop = tl.y;
+-        const rawRight = br.x + br.w;
+-        const rawBottom = br.y + br.h;
+-        const x = Math.max(rawLeft, xp.start);
+-        const y = Math.max(rawTop, yp.start);
+-        const x2 = Math.min(rawRight, xp.end);
+-        const y2 = Math.min(rawBottom, yp.end);
+-        const fragmentW = x2 - x;
+-        const fragmentH = y2 - y;
+-        if (fragmentW <= 0 || fragmentH <= 0) continue;
+-
+-        // Whole rows/columns use the outer visible grid along their unbounded
+-        // axis. Only outer nonempty panes receive caps; frozen seams and clipped
+-        // ordinary cell ranges remain open. This is viewer selection chrome.
+-        const topCap = area.kind === 'columns' && yp === visibleYPanes[0];
+-        const bottomCap = area.kind === 'columns' && yp === visibleYPanes.at(-1);
+-        const leftCap = area.kind === 'rows' && xp === visibleXPanes[0];
+-        const rightCap = area.kind === 'rows' && xp === visibleXPanes.at(-1);
+-        const topBorder = topCap || (bounds.topEdge && top === bounds.top && rawTop >= yp.start);
+-        const bottomBorder = bottomCap || (bounds.bottomEdge && bottom === bounds.bottom && rawBottom <= yp.end);
+-        const leftBorder = leftCap || (bounds.leftEdge && left === bounds.left && rawLeft >= xp.start);
+-        const rightBorder = rightCap || (bounds.rightEdge && right === bounds.right && rawRight <= xp.end);
+-        const screenLeft = this.host.screenX(x, fragmentW);
+-        const physicalLeftBorder = this.host.isRtl() ? rightBorder : leftBorder;
+-        const physicalRightBorder = this.host.isRtl() ? leftBorder : rightBorder;
+-        const fragmentKey = [
+-          screenLeft, y, fragmentW, fragmentH,
+-          topBorder, physicalRightBorder, bottomBorder, physicalLeftBorder,
+-        ].join('|');
+-        if (seenFragments.has(fragmentKey)) continue;
+-        seenFragments.add(fragmentKey);
+-        // Paint every fragment as a subpath in one SVG fill operation. With a
+-        // single non-zero fill, overlapping selection areas form a visual union
+-        // instead of stacking translucent backgrounds and becoming darker.
+-        fillSubpaths.push(
+-          `M${screenLeft} ${y}h${fragmentW}v${fragmentH}h${-fragmentW}Z`,
+-        );
+-        // A cap on the overlay's own edge (bottom, right, or the physical left
+-        // edge in RTL) is inset by half the centered 2 CSS-pixel stroke so the
+-        // clip keeps the whole stroke. A cap beside the row/column headers sits
+-        // on the grid line, exactly where an ordinary cell selection draws it.
+-        const insetX = Math.min(1, fragmentW / 2);
+-        const insetY = Math.min(1, fragmentH / 2);
+-        const physicalLeftCap = this.host.isRtl() ? rightCap : leftCap;
+-        const physicalRightCap = this.host.isRtl() ? leftCap : rightCap;
+-        const atOverlayEdge = (edge: number, limit: number) => edge <= 0 || edge >= limit;
+-        const outlineLeft = screenLeft + (physicalLeftCap && atOverlayEdge(screenLeft, width) ? insetX : 0);
+-        const outlineRight = screenLeft + fragmentW
+-          - (physicalRightCap && atOverlayEdge(screenLeft + fragmentW, width) ? insetX : 0);
+-        const outlineTop = y + (topCap && atOverlayEdge(y, height) ? insetY : 0);
+-        const outlineBottom = y2 - (bottomCap && atOverlayEdge(y2, height) ? insetY : 0);
+-        overlayRects.push({
+-          x: outlineLeft,
+-          y: outlineTop,
+-          width: outlineRight - outlineLeft,
+-          height: outlineBottom - outlineTop,
+-          top: topBorder,
+-          right: physicalRightBorder,
+-          bottom: bottomBorder,
+-          left: physicalLeftBorder,
+-        });
+-      }
++      const projected = projectRangeOverlay(layout, bounds, area.kind);
++      fillSubpaths.push(...projected.fillSubpaths);
++      overlayRects.push(...projected.overlayRects);
+     }
+ 
+     if (fillSubpaths.length > 0) {
+@@ -321,7 +147,7 @@
+       fill.setAttribute('mask', `url(#${maskId})`);
+       svg.appendChild(fill);
+ 
+-      const boundaryPath = isMultipleAreaSelection ? '' : selectionBoundaryPath(overlayRects);
++      const boundaryPath = isMultipleAreaSelection ? '' : rangeBoundaryPath(overlayRects);
+       if (boundaryPath) {
+         const boundary = this.host.ownerDocument.createElementNS(svgNamespace, 'path');
+         boundary.setAttribute('data-xlsx-selection-border', '');
+diff --git a/packages/xlsx/src/print-area.test.ts b/packages/xlsx/src/print-area.test.ts
+new file mode 100644
+--- /dev/null
++++ b/packages/xlsx/src/print-area.test.ts
+@@ -0,0 +1,183 @@
++import { afterEach, describe, expect, it, vi } from 'vitest';
++import { resolvePrintArea } from './internal/viewer/print-area-overlay.js';
++import { XlsxViewer } from './viewer.js';
++import { XlsxWorkbook } from './workbook.js';
++import type { Worksheet } from './types.js';
++import { installDom, makeContainer, type FakeEl } from './viewer-destroy-test-dom.js';
++
++afterEach(() => {
++  vi.unstubAllGlobals();
++  vi.restoreAllMocks();
++});
++
++function worksheet(name: string, formula?: string): Worksheet {
++  return {
++    name, rows: [], colWidths: {}, rowHeights: {}, defaultColWidth: 8.43,
++    defaultRowHeight: 15, mergeCells: [], freezeRows: 0, freezeCols: 0,
++    conditionalFormats: [], images: [], charts: [],
++    definedNames: formula === undefined ? [] : [{ name: '_xlnm.Print_Area', formula }],
++  } as unknown as Worksheet;
++}
++
++function descendants(element: FakeEl): FakeEl[] {
++  return element.children.flatMap(child => [child, ...descendants(child)]);
++}
++
++describe('Print Area references', () => {
++  it('reads quoted names, escaped apostrophes, ranges and single cells', () => {
++    expect(resolvePrintArea(worksheet("O'Brien, Q1!", "'O''Brien, Q1!'!$B$3:$D$8")))
++      .toMatchObject({ top: 3, left: 2, bottom: 8, right: 4 });
++    expect(resolvePrintArea(worksheet('Report', 'Report!XFD1048576')))
++      .toMatchObject({ top: 1048576, left: 16384, bottom: 1048576, right: 16384 });
++  });
++
++  it.each([
++    undefined, 'Report!$B:$D', 'Report!$2:$4', 'Report!A1:B2,Report!D1:E2',
++    'OFFSET(Report!A1,0,0,5,4)', 'NamedArea', 'Other!A1:B2',
++    'Report!D8:B3', 'Report!A0:B2', 'Report!A1:XFE2', "'[Other.xlsx]Report'!A1:B2",
++  ])('leaves missing or unsupported definitions unresolved: %s', formula => {
++    expect(resolvePrintArea(worksheet('Report', formula))).toBeNull();
++  });
++
++  it('separates workbook-global areas by worksheet and refuses conflicting local scope', () => {
++    const first = worksheet('First', 'First!A1:B2');
++    first.definedNames!.push({ name: '_xlnm.Print_Area', formula: 'Second!D3:F8' });
++    expect(resolvePrintArea(first)).toMatchObject({ top: 1, left: 1, bottom: 2, right: 2 });
++    expect(resolvePrintArea({ ...first, name: 'Second' })).toMatchObject({ top: 3, left: 4, bottom: 8, right: 6 });
++    first.definedNames![1].localSheetId = '0';
++    expect(resolvePrintArea(first)).toBeNull();
++    first.definedNames = [{ name: '_xlnm.Print_Area', formula: 'First!A1:B2', localSheetId: 'invalid' }];
++    expect(resolvePrintArea(first)).toBeNull();
++  });
++
++  it('rejects duplicate definitions instead of selecting one', () => {
++    const ws = worksheet('Report', 'Report!A1:B2');
++    ws.definedNames!.push({ name: '_xlnm.Print_Area', formula: 'Report!C3:D4' });
++    expect(resolvePrintArea(ws)).toBeNull();
++  });
++});
++
++async function preview(sheets: Worksheet[], mode: 'main' | 'worker' = 'main') {
++  const doc = installDom();
++  const resizeCallbacks: Array<() => void> = [];
++  doc.defaultView.ResizeObserver = class {
++    constructor(callback: () => void) { resizeCallbacks.push(callback); }
++    observe() {}
++    disconnect() {}
++    unobserve() {}
++  };
++  const container = makeContainer();
++  const selectionChanged = vi.fn();
++  const viewer = new XlsxViewer(container as unknown as HTMLElement, { mode, onSelectionStateChange: selectionChanged });
++  const area = viewer.canvasElement.parentElement as unknown as FakeEl;
++  area.clientWidth = 640;
++  area.clientHeight = 360;
++  const scroll = area.children.find(child => child._listeners.has('scroll'))!;
++  scroll.clientWidth = 640;
++  scroll.clientHeight = 360;
++  scroll.scrollWidth = 4000;
++  scroll.scrollHeight = 4000;
++  const workbook = {
++    mode, sheetNames: sheets.map(sheet => sheet.name), sheetCount: sheets.length,
++    tabColors: sheets.map(() => null), isHidden: () => false,
++    getWorksheet: vi.fn(async (index: number) => sheets[index]),
++    acquireWorksheetLease: vi.fn(async (index: number) => ({ worksheet: sheets[index], release: vi.fn() })),
++    retainWorksheetReference: vi.fn(async () => vi.fn()),
++    renderViewport: vi.fn(async () => undefined),
++    renderViewportToBitmap: vi.fn(async () => ({ close() {} })),
++    destroy: vi.fn(),
++  };
++  vi.spyOn(XlsxWorkbook, 'load').mockResolvedValue(workbook as unknown as XlsxWorkbook);
++  await viewer.load(new ArrayBuffer(0));
++  const decoration = () => descendants(container).find(element => element.hasAttribute('data-xlsx-print-area'));
++  const paths = () => decoration()?.children.map(path => path.getAttribute('d')) ?? [];
++  return { viewer, container, area, scroll, workbook, selectionChanged, resizeCallbacks, decoration, paths };
++}
++
++// Sample the emitted even-odd shading against public cell hit-testing. This
++// catches pane overlap, header shading and incorrect RTL clipping without a browser.
++function expectShadingMatchesCells(view: Awaited<ReturnType<typeof preview>>, top: number, left: number) {
++  const path = view.paths()[0] ?? '';
++  const rectangles = [...path.matchAll(/M(-?[\d.]+) (-?[\d.]+)h(-?[\d.]+)v(-?[\d.]+)h-?[\d.]+Z/g)]
++    .map(match => match.slice(1).map(Number));
++  for (let y = 11.5; y < view.area.clientHeight; y += 29) {
++    for (let x = 13.5; x < view.area.clientWidth; x += 31) {
++      const cell = view.viewer.getCellAt(x, y);
++      const shaded = rectangles.filter(([left, top, width, height]) =>
++        x > left && x < left + width && y > top && y < top + height).length % 2 === 1;
++      const outside = cell !== null && (cell.row < top || cell.col < left || cell.row > 20 || cell.col > 8);
++      expect(shaded, `Shading at ${x},${y} for cell ${JSON.stringify(cell)}`).toBe(outside);
++    }
++  }
++}
++
++describe('Print Area viewer decoration', () => {
++  it('defaults off, follows each worksheet and toggles without changing selection or the source model', async () => {
++    const sheets = [worksheet('First', 'First!B3:D8'), worksheet('Second', 'Second!E2:H5'), worksheet('None')];
++    const original = JSON.stringify(sheets);
++    const view = await preview(sheets);
++    expect(view.decoration()).toBeUndefined();
++    view.viewer.setSelection('C4:D5');
++    const selection = view.viewer.selectionState;
++    const notifications = view.selectionChanged.mock.calls.length;
++    view.viewer.setShowPrintArea(true);
++    expect(view.decoration()).toBeDefined();
++    const first = view.paths();
++    expect(view.viewer.selectionState).toEqual(selection);
++    expect(view.selectionChanged).toHaveBeenCalledTimes(notifications);
++    view.viewer.setShowPrintArea(false);
++    expect(view.decoration()).toBeUndefined();
++    expect(view.viewer.selectionState).toEqual(selection);
++    view.viewer.setShowPrintArea(true);
++    await view.viewer.goToSheet(1);
++    expect(view.paths()).not.toEqual(first);
++    await view.viewer.goToSheet(2);
++    expect(view.decoration()).toBeUndefined();
++    await view.viewer.goToSheet(0);
++    expect(view.paths()).toEqual(first);
++    expect(JSON.stringify(sheets)).toBe(original);
++    view.viewer.destroy();
++    expect(view.workbook.destroy).toHaveBeenCalledOnce();
++  });
++
++  it.each([
++    { rightToLeft: false, first: 'A1', top: 1, left: 1 },
++    { rightToLeft: true, first: 'A1', top: 1, left: 1 },
++    { rightToLeft: false, first: 'B3', top: 3, left: 2 },
++    { rightToLeft: true, first: 'B3', top: 3, left: 2 },
++  ])('tracks scrolling, zoom, resize and frozen panes from $first with RTL=$rightToLeft', async ({ rightToLeft, first, top, left }) => {
++    const sheet = worksheet('Report', `Report!${first}:H20`);
++    sheet.freezeRows = 2;
++    sheet.freezeCols = 2;
++    sheet.rightToLeft = rightToLeft;
++    const view = await preview([sheet], 'worker');
++    view.viewer.setShowPrintArea(true);
++    expectShadingMatchesCells(view, top, left);
++    const initial = view.paths();
++    let completeFrame!: (bitmap: { close(): void }) => void;
++    view.workbook.renderViewportToBitmap.mockImplementationOnce(() => new Promise(resolve => { completeFrame = resolve; }));
++    const movement = view.viewer.setViewportOffset({ x: 120, y: 100 });
++    expect(view.paths()).toEqual(initial);
++    completeFrame({ close() {} });
++    await movement;
++    expect(view.paths()).not.toEqual(initial);
++    expectShadingMatchesCells(view, top, left);
++    const scrolled = view.paths();
++    view.viewer.setScale(1.5);
++    await view.viewer.relayout();
++    expect(view.paths()).not.toEqual(scrolled);
++    expectShadingMatchesCells(view, top, left);
++    const zoomed = view.paths();
++    view.area.clientWidth = 480;
++    view.area.clientHeight = 260;
++    view.scroll.clientWidth = 480;
++    view.scroll.clientHeight = 260;
++    for (const resize of view.resizeCallbacks) resize();
++    expect(view.paths()).not.toEqual(zoomed);
++    expectShadingMatchesCells(view, top, left);
++    const svg = view.decoration()!;
++    expect(svg.getAttribute('aria-hidden')).toBe('true');
++    expect(svg.children[0].getAttribute('fill-rule')).toBe('evenodd');
++    view.viewer.destroy();
++  });
++});
+diff --git a/packages/xlsx/src/types.ts b/packages/xlsx/src/types.ts
+--- a/packages/xlsx/src/types.ts
++++ b/packages/xlsx/src/types.ts
+@@ -449,6 +449,8 @@
+ export interface DefinedName {
+   name: string;
+   formula: string;
++  /** Authored SpreadsheetML scope; absent for workbook-global names. */
++  localSheetId?: string;
+ }
+ 
+ /** One cell-attached classic note or threaded-comment root. */
+diff --git a/packages/xlsx/src/viewer.ts b/packages/xlsx/src/viewer.ts
+--- a/packages/xlsx/src/viewer.ts
++++ b/packages/xlsx/src/viewer.ts
+@@ -1,3 +1,4 @@
++import { PrintAreaOverlay } from './internal/viewer/print-area-overlay.js';
+ import { inheritCellFontLanguage } from './internal/cell-font-language.js';
+ import {
+   XlsxWorkbook,
+@@ -280,6 +281,8 @@
+    * via {@link XlsxViewer.setSelectionColor}.
+    */
+   selectionColor?: string;
++  /** Show a single finite Print_Area boundary and shade its exterior. Default false. */
++  showPrintArea?: boolean;
+   /** CSS backgrounds for ordinary and active in-document search matches. */
+   findHighlightColors?: FindHighlightColors;
+   /**
+@@ -585,6 +588,7 @@
+   private elementContext: XlsxElementContext | null = null;
+   /** Selection / object-context overlay painter. */
+   private readonly selectionPaint: SelectionOverlay;
++  private readonly printAreaPaint: PrintAreaOverlay;
+   /** IX2 — whole-workbook find and its highlight overlay. */
+   private readonly finder: FindAdapter;
+   /** Bounded TSV copy of the selected area. */
+@@ -685,6 +689,17 @@
+       readContext: (maxTextCharacters) => this.getSelectionContext({ maxTextCharacters }),
+       emitSelectionChange: () => this.emitSelectionChange(),
+       scheduleSelectionContextNotification: () => this.scheduleSelectionContextNotification(),
++    });
++    this.printAreaPaint = new PrintAreaOverlay({
++      ownerDocument: this.hostDocument,
++      canvasArea: this.canvasArea,
++      overlayHost: this.overlayHost,
++      worksheet: () => this.currentWorksheet,
++      enabled: () => this.opts.showPrintArea === true,
++      scale: () => this.viewport.scale,
++      isRtl: () => this.isRtl,
++      cellRect: (row, col) => this._cellRect(row, col),
++      screenX: (x, width) => this.screenX(x, width),
+     });
+     this.selectionPaint = new SelectionOverlay({
+       ownerDocument: this.hostDocument,
+@@ -2033,6 +2048,13 @@
+    * fill becomes a translucent shade of it; the current selection repaints
+    * immediately.
+    */
++  /** Change only the viewer decoration; workbook and selection stay unchanged. */
++  setShowPrintArea(show: boolean): void {
++    this.assertOpen();
++    this.opts.showPrintArea = show;
++    this.printAreaPaint.update();
++  }
++
+   setSelectionColor(color: string): void {
+     this.opts.selectionColor = color;
+     this.updateSelectionOverlay();
+@@ -2076,6 +2098,7 @@
+ 
+   /** Rebuild the selection / object-context overlay for the viewport. */
+   private updateSelectionOverlay(): void {
++    this.printAreaPaint.update();
+     this.selectionPaint.update();
+   }
+ 
+@@ -2901,6 +2924,11 @@
+     return await this.engine.copySelection();
+   }
+ 
++  setShowPrintArea(show: boolean): void {
++    this.assertOpen();
++    this.engine.setShowPrintArea(show);
++  }
++
+   setSelectionColor(color: string): void {
+     this.assertOpen();
+     this.engine.setSelectionColor(color);

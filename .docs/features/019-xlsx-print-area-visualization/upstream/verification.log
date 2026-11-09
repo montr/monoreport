@@ -1,0 +1,267 @@
+=== install-npm ===
+
+removed 8 packages, and changed 77 packages in 3s
+
+
+=== build-library ===
+npm notice run ooxml:local
+npm notice run node scripts/local-ooxml.mjs ${WORKSPACE}/upstream build-library
+[INFO]: 🎯  Checking for the Wasm target...
+[INFO]: 🌀  Compiling to Wasm...
+   Compiling unicode-ident v1.0.24
+   Compiling proc-macro2 v1.0.106
+   Compiling quote v1.0.45
+   Compiling wasm-bindgen-shared v0.2.118
+   Compiling cfg-if v1.0.4
+   Compiling rustversion v1.0.22
+   Compiling serde_core v1.0.228
+   Compiling syn v2.0.117
+   Compiling crc32fast v1.5.0
+   Compiling memchr v2.8.0
+   Compiling zmij v1.0.21
+   Compiling simd-adler32 v0.3.9
+   Compiling adler2 v2.0.1
+   Compiling miniz_oxide v0.8.9
+   Compiling bumpalo v3.20.2
+   Compiling hashbrown v0.17.0
+   Compiling serde v1.0.228
+   Compiling equivalent v1.0.2
+   Compiling serde_json v1.0.149
+   Compiling indexmap v2.14.0
+   Compiling wasm-bindgen-macro-support v0.2.118
+   Compiling flate2 v1.1.9
+   Compiling wasm-bindgen v0.2.118
+   Compiling serde_derive v1.0.228
+   Compiling typed-path v0.12.3
+   Compiling itoa v1.0.18
+   Compiling zip v9.0.4
+   Compiling wasm-bindgen-macro v0.2.118
+   Compiling quick-xml v0.41.0
+   Compiling once_cell v1.21.4
+   Compiling roxmltree v0.20.0
+   Compiling ooxml-common v0.1.0 (${WORKSPACE}/upstream/packages/ooxml-common)
+   Compiling console_error_panic_hook v0.1.7
+   Compiling xlsx-model v0.1.0 (${WORKSPACE}/upstream/packages/xlsx/model)
+   Compiling xlsx-parser v0.1.0 (${WORKSPACE}/upstream/packages/xlsx/parser)
+    Finished `release` profile [optimized] target(s) in 28.27s
+[INFO]: ⬇️  Installing wasm-bindgen...
+[INFO]: Optimizing wasm binaries with `wasm-opt`...
+[INFO]: Optional fields missing from Cargo.toml: 'description', 'repository', and 'license'. These are not necessary, but recommended
+[INFO]: ✨   Done in 42.76s
+[INFO]: 📦   Your wasm pkg is ready to publish at ${WORKSPACE}/upstream/packages/xlsx/src/wasm.
+append-wasm-reinit: removed packages/xlsx/src/wasm/.gitignore so wasm assets ship in the package
+append-wasm-reinit: appended reinit to packages/xlsx/src/wasm/xlsx_parser.js
+append-wasm-reinit: appended reinit type to packages/xlsx/src/wasm/xlsx_parser.d.ts
+vite v8.0.16 building client environment for production...
+[2K
+transforming...✓ 378 modules transformed.
+rendering chunks...
+computing gzip size...
+../../upstream/packages/xlsx/dist/assets/render-worker-hPLJ82d2.js        1,688.81 kB
+../../upstream/packages/xlsx/dist/xlsx_parser_bg.wasm                     1,935.86 kB │ gzip: 809.04 kB
+../../upstream/packages/xlsx/dist/render-worker-host-BZoh-wqR.js              0.17 kB │ gzip:   0.16 kB
+../../upstream/packages/xlsx/dist/comment-ui-runtime-BoL9MQIB.js              6.97 kB │ gzip:   2.04 kB
+../../upstream/packages/xlsx/dist/workbook-model-source-BDuX6cpM.js           9.65 kB │ gzip:   3.40 kB
+../../upstream/packages/xlsx/dist/delimited-text-worker-host-RwvuSsP2.js     18.10 kB │ gzip:   5.99 kB
+../../upstream/packages/xlsx/dist/worker-source-C29EQNUj.js                  46.56 kB │ gzip:  13.28 kB
+../../upstream/packages/xlsx/dist/emf-BfokidXZ.js                            50.29 kB │ gzip:  14.52 kB
+../../upstream/packages/xlsx/dist/xlsx.mjs                                  354.98 kB │ gzip:  93.46 kB
+../../upstream/packages/xlsx/dist/wmf-XeXIt-rt.js                           532.69 kB │ gzip:  65.11 kB
+../../upstream/packages/xlsx/dist/worker-protocol--uYTK94u.js             1,215.84 kB │ gzip: 289.09 kB
+
+✓ built in 2.85s
+vite v8.0.16 building client environment for production...
+[2K
+transforming...✓ 13 modules transformed.
+rendering chunks...
+computing gzip size...
+packages/xlsx/dist/xlsx-source-worker.mjs  16.65 kB │ gzip: 4.82 kB
+
+✓ built in 613ms
+
+
+=== parser-tests ===
+   Compiling unicode-ident v1.0.24
+   Compiling proc-macro2 v1.0.106
+   Compiling quote v1.0.45
+   Compiling siphasher v1.0.4
+   Compiling cfg-if v1.0.4
+   Compiling phf_shared v0.13.1
+   Compiling wasm-bindgen-shared v0.2.118
+   Compiling fastrand v2.5.0
+   Compiling syn v2.0.117
+   Compiling phf_generator v0.13.1
+   Compiling serde_core v1.0.228
+   Compiling rustversion v1.0.22
+   Compiling crc32fast v1.5.0
+   Compiling cfg_aliases v0.2.2
+   Compiling libc v0.2.186
+   Compiling nix v0.31.3
+   Compiling phf_codegen v0.13.1
+   Compiling memchr v2.8.0
+   Compiling simd-adler32 v0.3.9
+   Compiling adler2 v2.0.1
+   Compiling jetscii v0.5.3
+   Compiling entities v1.0.1
+   Compiling tinyvec v1.13.3
+   Compiling zmij v1.0.21
+   Compiling unicode-normalization v0.1.26
+   Compiling comrak v0.52.0
+   Compiling miniz_oxide v0.8.9
+   Compiling bitflags v2.11.1
+   Compiling hashbrown v0.17.0
+   Compiling equivalent v1.0.2
+   Compiling serde v1.0.228
+   Compiling serde_json v1.0.149
+   Compiling bumpalo v3.20.2
+   Compiling wasm-bindgen-macro-support v0.2.118
+   Compiling indexmap v2.14.0
+   Compiling phf v0.13.1
+   Compiling flate2 v1.1.9
+   Compiling wasm-bindgen v0.2.118
+   Compiling caseless v0.2.2
+   Compiling serde_derive v1.0.228
+   Compiling typed-arena v2.0.2
+   Compiling smallvec v1.15.1
+   Compiling rustc-hash v2.1.3
+   Compiling finl_unicode v1.5.0
+   Compiling typed-path v0.12.3
+   Compiling itoa v1.0.18
+   Compiling zip v9.0.4
+   Compiling wasm-bindgen-macro v0.2.118
+   Compiling quick-xml v0.41.0
+   Compiling roxmltree v0.20.0
+   Compiling once_cell v1.21.4
+   Compiling ooxml-common v0.1.0 (${WORKSPACE}/upstream/packages/ooxml-common)
+   Compiling console_error_panic_hook v0.1.7
+   Compiling xlsx-model v0.1.0 (${WORKSPACE}/upstream/packages/xlsx/model)
+   Compiling xlsx-parser v0.1.0 (${WORKSPACE}/upstream/packages/xlsx/parser)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 19.18s
+     Running unittests src/lib.rs (target/debug/deps/xlsx_parser-e1176145dd03ab0f)
+
+running 2 tests
+test defined_name_scope_tests::print_area_inventory_preserves_scope_and_invalid_scope_text ... ok
+test defined_name_scope_tests::sheet_names_keep_workbook_globals_and_order_current_sheet_locals_last ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 437 filtered out; finished in 0.00s
+
+
+
+=== legacy-typecheck ===
+   Compiling unicode-ident v1.0.24
+    Checking cfg-if v1.0.4
+    Checking memchr v2.8.0
+   Compiling proc-macro2 v1.0.106
+    Checking simd-adler32 v0.3.9
+   Compiling quote v1.0.45
+    Checking adler2 v2.0.1
+   Compiling syn v2.0.117
+    Checking miniz_oxide v0.8.9
+   Compiling wasm-bindgen-shared v0.2.118
+    Checking serde_core v1.0.228
+    Checking crc32fast v1.5.0
+    Checking libc v0.2.186
+    Checking hashbrown v0.17.0
+    Checking equivalent v1.0.2
+    Checking bitflags v2.11.1
+    Checking nix v0.31.3
+   Compiling wasm-bindgen-macro-support v0.2.118
+   Compiling serde_derive v1.0.228
+    Checking indexmap v2.14.0
+    Checking flate2 v1.1.9
+    Checking zmij v1.0.21
+    Checking itoa v1.0.18
+    Checking typed-path v0.12.3
+    Checking serde_json v1.0.149
+   Compiling wasm-bindgen-macro v0.2.118
+    Checking zip v9.0.4
+    Checking serde v1.0.228
+    Checking quick-xml v0.41.0
+    Checking roxmltree v0.20.0
+    Checking once_cell v1.21.4
+    Checking wasm-bindgen v0.2.118
+    Checking ooxml-common v0.1.0 (${WORKSPACE}/upstream/packages/ooxml-common)
+    Checking js-sys v0.3.95
+    Checking console_error_panic_hook v0.1.7
+    Checking xlsx-model v0.1.0 (${WORKSPACE}/upstream/packages/xlsx/model)
+    Checking pptx-model v0.1.0 (${WORKSPACE}/upstream/packages/pptx/model)
+    Checking legacy-office-parser v0.1.0 (${WORKSPACE}/upstream/packages/legacy-office/parser)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 8.50s
+
+
+=== library-tests ===
+
+ RUN  v4.1.12 ${WORKSPACE}/upstream
+
+
+ Test Files  11 passed (11)
+      Tests  171 passed (171)
+   Start at  00:49:56
+   Duration  1.68s (transform 9.14s, setup 0ms, import 13.04s, tests 388ms, environment 1ms)
+
+
+
+=== library-typecheck ===
+
+
+=== api-symmetry ===
+DOCX, PPTX, and XLSX viewer API symmetry contract matches.
+
+
+=== frontend-tests ===
+npm notice run ooxml:local
+npm notice run node scripts/local-ooxml.mjs ${WORKSPACE}/upstream test --run
+npm notice run test
+npm notice run vitest --run
+
+ RUN  v5.1.0 ${WORKSPACE}/monoreport/web
+
+
+ Test Files  13 passed (13)
+      Tests  181 passed (181)
+   Start at  00:50:00
+   Duration  19.23s (tests 54%, import 17%, environment 14%, transform 13%, setup 3%)
+
+
+
+=== frontend-typecheck ===
+npm notice run ooxml:local
+npm notice run node scripts/local-ooxml.mjs ${WORKSPACE}/upstream typecheck
+npm notice run typecheck
+npm notice run tsc --noEmit --project ${WORKSPACE}/tmp/monoreport-ooxml-typecheck-oj76z8/tsconfig.json
+
+
+=== frontend-build ===
+npm notice run ooxml:local
+npm notice run node scripts/local-ooxml.mjs ${WORKSPACE}/upstream build
+npm notice run build
+npm notice run webpack --mode production
+assets by info 19.2 MiB [immutable] 105 assets
+assets by path examples/ 209 KiB 14 assets
+assets by path icons/ 86.4 KiB
+  asset icons/icon-512.png 32.7 KiB [emitted]
+  asset icons/favicon.ico 29.3 KiB [emitted]
+  + 5 assets
+assets by path *.png 57.1 KiB
+  asset icon-512.png 32.7 KiB [emitted]
+  asset icon-192.png 10.4 KiB [emitted]
+  + 4 assets
+assets by path notices/ 21 KiB
+  asset notices/ooxml/THIRD_PARTY_NOTICES.md 18.9 KiB [emitted]
+  asset notices/xlsx-viewer.txt 1.08 KiB [emitted]
+  asset notices/ooxml/LICENSE 1.04 KiB [emitted]
++ 5 assets
+orphan modules 22.8 MiB [orphan] 1854 modules
+runtime modules 22.6 KiB 47 modules
+cacheable modules 32.2 MiB (javascript) 3.62 MiB (asset)
+  modules by path ./node_modules/monaco-editor/esm/vs/ 26.4 MiB (javascript) 150 KiB (asset) 705 modules
+  modules by path ../../upstream/packages/xlsx/dist/ 2.13 MiB (javascript) 3.47 MiB (asset) 12 modules
+  modules by path ./node_modules/style-loader/dist/runtime/*.js 5.84 KiB 6 modules
+  modules by path ./node_modules/css-loader/dist/runtime/*.js 2.89 KiB 3 modules
+  modules by path ./node_modules/monaco-editor/esm/external/ 21.3 KiB 3 modules
+  modules by path ./src/ 3.56 MiB 2 modules
+  modules by mime type image/svg+xml 3.17 KiB 2 modules
+  ./node_modules/css-loader/dist/cjs.js!./node_modules/antd/dist/reset.css 3.9 KiB [built] [code generated]
+  ./node_modules/jszip/dist/jszip.min.js 95.5 KiB [built] [code generated]
+  data:image/png;base64,iVBORw0KGgoAAAAN.. 268 bytes [built] [code generated]
+webpack 5.112.2 compiled successfully in 18821 ms
