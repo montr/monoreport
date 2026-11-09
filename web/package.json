@@ -2,17 +2,14 @@
   "name": "monoreport-ui",
   "private": true,
   "type": "module",
-  "engines": {
-    "node": ">=22.15.0"
-  },
   "scripts": {
     "dev": "webpack serve --mode development",
     "test": "vitest",
     "typecheck": "tsc --noEmit",
-    "build": "node ./scripts/check-node-version.mjs && webpack --mode production"
+    "build": "webpack --mode production"
   },
   "dependencies": {
-    "@silurus/ooxml": "0.89.7",
+    "@silurus/ooxml": "0.89.8",
     "antd": "6.7.0",
     "docx-preview": "0.4.1",
     "monaco-editor": "0.57.0",
@@ -20,16 +17,16 @@
     "react-dom": "19.3.1"
   },
   "devDependencies": {
-    "@swc/core": "1.16.21",
+    "@swc/core": "1.16.22",
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.3",
     "@testing-library/user-event": "14.6.8",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
-    "@vitejs/plugin-react": "6.2.1",
+    "@vitejs/plugin-react": "6.3.0",
     "css-loader": "7.1.5",
     "html-webpack-plugin": "5.6.8",
-    "jsdom": "29.1.1",
+    "jsdom": "31.0.0",
     "monaco-editor-webpack-plugin": "7.1.1",
     "style-loader": "4.0.0",
     "swc-loader": "0.2.7",

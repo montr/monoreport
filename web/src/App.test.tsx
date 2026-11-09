@@ -1218,12 +1218,13 @@ describe("MonoReport playground", () => {
       detail: "The whole request exceeds the configured size limit.",
       code: "request.too_large"
     }), { status: 413, headers: { "Content-Type": "application/problem+json" } });
-    const responses = [success(), oversizedProblem];
+    const responses = [success(undefined, xlsxMime), oversizedProblem];
     const { apiMock } = mockPlaygroundFetch(async () => responses.shift()!);
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
-    await screen.findByText("Template preview");
+    await selectTemplate(user, new File([new Uint8Array([80, 75])], "source.xlsx", { type: xlsxMime }));
     await user.click(screen.getByRole("button", { name: "Generate document" }));
-    await screen.findByText("Result preview");
+    await screen.findByText("Result XLSX preview");
+    const previousResult = xlsxSources.at(-1)!;
 
     const largeDataset = JSON.stringify({ Rows: Array.from({ length: 20_000 }, (_, index) => `Sample Name ${index + 1}`) });
     fireEvent.change(screen.getByLabelText("Dataset"), { target: { value: largeDataset } });
@@ -1232,13 +1233,42 @@ describe("MonoReport playground", () => {
     expect(await screen.findByText("request.too_large", { selector: ".issue-heading strong" })).toBeInTheDocument();
     expect(screen.getAllByText("request.too_large", { selector: ".issue-heading strong" })).toHaveLength(1);
     expect(screen.getByLabelText("Dataset")).toHaveValue(largeDataset);
-    expect(screen.getByText("Result preview")).toBeInTheDocument();
+    expect(screen.getByText("Result XLSX preview")).toBeInTheDocument();
+    expect(xlsxSources.at(-1)).toBe(previousResult);
+    expect(screen.getByRole("status")).toHaveTextContent("Error");
     expect(screen.getByRole("radio", { name: "Result" })).toBeChecked();
     expectResultOutdated();
     expect(apiMock).toHaveBeenCalledTimes(2);
     const [url, init] = apiMock.mock.calls[1] as [string, RequestInit];
     expect(url).toBe("/api/documents/render");
     expect(((init.body as FormData).get("data") as string)).toBe(largeDataset);
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
+    await documentCommand(user, "Download");
+    expect(URL.createObjectURL).toHaveBeenCalledWith(previousResult);
+    expect(new Uint8Array(await previousResult.arrayBuffer())).toEqual(new Uint8Array([80, 75, 7, 8]));
+  });
+
+  it("keeps the previous XLSX result when a later successful HTTP response has truncated multipart framing", async () => {
+    const user = userEvent.setup();
+    const responses = [success(undefined, xlsxMime), new Response("--broken", {
+      status: 200,
+      headers: { "Content-Type": "multipart/mixed; boundary=broken" }
+    })];
+    mockPlaygroundFetch(async () => responses.shift()!);
+    render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
+    await selectTemplate(user, new File([new Uint8Array([80, 75])], "source.xlsx", { type: xlsxMime }));
+    await user.click(screen.getByRole("button", { name: "Generate document" }));
+    await screen.findByText("Result XLSX preview");
+    const previousResult = xlsxSources.at(-1)!;
+
+    await user.click(screen.getByRole("button", { name: "Generate document" }));
+
+    expect(await screen.findByText("Unexpected response", { selector: ".issue-heading strong" })).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Error");
+    expect(xlsxSources.at(-1)).toBe(previousResult);
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
+    await documentCommand(user, "Download");
+    expect(URL.createObjectURL).toHaveBeenCalledWith(previousResult);
   });
 
   it("retains XLSX result format and download bytes after switching and closing the template", async () => {

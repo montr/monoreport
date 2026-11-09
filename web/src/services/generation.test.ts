@@ -101,6 +101,34 @@ describe("generation client", () => {
     await expect(generateDocument(template, "{}")).rejects.toMatchObject<Partial<GenerationFailure>>({ diagnostics: [{ title: "Unexpected response", detail: expect.any(String) }] });
   });
 
+  it.each([
+    [JSON.stringify({ title: "Request too large", detail: "The whole request exceeds the configured size limit.", code: "request.too_large" }), "application/problem+json", "request.too_large"],
+    ["", "text/plain", undefined],
+    ["<html>Request Entity Too Large</html>", "text/html", undefined]
+  ])("rejects HTTP 413 before reading document bytes (%s)", async (body, contentType, code) => {
+    const response = new Response(body, { status: 413, headers: { "Content-Type": contentType } });
+    const readBytes = vi.spyOn(response, "arrayBuffer");
+    const readBlob = vi.spyOn(response, "blob");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response));
+
+    await expect(generateDocument(new File([], "template.xlsx"), "{}")).rejects.toMatchObject({
+      diagnostics: [code ? expect.objectContaining({ code }) : { title: "Request failed", detail: "The server returned HTTP 413." }]
+    });
+
+    expect(readBytes).not.toHaveBeenCalled();
+    expect(readBlob).not.toHaveBeenCalled();
+  });
+
+  it("rejects an interrupted successful response body without returning a document", async () => {
+    const response = await success(new Blob(["workbook"]), xlsxMime);
+    vi.spyOn(response, "arrayBuffer").mockRejectedValue(new TypeError("terminated"));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response));
+
+    await expect(generateDocument(new File([], "template.xlsx"), "{}")).rejects.toMatchObject({
+      diagnostics: [{ title: "Unexpected response", detail: expect.any(String) }]
+    });
+  });
+
   it("maps unavailable transport and invalid success responses to useful diagnostics", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("network secret")));
     await expect(generateDocument(new File([new Uint8Array([1])], "template.docx"), "{}")).rejects.toMatchObject<Partial<GenerationFailure>>({

@@ -9,6 +9,7 @@ const monaco = vi.hoisted(() => {
   const editor = {
     getValue: vi.fn(() => '{\n  "value": 1\n}'),
     setValue: vi.fn(),
+    setModel: vi.fn((_model: typeof model): void => undefined),
     updateOptions: vi.fn(),
     getModel: vi.fn(() => model),
     getSelection: vi.fn(() => ({ isEmpty: (): boolean => true })),
@@ -30,7 +31,12 @@ import { MonacoJsonEditor, type JsonEditorCommands } from "./MonacoJsonEditor";
 const text = '{\n  "value": 1\n}';
 
 describe("Monaco JSON editor", () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+    monaco.createModel.mockReturnValue(monaco.model);
+    monaco.editor.getModel.mockReturnValue(monaco.model);
+    monaco.editor.setModel.mockImplementation(model => { monaco.editor.getModel.mockReturnValue(model); });
+  });
 
   it("creates an owned JSON model with detected two-space indentation and preserved editor options", () => {
     render(<MonacoJsonEditor value={'{\n    "value": 1\n}'} onChange={() => undefined} />);
@@ -52,18 +58,24 @@ describe("Monaco JSON editor", () => {
     }));
   });
 
-  it("uses the local editor for value updates and disposes only its owned resources", () => {
+  it("replaces the model from external Dataset content to refresh large-file safeguards and disposes owned resources", () => {
     const onChange = vi.fn();
+    const replacement = { ...monaco.model, dispose: vi.fn() };
     const view = render(<MonacoJsonEditor value={text} onChange={onChange} />);
     monaco.editor.onDidChangeModelContent.mock.calls[0][0]();
     expect(onChange).toHaveBeenCalledWith(text);
+    monaco.createModel.mockReturnValueOnce(replacement);
     view.rerender(<MonacoJsonEditor value="{}" onChange={onChange} />);
-    expect(monaco.editor.setValue).toHaveBeenCalledWith("{}");
+    expect(monaco.createModel).toHaveBeenLastCalledWith("{}", "json");
+    expect(monaco.editor.setModel).toHaveBeenCalledWith(replacement);
+    expect(monaco.model.dispose).toHaveBeenCalledOnce();
+    expect(replacement.dispose).not.toHaveBeenCalled();
     const actionDisposals = monaco.editor.addAction.mock.results.map(result => result.value.dispose);
     view.unmount();
     expect(monaco.subscription.dispose).toHaveBeenCalledOnce();
     expect(monaco.editor.dispose).toHaveBeenCalledOnce();
     expect(monaco.model.dispose).toHaveBeenCalledOnce();
+    expect(replacement.dispose).toHaveBeenCalledOnce();
     actionDisposals.forEach(dispose => expect(dispose).toHaveBeenCalledOnce());
   });
 
@@ -71,11 +83,11 @@ describe("Monaco JSON editor", () => {
     const onChange = vi.fn();
     const view = render(<MonacoJsonEditor datasetId="one" value={text} onChange={onChange} />);
     expect(monaco.editor.setValue).not.toHaveBeenCalled();
-    monaco.editor.setValue.mockImplementation(() => monaco.editor.onDidChangeModelContent.mock.calls[0][0]());
+    monaco.editor.setModel.mockImplementation(() => monaco.editor.onDidChangeModelContent.mock.calls[0][0]());
     view.rerender(<MonacoJsonEditor datasetId="two" value={text} onChange={onChange} />);
     view.rerender(<MonacoJsonEditor datasetId="one" value={text} onChange={onChange} />);
-    expect(monaco.editor.setValue).toHaveBeenCalledTimes(2);
-    expect(monaco.createModel).toHaveBeenCalledOnce();
+    expect(monaco.editor.setModel).toHaveBeenCalledTimes(2);
+    expect(monaco.createModel).toHaveBeenCalledTimes(3);
     expect(onChange).not.toHaveBeenCalled();
   });
 

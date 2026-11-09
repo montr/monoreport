@@ -21,6 +21,13 @@ interface Props {
   stickyScroll?: boolean;
 }
 
+function createJsonModel(value: string) {
+  const model = monaco.editor.createModel(value, "json");
+  model.updateOptions({ tabSize: 2, insertSpaces: true });
+  model.detectIndentation(true, 2);
+  return model;
+}
+
 export function MonacoJsonEditor({ value, datasetId, onChange, ref, wordWrap = false, onWordWrapChange, fileCommands,
   readOnly = false, ariaLabel = "Dataset", minimap = true, stickyScroll = true }: Props) {
   const host = useRef<HTMLDivElement>(null);
@@ -45,9 +52,7 @@ export function MonacoJsonEditor({ value, datasetId, onChange, ref, wordWrap = f
 
   useEffect(() => {
     if (!host.current) return;
-    const model = monaco.editor.createModel(value, "json");
-    model.updateOptions({ tabSize: 2, insertSpaces: true });
-    model.detectIndentation(true, 2);
+    const model = createJsonModel(value);
     const editor = monaco.editor.create(host.current, {
       model,
       theme: "vs",
@@ -107,8 +112,9 @@ export function MonacoJsonEditor({ value, datasetId, onChange, ref, wordWrap = f
       editorRef.current = null;
       subscription.dispose();
       actions.forEach(action => action.dispose());
+      const ownedModel = editor.getModel();
       editor.dispose();
-      model.dispose();
+      ownedModel?.dispose();
     };
   }, []);
 
@@ -116,8 +122,12 @@ export function MonacoJsonEditor({ value, datasetId, onChange, ref, wordWrap = f
     const editor = editorRef.current;
     if (editor && (previousDataset.current !== datasetId || editor.getValue() !== value)) {
       applying.current = true;
-      // setValue flushes the single model's Undo/Redo stacks, even for identical text.
-      try { editor.setValue(value); } finally { applying.current = false; }
+      // Monaco fixes large-file safeguards at model creation; setValue cannot refresh them.
+      const previousModel = editor.getModel();
+      try {
+        editor.setModel(createJsonModel(value));
+        previousModel?.dispose();
+      } finally { applying.current = false; }
     }
     previousDataset.current = datasetId;
   }, [value, datasetId]);
