@@ -5,8 +5,7 @@ import type { Workspace } from "../hooks/useWorkspace";
 
 export function GenerateDatasetDialog({ model }: { model: Workspace["dialogs"]["generateDataset"] }) {
   const { jsonSettingsOpen, pending, submitJsonSettings, invalidateOperation, setJsonSettingsOpen, token,
-    jsonSettings, sampleCandidate, sampleFailure, acceptSample, copySampleJson, settingsChanged, captureSampleValidation,
-    modified } = model;
+    jsonSettings, sampleCandidate, sampleFailure, acceptSample, copySampleJson, settingsChanged, captureSampleValidation } = model;
   async function generateSample() {
     const validationIsCurrent = captureSampleValidation();
     try {
@@ -22,21 +21,7 @@ export function GenerateDatasetDialog({ model }: { model: Workspace["dialogs"]["
       title="Generate Dataset"
       open={jsonSettingsOpen}
       okText={sampleCandidate ? "Replace Dataset" : "Generate sample"}
-      footer={(_, { CancelBtn }) => (
-        <Flex vertical gap="small">
-          <div style={{ minHeight: token.controlHeightSM }}>
-            {sampleCandidate && modified && (
-              <Typography.Text type="warning">Replacing the Dataset will discard unsaved changes.</Typography.Text>
-            )}
-          </div>
-          <Flex justify="end" gap="small">
-            <CancelBtn />
-            {sampleCandidate
-              ? <Button style={{ width: 136 }} type="primary" onClick={acceptSample}>Replace Dataset</Button>
-              : <Button style={{ width: 136 }} type="primary" loading={pending === "generate-json"} onClick={() => void generateSample()}>Generate sample</Button>}
-          </Flex>
-        </Flex>
-      )}
+      okButtonProps={{ loading: pending === "generate-json" }}
       width="min(540px, calc(100vw - 32px))"
       onOk={() => sampleCandidate ? acceptSample() : void generateSample()}
       onCancel={() => {

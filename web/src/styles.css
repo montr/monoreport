@@ -1,11 +1,4 @@
 /* Layout sizing is required for Monaco, native split panels, and document viewer hosts. */
-:root {
-  font-family: Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
-  color: #242831;
-  background: #fff;
-  font-size: 13px;
-}
-
 * {
   box-sizing: border-box;
 }
@@ -20,20 +13,19 @@ html,body,#root,.app {
   flex-direction: column;
   min-width: 320px;
   overflow: hidden;
+  background: var(--ant-color-bg-container);
 }
 
 .app .app-header {
-  min-height: 47px;
   flex: none;
-  border-bottom: 1px solid #e7e9ed;
-  padding: 8px 18px;
+  border-bottom: var(--ant-line-width) var(--ant-line-type) var(--ant-color-border-secondary);
+  padding: var(--ant-padding-xs) var(--ant-padding);
 }
 
 .brand {
-  font-weight: 750;
-  letter-spacing: -.6px;
-  font-size: 18px;
-  color: #262626;
+  font-weight: var(--ant-font-weight-strong);
+  font-size: var(--ant-font-size-heading-4);
+  color: var(--ant-color-text-heading);
 }
 
 .layout {
@@ -52,21 +44,20 @@ html,body,#root,.app {
 }
 
 .preview {
-  background: #f5f6f8;
+  background: var(--ant-color-bg-layout);
 }
 
 .app .pane-header {
   flex: none;
-  min-height: 44px;
-  padding: 6px 12px;
-  border-bottom: 1px solid #e7eaf0;
-  background: #fff;
+  padding: var(--ant-padding-xxs) var(--ant-padding-sm);
+  border-bottom: var(--ant-line-width) var(--ant-line-type) var(--ant-color-border-secondary);
+  background: var(--ant-color-bg-container);
 }
 
 .app > .ant-alert,
 .source > .ant-alert,
 .preview > .ant-alert {
-  margin: 8px 12px 0;
+  margin: var(--ant-margin-xs) var(--ant-margin-sm) 0;
 }
 
 .context-name {
@@ -87,8 +78,8 @@ html,body,#root,.app {
 .sample-preview-editor {
   height: min(48vh, 480px);
   min-height: 180px;
-  border: 1px solid var(--ant-color-border-secondary);
-  border-radius: 4px;
+  border: var(--ant-line-width) var(--ant-line-type) var(--ant-color-border-secondary);
+  border-radius: var(--ant-border-radius-sm);
   overflow: hidden;
 }
 
@@ -96,7 +87,7 @@ html,body,#root,.app {
   flex: 1;
   overflow: auto;
   min-height: 0;
-  padding: 30px 26px;
+  padding: var(--ant-padding-lg);
   display: flex;
   justify-content: safe center;
   align-items: flex-start;
@@ -112,23 +103,23 @@ html,body,#root,.app {
 }
 
 .canvas.drop-target {
-  outline: 2px dashed var(--ant-color-primary);
-  outline-offset: -9px;
+  outline: var(--ant-line-width-bold) dashed var(--ant-color-primary);
+  outline-offset: calc(-1 * var(--ant-padding-xs));
   background: var(--ant-color-fill-quaternary);
 }
 
 .canvas.drop-target:after {
   content: "Drop DOCX or XLSX to select template";
   position: absolute;
-  inset: 18px;
+  inset: var(--ant-padding);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #ffffffed;
-  border-radius: 6px;
+  background: var(--ant-color-bg-container);
+  border-radius: var(--ant-border-radius);
   color: var(--ant-color-text);
-  font-weight: 600;
-  font-size: 14px;
+  font-weight: var(--ant-font-weight-strong);
+  font-size: var(--ant-font-size);
   z-index: 5;
 }
 
@@ -137,7 +128,7 @@ html,body,#root,.app {
   min-width: 0;
   max-width: 100%;
   align-items: center;
-  gap: 7px;
+  gap: var(--ant-margin-xs);
 }
 
 .format-title {
@@ -146,30 +137,28 @@ html,body,#root,.app {
 
 .format-icon {
   flex: none;
-  font-size: 18px;
+  font-size: var(--ant-font-size-lg);
 }
 
 .problems {
   height: 100%;
   overflow: hidden;
-  padding: 0 12px;
+  padding: 0 var(--ant-padding-sm);
 }
 
 .app footer {
-  min-height: 33px;
   flex: none;
-  border-top: 1px solid #e8eaed;
-  padding: 2px 18px 2px 8px;
-  font-size: 11px;
-  background: #fff;
+  border-top: var(--ant-line-width) var(--ant-line-type) var(--ant-color-border-secondary);
+  padding: var(--ant-padding-xxs) var(--ant-padding) var(--ant-padding-xxs) var(--ant-padding-xs);
+  background: var(--ant-color-bg-container);
 }
 
 footer a {
-  color: #707985;
+  color: var(--ant-color-text-secondary);
   text-decoration: none;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--ant-margin-xxs);
 }
 
 footer a:hover {
@@ -178,27 +167,28 @@ footer a:hover {
 
 .project-links {
   display: flex;
-  gap: 8px;
+  gap: var(--ant-margin-xs);
   margin-left: auto;
+  font-size: var(--ant-font-size);
 }
 
 @media(max-width:850px) {
   .canvas {
-    padding: 18px;
+    padding: var(--ant-padding);
   }
 }
 
 @media(max-width:560px) {
   .app .app-header {
-    padding-inline: 10px;
+    padding-inline: var(--ant-padding-xs);
   }
 
   .app .pane-header {
-    padding-inline: 6px;
+    padding-inline: var(--ant-padding-xxs);
   }
 
   .app footer {
-    padding-inline: 8px 10px;
+    padding-inline: var(--ant-padding-xs);
   }
 }
 
@@ -209,10 +199,9 @@ footer a:hover {
 }
 
 .document-preview>div:last-child {
-  background: #fff;
-  box-shadow: 0 3px 18px #14203912;
-  border: 1px solid #e6e8ec;
-  min-height: 530px;
+  background: var(--ant-color-bg-container);
+  box-shadow: var(--ant-box-shadow-tertiary);
+  border: var(--ant-line-width) var(--ant-line-type) var(--ant-color-border-secondary);
 }
 
 .document-preview .docx-wrapper {
@@ -221,43 +210,38 @@ footer a:hover {
   align-items: safe center;
 }
 
-.preview-warning {
-  padding: 9px 12px;
-  margin-bottom: 10px;
-  border: 1px solid #f2d0ce;
-  background: #fff7f6;
-  color: #a13d38;
-  border-radius: 6px;
+.document-preview > .ant-alert {
+  margin-bottom: var(--ant-margin-xs);
 }
 
 .issue {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  padding: 6px 4px;
-  border-bottom: 1px solid #e4e7ed;
+  gap: 6px;
+  padding: var(--ant-padding-xxs);
+  border-bottom: var(--ant-line-width) var(--ant-line-type) var(--ant-color-border-secondary);
 }
 
 .diagnostic-list {
-  padding: 4px;
+  padding: var(--ant-padding-xxs);
 }
 
 .issue>span {
-  color: #99a0aa;
-  font-size: 12px;
+  color: var(--ant-color-text-tertiary);
+  font-size: var(--ant-font-size);
   min-width: 18px;
 }
 
 .issue strong {
-  font-size: 12px;
-  font-weight: 600;
-  color: #454a54;
+  font-size: var(--ant-font-size);
+  font-weight: var(--ant-font-weight-strong);
+  color: var(--ant-color-text);
 }
 
 .issue p {
-  font: 12px/1.5 ui-monospace,Consolas,monospace;
-  color: #767f8c;
-  margin: 2px 0 0;
+  font: var(--ant-font-size)/var(--ant-line-height) var(--ant-font-family-code);
+  color: var(--ant-color-text-secondary);
+  margin: var(--ant-margin-xxs) 0 0;
   overflow-wrap: anywhere;
 }
 
@@ -278,19 +262,10 @@ footer a:hover {
   overflow: hidden;
 }
 
-.xlsx-preview .preview-warning {
+.xlsx-preview > .ant-alert,
+.xlsx-preview > .preview-loading {
   flex: none;
-  margin: 8px;
-}
-
-.xlsx-preview .preview-loading {
-  flex: none;
-  margin: 8px;
-  padding: 9px 12px;
-  border: 1px solid #e4e7ec;
-  background: #f7f8fa;
-  color: #606b78;
-  border-radius: 6px;
+  margin: var(--ant-margin-xs);
 }
 
 .xlsx-preview-host {
@@ -298,7 +273,7 @@ footer a:hover {
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  background: #fff;
+  background: var(--ant-color-bg-container);
 }
 
 .xlsx-preview-session {
@@ -309,43 +284,25 @@ footer a:hover {
 .xlsx-formula-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--ant-margin-xs);
   flex: none;
   min-width: 0;
-  padding: 4px 8px;
-  border-bottom: 1px solid #e4e7ec;
-  background: #f7f8fa;
-  color: #606b78;
+  padding: var(--ant-padding-xxs) var(--ant-padding-xs);
+  border-bottom: var(--ant-line-width) var(--ant-line-type) var(--ant-color-border-secondary);
+  background: var(--ant-color-fill-quaternary);
+  color: var(--ant-color-text-secondary);
 }
 
 .xlsx-cell-address {
   flex: none;
   min-width: 58px;
   font-variant-numeric: tabular-nums;
-  color: #383e47;
+  color: var(--ant-color-text);
 }
 
 .xlsx-formula-label {
   flex: none;
   font-style: italic;
-}
-
-.xlsx-formula-bar textarea {
-  flex: 1;
-  min-width: 0;
-  height: 28px;
-  margin: 0;
-  padding: 4px 6px;
-  border: 1px solid #e4e7ec;
-  border-radius: 4px;
-  background: #fff;
-  color: #242831;
-  font: inherit;
-  line-height: 18px;
-  white-space: pre;
-  resize: none;
-  overflow: auto;
-  user-select: text;
 }
 
 /* Native Space supplies keycap gaps; reset Typography margins to keep those gaps consistent. */
@@ -355,11 +312,6 @@ footer a:hover {
 
 .shortcut .ant-typography kbd {
   margin: 0;
-}
-
-.issue {
-  gap: 6px;
-  padding: 4px 4px;
 }
 
 .issue-icon {
@@ -382,6 +334,6 @@ footer a:hover {
 }
 
 .issue-heading>span {
-  font-size: 12px;
-  color: #454a54;
+  font-size: var(--ant-font-size);
+  color: var(--ant-color-text);
 }

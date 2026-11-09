@@ -1,3 +1,4 @@
+import { Alert } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { renderAsync } from "docx-preview";
 
@@ -28,9 +29,7 @@ export function DocxPreview({ source, label }: Props) {
   return (
     <div className="document-preview">
       {warning && (
-        <div className="preview-warning" role="status">
-          {warning}
-        </div>
+        <Alert type="warning" showIcon role="status" title={warning} />
       )}
       <div
         ref={host}

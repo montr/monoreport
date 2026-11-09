@@ -1,4 +1,4 @@
-import { Button, ConfigProvider, Empty, Flex, Tabs, Tooltip, Typography } from "antd";
+import { Button, ConfigProvider, Empty, Flex, Tabs, Tooltip } from "antd";
 import { CloseCircleFilled, CloseOutlined, CopyOutlined, DeleteOutlined, ExclamationCircleFilled } from "@ant-design/icons";
 import { AnalysisView } from "./AnalysisView";
 import { ProblemsLabel } from "./ProblemsLabel";
@@ -6,7 +6,7 @@ import type { Workspace } from "../hooks/useWorkspace";
 
 export function DiagnosticsPanel({ model }: { model: Workspace["diagnosticsPanel"] }) {
   const { token, diagnosticsTab, setDiagnosticsTab, changeProblemsOpen, errors, setErrors, copyProblems,
-    copyAnalysis, analysis, analysisWireResult } = model;
+    copyAnalysis, analysis } = model;
   function renderProblem(error: typeof errors[number], index: number) {
     const severity = error.severity ?? "Error";
     const Icon = severity === "Warning" ? ExclamationCircleFilled : CloseCircleFilled;
@@ -45,97 +45,27 @@ export function DiagnosticsPanel({ model }: { model: Workspace["diagnosticsPanel
     );
   }
 
-  function getTabItems() {
-    return [
-      {
-        key: "problems",
-        label: <ProblemsLabel count={errors.length} />,
-        children: (
-          <>
-            <Flex
-              role="toolbar"
-              aria-label="Problems actions"
-              align="center"
-              gap={token.paddingXXS}
-              style={{ marginTop: token.paddingXXS, marginBottom: token.marginXXS }}
-            >
-              <Tooltip title="Copy">
-                <Button
-                  size="small"
-                  type="text"
-                  icon={<CopyOutlined />}
-                  aria-label="Copy"
-                  onClick={() => void copyProblems()}
-                />
-              </Tooltip>
-              <Tooltip title="Clear">
-                <Button
-                  size="small"
-                  type="text"
-                  icon={<DeleteOutlined />}
-                  aria-label="Clear"
-                  onClick={() => setErrors([])}
-                />
-              </Tooltip>
-            </Flex>
-            {errors.length
-              ? <div className="diagnostic-list">{errors.map(renderProblem)}</div>
-              : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No problems" />}
-          </>
-        )
-      },
-      {
-        key: "analysis",
-        label: "Analysis",
-        children: (
-          <>
-            <Flex
-              role="toolbar"
-              aria-label="Analysis actions"
-              align="center"
-              gap={token.paddingXXS}
-              style={{ marginTop: token.paddingXXS, marginBottom: token.marginXXS }}
-            >
-              <Tooltip title="Copy">
-                <Button
-                  size="small"
-                  type="text"
-                  icon={<CopyOutlined />}
-                  aria-label="Copy"
-                  onClick={() => void copyAnalysis()}
-                />
-              </Tooltip>
-            </Flex>
-            <AnalysisView analysis={analysis} />
-          </>
-        )
-      }
-    ];
-  }
-
   return (
     <ConfigProvider
       componentSize="small"
       theme={{
-        token: { fontSize: 12, fontSizeSM: 12, fontSizeLG: 12, fontSizeHeading5: 12 },
+        token: { fontSize: token.fontSizeSM, fontSizeSM: token.fontSizeSM, fontSizeHeading5: token.fontSizeSM },
         components: {
-          Button: { contentFontSizeSM: 12 },
           Tabs: {
-            titleFontSizeSM: 12,
             horizontalItemPaddingSM: `${token.paddingXXS}px ${token.paddingSM}px`,
             horizontalItemGutter: token.marginXS,
             horizontalMargin: "0"
           },
           Table: {
-            cellFontSizeSM: 12,
             cellPaddingBlockSM: token.paddingXXS,
             cellPaddingInlineSM: token.paddingXS
           },
+          Tree: { titleHeight: token.controlHeightSM - token.paddingXXS },
           Typography: { titleMarginTop: token.marginXS, titleMarginBottom: token.marginXXS }
         }
       }}
     >
-      <section className="problems" aria-label="Diagnostics" style={{ fontSize: 12 }}>
+      <section className="problems" aria-label="Diagnostics">
         <Tabs
           size="small"
           styles={{
@@ -147,7 +77,32 @@ export function DiagnosticsPanel({ model }: { model: Workspace["diagnosticsPanel
           activeKey={diagnosticsTab}
           onChange={key => setDiagnosticsTab(key as Workspace["diagnosticsPanel"]["diagnosticsTab"])}
           tabBarExtraContent={(
-            <Flex role="toolbar" aria-label="Diagnostics actions" align="center" gap={token.paddingXXS}>
+            <Flex
+              role="toolbar"
+              aria-label={diagnosticsTab === "problems" ? "Problems actions" : "Analysis actions"}
+              align="center"
+              gap={token.paddingXXS}
+            >
+              <Tooltip title="Copy">
+                <Button
+                  size="small"
+                  type="text"
+                  icon={<CopyOutlined />}
+                  aria-label="Copy"
+                  onClick={() => void (diagnosticsTab === "problems" ? copyProblems() : copyAnalysis())}
+                />
+              </Tooltip>
+              {diagnosticsTab === "problems" && (
+                <Tooltip title="Clear">
+                  <Button
+                    size="small"
+                    type="text"
+                    icon={<DeleteOutlined />}
+                    aria-label="Clear"
+                    onClick={() => setErrors([])}
+                  />
+                </Tooltip>
+              )}
               <Tooltip title="Hide diagnostics">
                 <Button
                   size="small"
@@ -159,7 +114,16 @@ export function DiagnosticsPanel({ model }: { model: Workspace["diagnosticsPanel
               </Tooltip>
             </Flex>
           )}
-          items={getTabItems()}
+          items={[
+            {
+              key: "problems",
+              label: <ProblemsLabel count={errors.length} />,
+              children: errors.length
+                ? <div className="diagnostic-list">{errors.map(renderProblem)}</div>
+                : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No problems" />
+            },
+            { key: "analysis", label: "Analysis", children: <AnalysisView analysis={analysis} /> }
+          ]}
         />
       </section>
     </ConfigProvider>

@@ -1,4 +1,4 @@
-import { Alert, ConfigProvider } from "antd";
+import { Alert, App as AntDesignApp, ConfigProvider } from "antd";
 import { WorkspaceLayout } from "./components/WorkspaceLayout";
 import { useWorkspace } from "./hooks/useWorkspace";
 import { KeyboardShortcutsDialog } from "./components/KeyboardShortcutsDialog";
@@ -19,7 +19,7 @@ export default function App() {
       {dialogs.contexts.feedbackContext}
       <KeyboardShortcutsDialog model={dialogs.shortcuts} />
       <GenerateDatasetDialog model={dialogs.generateDataset} />
-      <div className="app">
+      <AntDesignApp className="app">
         <WorkspaceHeader model={workspace.header} />
         {workspace.storageWarning && (
           <Alert type="warning" title={workspace.storageWarning} showIcon />
@@ -35,7 +35,7 @@ export default function App() {
           />
         </main>
         <WorkspaceFooter model={workspace.footer} />
-      </div>
+      </AntDesignApp>
     </ConfigProvider>
   );
 }

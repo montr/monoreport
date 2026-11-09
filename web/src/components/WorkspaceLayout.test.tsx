@@ -45,7 +45,7 @@ describe("workspace layout", () => {
     const setMobile = viewport();
     const view = render(<WorkspaceLayout {...props()} />);
     expect(native.splitters[1].orientation).toBe("horizontal");
-    expect(panel("Editor")).toHaveAttribute("data-size", "45%");
+    expect(panel("Editor")).toHaveAttribute("data-size", "33%");
     act(() => native.splitters[1].onResize([600, 400]));
     act(() => native.splitters[1].onResizeEnd?.([600, 400]));
     expect(localStorage.getItem(desktopKey)).toBe("60");
@@ -63,6 +63,23 @@ describe("workspace layout", () => {
     expect(panel("Editor")).toHaveAttribute("data-size", "60%");
     setMobile(true);
     expect(panel("Editor")).toHaveAttribute("data-size", "35%");
+  });
+
+  it("restores the initial sizes after preferences are cleared and the workspace remounts", () => {
+    const setMobile = viewport();
+    localStorage.setItem(desktopKey, "60");
+    localStorage.setItem(mobileKey, "35");
+    localStorage.setItem(desktopCollapsedKey, "[true,false]");
+    localStorage.setItem(mobileCollapsedKey, "[false,true]");
+    const view = render(<WorkspaceLayout {...props()} />);
+    expect(panel("Editor")).toHaveAttribute("data-size", "0%");
+    localStorage.clear();
+    view.rerender(<WorkspaceLayout key="reset" {...props()} />);
+    expect(panel("Editor")).toHaveAttribute("data-size", "33%");
+    expect(panel("Viewer")).toHaveAttribute("data-size", "67%");
+    setMobile(true);
+    expect(panel("Editor")).toHaveAttribute("data-size", "50%");
+    expect(panel("Viewer")).toHaveAttribute("data-size", "50%");
   });
 
   it("restores valid preferences beyond the former custom panel limits", () => {

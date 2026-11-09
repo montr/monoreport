@@ -21,7 +21,7 @@ describe("DOCX preview boundary", () => {
     renderAsync.mockRejectedValueOnce(new Error("render detail"));
     const source = new Blob([new Uint8Array([1, 2, 3])]);
     render(<DocxPreview source={source} label="Result" />);
-    expect(await screen.findByText("Result preview could not be rendered.")).toBeInTheDocument();
+    expect(await screen.findByRole("status")).toHaveTextContent("Result preview could not be rendered.");
     expect(renderAsync).toHaveBeenCalledWith(source, expect.any(HTMLElement), undefined, expect.any(Object));
   });
 

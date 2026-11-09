@@ -21,11 +21,10 @@ export function WorkspaceFooter({ model }: { model: Workspace["footer"] }) {
     <ConfigProvider
       componentSize="small"
       theme={{
-        token: { fontSize: 12, fontSizeSM: 12, fontSizeLG: 12 },
-        components: { Button: { contentFontSizeSM: 12 } }
+        token: { fontSize: token.fontSizeSM, fontSizeSM: token.fontSizeSM }
       }}
     >
-      <Flex component="footer" align="center" gap="small" wrap style={{ fontSize: 12 }}>
+      <Flex component="footer" align="center" gap="small" wrap>
         <Button
           size="small"
           type="text"

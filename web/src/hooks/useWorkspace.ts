@@ -257,6 +257,13 @@ export function useWorkspace() {
     }
   }
 
+  async function replaceDatasetWithSample() {
+    const sampleIsCurrent = captureSampleValidation();
+    if (!await confirmDiscard(datasetRecord.current, "Replace Dataset?", "Replacing the Dataset will discard unsaved changes.", "Replace")) return;
+    if (!sampleIsCurrent()) return;
+    acceptSample();
+  }
+
   async function copyProblems() {
     try {
       await navigator.clipboard.writeText(JSON.stringify(errors, null, 2));
@@ -364,7 +371,7 @@ export function useWorkspace() {
     dialogs: {
       contexts: { modalContext, feedbackContext },
       shortcuts: { shortcutsOpen, setShortcutsOpen, shortcutGroups },
-      generateDataset: { jsonSettingsOpen, pending, submitJsonSettings, invalidateOperation, setJsonSettingsOpen, captureSampleValidation, token, jsonSettings, sampleCandidate, sampleFailure, acceptSample, modified,
+      generateDataset: { jsonSettingsOpen, pending, submitJsonSettings, invalidateOperation, setJsonSettingsOpen, captureSampleValidation, token, jsonSettings, sampleCandidate, sampleFailure, acceptSample: replaceDatasetWithSample,
         copySampleJson,
         settingsChanged: () => { sampleSettingsRevision.current += 1; invalidateOperation(); } }
     },

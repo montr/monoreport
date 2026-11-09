@@ -1,5 +1,5 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CellAddress, XlsxRangeSelectionContext, XlsxSelectionContext, XlsxSelectionContextCell, XlsxViewerOptions } from "@silurus/ooxml/xlsx";
 import { XlsxPreview } from "./XlsxPreview";
 
@@ -47,7 +47,17 @@ function select(selection: XlsxSelectionContext | null, session = 0) {
 }
 
 describe("XLSX preview boundary", () => {
-  beforeEach(() => { create.mockReset(); load.mockReset().mockResolvedValue(undefined); destroy.mockReset(); });
+  beforeEach(() => {
+    vi.stubGlobal("ResizeObserver", class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    });
+    create.mockReset();
+    load.mockReset().mockResolvedValue(undefined);
+    destroy.mockReset();
+  });
+  afterEach(() => vi.unstubAllGlobals());
 
   it("reports loading followed by a preview failure", async () => {
     const pending = deferred<void>();
@@ -182,7 +192,7 @@ describe("XLSX preview boundary", () => {
   it("shows formatted values verbatim, preserving zero, booleans and multiline text", async () => {
     render(<XlsxPreview source={source()} label="Result" />);
     await waitFor(() => expect(load).toHaveBeenCalledOnce());
-    for (const displayText of ["0", "FALSE", "1,280.00", "<b>Workbook text</b>\nSecond line"]) {
+    for (const displayText of ["0", "FALSE", "1,280.00", "<b>Workbook text</b>\nSecond line", "  Leading\tand  trailing  \n\n  spaces  "]) {
       select(context({ row: 1, col: 1 }, [cell(1, 1, displayText)]));
       expect(screen.getByRole("textbox", { name: "Result formula or value" })).toHaveValue(displayText);
     }

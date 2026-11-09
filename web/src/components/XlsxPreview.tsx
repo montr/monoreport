@@ -1,3 +1,4 @@
+import { Alert, Flex, Input, Spin, Typography } from "antd";
 import { useEffect, useRef, useState } from "react";
 import type { XlsxSelectionContext, XlsxViewer } from "@silurus/ooxml/xlsx";
 
@@ -90,23 +91,30 @@ export function XlsxPreview({ source, label }: Props) {
   return (
     <div className="xlsx-preview">
       {status && (
-        <div
-          className={status.kind === "error" ? "preview-warning" : "preview-loading"}
-          role="status"
-        >
-          {status.message}
-        </div>
+        status.kind === "error"
+          ? <Alert type="warning" showIcon role="status" title={status.message} />
+          : (
+            <Flex align="center" gap="small" role="status" className="preview-loading">
+              <Spin size="small" />
+              <Typography.Text type="secondary">{status.message}</Typography.Text>
+            </Flex>
+          )
       )}
       <div className="xlsx-formula-bar" role="group" aria-label={`${label} formula bar`}>
         <span className="xlsx-cell-address" aria-label={`${label} active cell`}>
           {formulaBar?.address ?? ""}
         </span>
         <span className="xlsx-formula-label" aria-hidden="true">fx</span>
-        <textarea
+        <Input.TextArea
           rows={1}
           readOnly
+          wrap="off"
           aria-label={`${label} formula or value`}
           value={formulaBar?.text ?? ""}
+          styles={{
+            root: { flex: 1, minWidth: 0 },
+            textarea: { whiteSpace: "pre", resize: "none", overflow: "auto" }
+          }}
         />
       </div>
       <div

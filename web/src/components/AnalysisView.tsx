@@ -1,75 +1,55 @@
-import { ConfigProvider, Empty, Flex, Table, theme, Tree, Typography } from "antd";
+import { Empty, Flex, Table, theme, Tree, Typography } from "antd";
 import type { TreeDataNode } from "antd";
 import type { Diagnostic, TemplateAnalysis, TemplateRequirement } from "../types";
 
-function requirementNodes(fields: TemplateRequirement[], colors: { name: string; type: string }, parent = ""): TreeDataNode[] {
+function requirementNodes(fields: TemplateRequirement[], parent = ""): TreeDataNode[] {
   return fields.map((field, index) => ({
     key: `${parent}/${index}`,
     title: (
       <Flex gap={4} align="baseline">
-        <Typography.Text style={{ color: colors.name, fontSize: 12 }}>
-          {field.name}
-        </Typography.Text>
-        <Typography.Text style={{ color: colors.type, fontSize: 12 }}>
-          {field.type}
-        </Typography.Text>
+        <Typography.Text>{field.name}</Typography.Text>
+        <Typography.Text type="secondary">{field.type}</Typography.Text>
       </Flex>
     ),
-    children: field.fields ? requirementNodes(field.fields, colors, `${parent}/${index}`) : undefined
+    children: field.fields ? requirementNodes(field.fields, `${parent}/${index}`) : undefined
   }));
 }
 
 export function AnalysisView({ analysis }: { analysis?: TemplateAnalysis }) {
   const { token } = theme.useToken();
-  const headingStyle = { fontSize: 12, marginTop: token.marginXS, marginBottom: token.marginXXS };
   if (!analysis) return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No analysis" />;
   return (
-    <ConfigProvider
-      componentSize="small"
-      theme={{
-        algorithm: theme.compactAlgorithm,
-        token: { fontSize: 12, fontSizeSM: 12, fontSizeLG: 12, fontSizeHeading5: 12 },
-        components: {
-          Table: {
-            cellFontSizeSM: 12,
-            cellPaddingBlockSM: token.paddingXXS,
-            cellPaddingInlineSM: token.paddingXS
-          },
-          Tree: { titleHeight: token.controlHeightSM - token.paddingXXS },
-          Typography: { titleMarginTop: token.marginXS, titleMarginBottom: token.marginXXS }
-        }
-      }}
-    >
+    <>
       <Flex
         align="center"
         gap="middle"
         wrap
-        style={{ marginTop: token.paddingXS, marginBottom: token.marginSM, fontSize: 12 }}
+        style={{ marginTop: token.paddingXS, marginBottom: token.marginSM }}
       >
-        <Typography.Text style={{ fontSize: 12 }}>
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+        <Typography.Text>
+          <Typography.Text type="secondary">
             Validity{" "}
           </Typography.Text>
           <Typography.Text
             strong
-            style={{ color: analysis.valid ? token.colorSuccess : token.colorError, fontSize: 12 }}
+            style={{ color: analysis.valid ? token.colorSuccess : token.colorError }}
           >
             {analysis.valid ? "Valid" : "Invalid"}
           </Typography.Text>
         </Typography.Text>
-        <Typography.Text style={{ fontSize: 12 }}>
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>Errors{" "}</Typography.Text>
-          <Typography.Text strong style={{ fontSize: 12 }}>{analysis.errors.length}</Typography.Text>
+        <Typography.Text>
+          <Typography.Text type="secondary">Errors{" "}</Typography.Text>
+          <Typography.Text strong>{analysis.errors.length}</Typography.Text>
         </Typography.Text>
-        <Typography.Text style={{ fontSize: 12 }}>
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>Warnings{" "}</Typography.Text>
-          <Typography.Text strong style={{ fontSize: 12 }}>{analysis.warnings.length}</Typography.Text>
+        <Typography.Text>
+          <Typography.Text type="secondary">Warnings{" "}</Typography.Text>
+          <Typography.Text strong>{analysis.warnings.length}</Typography.Text>
         </Typography.Text>
       </Flex>
 
-      <Typography.Title level={5} style={headingStyle}>Requirements</Typography.Title>
-      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-        Requirement types describe JSON structure; formatter hints are advisory and describe value meaning.
+      <Typography.Title level={5}>Requirements</Typography.Title>
+      <Typography.Text type="secondary">
+        Requirement types describe JSON structure; semantic types are advisory and describe value meaning.
       </Typography.Text>
       {analysis.requirements.length
         ? (
@@ -78,15 +58,12 @@ export function AnalysisView({ analysis }: { analysis?: TemplateAnalysis }) {
             defaultExpandAll
             selectable={false}
             styles={{ item: { marginBlockEnd: 0 } }}
-            treeData={requirementNodes(analysis.requirements, {
-              name: token.colorText,
-              type: token.colorTextSecondary
-            })}
+            treeData={requirementNodes(analysis.requirements)}
           />
         )
         : <Typography.Paragraph>No requirements</Typography.Paragraph>}
 
-      <Typography.Title level={5} style={headingStyle}>Occurrences</Typography.Title>
+      <Typography.Title level={5}>Occurrences</Typography.Title>
       <Table
         size="small"
         tableLayout="fixed"
@@ -97,14 +74,14 @@ export function AnalysisView({ analysis }: { analysis?: TemplateAnalysis }) {
           { title: "Kind", dataIndex: "kind", width: 88 },
           { title: "Expression", dataIndex: "expression", width: 240, ellipsis: { showTitle: true } },
           { title: "Path", dataIndex: "path", width: 220, ellipsis: { showTitle: true } },
-          { title: "Formatter hint", dataIndex: "semanticType", width: 120 },
+          { title: "Semantic type", dataIndex: "semanticType", width: 120 },
           { title: "Location", dataIndex: "location" }
         ]}
       />
 
       {(["errors", "warnings"] as const).map(kind => analysis[kind].length > 0 && (
         <div key={kind}>
-          <Typography.Title level={5} style={headingStyle}>
+          <Typography.Title level={5}>
             {kind === "errors" ? "Errors" : "Warnings"}
           </Typography.Title>
           <Table
@@ -114,7 +91,11 @@ export function AnalysisView({ analysis }: { analysis?: TemplateAnalysis }) {
             styles={{ body: { cell: { verticalAlign: "top" } } }}
             dataSource={analysis[kind].map((item: Diagnostic, key) => ({ ...item, key }))}
             columns={[
-              { title: "Title", dataIndex: "title" },
+              {
+                title: "Title",
+                dataIndex: "title",
+                render: (title: string, item: Diagnostic) => title === item.code ? null : title
+              },
               { title: "Detail", dataIndex: "detail" },
               { title: "Code", dataIndex: "code" },
               { title: "Field", dataIndex: "field" },
@@ -130,6 +111,6 @@ export function AnalysisView({ analysis }: { analysis?: TemplateAnalysis }) {
           />
         </div>
       ))}
-    </ConfigProvider>
+    </>
   );
 }

@@ -3,6 +3,7 @@ import { ReactNode, useEffect, useRef, useState } from "react";
 import { workspaceStorage } from "../services/workspacePersistence";
 
 type PanelState = [boolean, boolean];
+const defaultDesktopRatio = 33;
 
 function readRatio(key: string, fallback: number) {
   let value: number;
@@ -34,7 +35,7 @@ interface Props {
 
 export function WorkspaceLayout({ data, document, problems, problemsOpen, onProblemsOpenChange }: Props) {
   const [mobile, setMobile] = useState(() => window.matchMedia("(max-width: 850px)").matches);
-  const [value, setValue] = useState(() => readRatio(mobile ? workspaceStorage.mobile : workspaceStorage.desktop, mobile ? 50 : 45));
+  const [value, setValue] = useState(() => readRatio(mobile ? workspaceStorage.mobile : workspaceStorage.desktop, mobile ? 50 : defaultDesktopRatio));
   const [collapsed, setCollapsed] = useState<PanelState>(() => readCollapsed(mobile ? workspaceStorage.mobileCollapsed : workspaceStorage.desktopCollapsed));
   const [problemsSize, setProblemsSize] = useState(() => readRatio(workspaceStorage.diagnosticsSize, 25));
   const mainCollapsed = useRef<PanelState>(collapsed);
@@ -44,7 +45,7 @@ export function WorkspaceLayout({ data, document, problems, problemsOpen, onProb
     const media = window.matchMedia("(max-width: 850px)");
     const update = () => {
       setMobile(media.matches);
-      setValue(readRatio(media.matches ? workspaceStorage.mobile : workspaceStorage.desktop, media.matches ? 50 : 45));
+      setValue(readRatio(media.matches ? workspaceStorage.mobile : workspaceStorage.desktop, media.matches ? 50 : defaultDesktopRatio));
       const restored = readCollapsed(media.matches ? workspaceStorage.mobileCollapsed : workspaceStorage.desktopCollapsed);
       mainCollapsed.current = restored;
       setCollapsed(restored);
