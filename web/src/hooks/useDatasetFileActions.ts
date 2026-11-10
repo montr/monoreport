@@ -22,6 +22,7 @@ export function useDatasetFileActions({ files, resetRevision, contentRevision, d
   const reopenDataId = useRef<string | undefined>(undefined);
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
+  const saveRevision = useRef(0);
   const dataInput = useRef<HTMLInputElement>(null);
 
   async function openData(file?: File, replaceId?: string, handle?: LocalFileHandle) {
@@ -31,7 +32,7 @@ export function useDatasetFileActions({ files, resetRevision, contentRevision, d
     try {
       const opened = file ? { file, handle } : await files.open("json");
       if (!opened || reset !== resetRevision.current || revision !== contentRevision.current || (replaceId && record?.id !== replaceId)) return;
-      if (record && !record.restoreError && await files.sameFile(record.handle, opened.handle)) return;
+      if (!replaceId && record && !record.restoreError && await files.sameFile(record.handle, opened.handle)) return;
       const text = await files.readJson(opened.file);
       if (reset !== resetRevision.current || revision !== contentRevision.current) return;
       if (!await confirmDiscard(record, "Open dataset?", "Replace the current dataset, discarding unsaved changes?", "Replace")) return;
@@ -54,21 +55,24 @@ export function useDatasetFileActions({ files, resetRevision, contentRevision, d
       downloadBlob(new Blob([snapshot.text], { type: "application/json" }), snapshot.name);
       return;
     }
+    const reset = resetRevision.current;
+    saveRevision.current++;
     savingRef.current = true;
     setSaving(true);
     try {
       const handle = !saveAs && snapshot.handle ? snapshot.handle : await files.destination(snapshot.name);
-      if (await files.sameFile(snapshot.handle, handle) && await files.hasChanged(handle, snapshot.lastModified)) {
+      if (await files.sameFile(snapshot.handle, handle) && await files.hasChanged(handle, snapshot.lastModified, snapshot.baseline)) {
         if (!await modal.confirm({ title: "File changed on disk", content: `${snapshot.name} has been modified outside MonoReport. Overwrite it with this dataset?`, okText: "Overwrite", cancelText: "Cancel" })) return;
       }
+      if (reset !== resetRevision.current || datasetRecord.current.id !== snapshot.id) return;
       const lastModified = await files.write(handle, snapshot.text);
       const current = datasetRecord.current;
-      if (current?.id === snapshot.id) {
+      if (reset === resetRevision.current && current?.id === snapshot.id) {
         setDatasetRecord({ ...current, kind: "file", name: handle.name, handle, baseline: snapshot.text, lastModified });
       }
       void feedback.success("Saved.");
     } catch (error) { fileError(error, "Dataset could not be saved"); }
-    finally { savingRef.current = false; setSaving(false); }
+    finally { saveRevision.current++; savingRef.current = false; setSaving(false); }
   }
 
   async function recoverData(record: Dataset) {
@@ -84,5 +88,5 @@ export function useDatasetFileActions({ files, resetRevision, contentRevision, d
     } catch (error) { if (revision === contentRevision.current) fileError(error, "Dataset could not be reopened"); }
   }
 
-  return { openData, chooseDataFile, saveData, recoverData, saving, savingRef, dataInput, reopenDataId };
+  return { openData, chooseDataFile, saveData, recoverData, saving, savingRef, saveRevision, dataInput, reopenDataId };
 }

@@ -10,6 +10,8 @@ MonoReport generates DOCX and XLSX documents from templates and JSON data — re
 
 **Separate data from presentation.** Templates define the appearance, while JSON provides the content. Reuse templates with different data to generate consistent documents.
 
+**✨ Live Reload — Edit templates, see results instantly.** Edit DOCX and XLSX templates in Microsoft Word or Excel, or update JSON data directly in the Playground or your favorite text editor. MonoReport automatically detects changes, refreshes the preview, and regenerates the result — no re-uploading files or clicking Generate. Just edit, save, and watch the magic happen!
+
 ## Table of Contents
 
 1. [Ways to Use](#ways-to-use)

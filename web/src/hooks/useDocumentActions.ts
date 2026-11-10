@@ -60,8 +60,6 @@ function generatedDatasetFilename(templateName: string) {
 
 interface Props {
   template: File | undefined;
-  datasetId: string | undefined;
-  json: string;
   selectedTemplate: TemplateEntry | undefined;
   currentTemplate: RefObject<File | undefined>;
   contentRevision: RefObject<number>;
@@ -71,9 +69,11 @@ interface Props {
   setActive: Dispatch<SetStateAction<Tab>>;
   addDataset(record: Omit<Dataset, "id">): void;
   onSettingsRevision: RefObject<number>;
+  refreshTemplate(owned: boolean, isCurrent: () => boolean): Promise<void>;
+  reconcileInputs(): Promise<void>;
 }
 
-export function useDocumentActions({ template, datasetId, json, selectedTemplate, currentTemplate, contentRevision, datasetRecord, setErrors, openDiagnostics, setActive, addDataset, onSettingsRevision }: Props) {
+export function useDocumentActions({ template, selectedTemplate, currentTemplate, contentRevision, datasetRecord, setErrors, openDiagnostics, setActive, addDataset, onSettingsRevision, refreshTemplate, reconcileInputs }: Props) {
   const [result, setResult] = useState<GeneratedDocument>();
   const [resultInputs, setResultInputs] = useState<{ datasetId: string | undefined; json: string; template: File; templateSource: "Example file" | "Local file" }>();
   const [analysis, setAnalysis] = useState<TemplateAnalysis>();
@@ -84,6 +84,28 @@ export function useDocumentActions({ template, datasetId, json, selectedTemplate
   const dialogSessionRevision = useRef(0);
   const [jsonSettings] = Form.useForm<SampleJsonSettings>();
   const { operationStatus, setOperationStatus, runningOperation, pending, setPending, operationId, request, startOperation, finishOperation, invalidateOperation } = useDocumentActionLifecycle();
+
+  const automaticOperation = useRef(false);
+  const lastAttempt = useRef<{ revision: number; readFailure?: boolean } | undefined>(undefined);
+
+  function invalidateGeneration() {
+    if (runningOperation.current?.action === "Generate") invalidateSample();
+  }
+
+  function cancelAutomatic() {
+    if (automaticOperation.current && runningOperation.current?.action === "Generate") invalidateSample();
+  }
+
+  function retryAutomatic(readRecovered = false) {
+    if (readRecovered) {
+      if (lastAttempt.current?.readFailure) lastAttempt.current = undefined;
+      return;
+    }
+    if (runningOperation.current?.action === "Generate") return;
+    const data = datasetRecord.current;
+    const matches = result && resultInputs?.template === currentTemplate.current && resultInputs?.datasetId === data.id && resultInputs.json === data.text;
+    lastAttempt.current = matches ? { revision: contentRevision.current } : undefined;
+  }
 
   function setJsonSettingsOpen(open: boolean) {
     dialogSessionRevision.current += 1;
@@ -105,38 +127,57 @@ export function useDocumentActions({ template, datasetId, json, selectedTemplate
       dialogSessionRevision.current === expectedDialogSession;
   }
 
-  async function generate() {
-    if (pending || runningOperation.current || jsonSettingsOpen) return;
+  async function generate(automatic = false) {
+    if (automatic && lastAttempt.current?.revision === contentRevision.current) return "skipped" as const;
+    if (pending || runningOperation.current || jsonSettingsOpen) return "skipped" as const;
     invalidateOperation();
+    automaticOperation.current = automatic;
     startOperation("Generate");
     if (!template) {
       setErrors(diagnostic("Template is required", "Select a DOCX or XLSX file before generating a document.").map(item => ({ ...item, action: "Generate" })));
       finishOperation("error");
       openDiagnostics("problems");
-      return;
+      return "error" as const;
     }
     const operation = operationId.current;
-    const expectedRevision = contentRevision.current;
+    let expectedRevision = contentRevision.current;
+    lastAttempt.current = { revision: expectedRevision, readFailure: true };
     const controller = new AbortController();
     request.current = controller;
     setErrors([]);
     setPending("generate");
     try {
-      const generated = await generateDocument(template, json, controller.signal);
-      if (operationId.current !== operation || contentRevision.current !== expectedRevision) return;
-      setResult({ ...generated, filename: resultFilename(template.name) });
+      await refreshTemplate(true, () => operationId.current === operation);
+      if (operationId.current !== operation) return "obsolete" as const;
+      expectedRevision = contentRevision.current;
+      const source = currentTemplate.current;
+      const data = { ...datasetRecord.current };
+      if (!source) return "obsolete" as const;
+      lastAttempt.current = { revision: expectedRevision };
+      const generated = await generateDocument(source, data.text, controller.signal);
+      await reconcileInputs();
+      if (operationId.current !== operation || contentRevision.current !== expectedRevision) return "obsolete" as const;
+      setResult({ ...generated, filename: resultFilename(source.name) });
       const warnings = (generated.warnings ?? []).map(item => ({ ...item, action: "Generate" as const, severity: "Warning" as const }));
       setErrors(warnings);
-      setResultInputs({ datasetId, json, template, templateSource: selectedTemplate?.exampleId ? "Example file" : "Local file" });
-      setActive("result");
+      setResultInputs({ datasetId: data.id, json: data.text, template: source, templateSource: selectedTemplate?.exampleId ? "Example file" : "Local file" });
+      if (!automatic || !result) setActive("result");
       finishOperation("success");
       if (warnings.length) openDiagnostics("problems");
+      return "success" as const;
     } catch (error) {
-      if (operationId.current !== operation || contentRevision.current !== expectedRevision) return;
-      if (error instanceof DOMException && error.name === "AbortError") { finishOperation("cancelled"); return; }
+      if (operationId.current !== operation || contentRevision.current !== expectedRevision) return "obsolete" as const;
+      try { await reconcileInputs(); } catch { /* Source feedback is owned by the read path. */ }
+      if (operationId.current !== operation || contentRevision.current !== expectedRevision) return "obsolete" as const;
+      if (error instanceof DOMException && error.name === "AbortError") {
+        lastAttempt.current = undefined;
+        finishOperation("cancelled");
+        return "cancelled" as const;
+      }
       setErrors((error instanceof GenerationFailure ? error.diagnostics : diagnostic("Generation failed", "The document could not be generated.")).map(item => ({ ...item, action: "Generate" })));
       finishOperation("error");
       openDiagnostics("problems");
+      return "error" as const;
     } finally {
       if (operationId.current === operation) {
         request.current = undefined;
@@ -238,11 +279,14 @@ export function useDocumentActions({ template, datasetId, json, selectedTemplate
     setJsonSettingsOpen(false);
   }
 
-  function invalidateSample() {
+  function invalidateSample(preserveOperation = false) {
     setSampleCandidate(undefined);
     setSampleFailure(undefined);
     setErrors(current => current.filter(item => item.action !== "Generate Dataset"));
-    invalidateOperation();
+    if (!preserveOperation) {
+      if (runningOperation.current?.action === "Generate") lastAttempt.current = undefined;
+      invalidateOperation();
+    }
   }
 
   function clearAnalysis() {
@@ -251,6 +295,8 @@ export function useDocumentActions({ template, datasetId, json, selectedTemplate
   }
 
   function closeResult() {
+    cancelAutomatic();
+    lastAttempt.current = { revision: contentRevision.current };
     setResult(undefined);
     setResultInputs(undefined);
     if (template) setActive("template");
@@ -272,5 +318,5 @@ export function useDocumentActions({ template, datasetId, json, selectedTemplate
     request.current?.abort();
   }
 
-  return { result, resultInputs, analysis, analysisWireResult, sampleCandidate, sampleFailure, acceptSample, clearAnalysis, closeResult, resetDocumentActions, disposeDocumentActions, jsonSettingsOpen, setJsonSettingsOpen, captureSampleValidation, jsonSettings, operationStatus, pending, invalidateOperation: invalidateSample, generate, analyze, submitJsonSettings };
+  return { invalidateGeneration, cancelAutomatic, retryAutomatic, result, resultInputs, analysis, analysisWireResult, sampleCandidate, sampleFailure, acceptSample, clearAnalysis, closeResult, resetDocumentActions, disposeDocumentActions, jsonSettingsOpen, setJsonSettingsOpen, captureSampleValidation, jsonSettings, operationStatus, pending, invalidateOperation: invalidateSample, generate, analyze, submitJsonSettings };
 }

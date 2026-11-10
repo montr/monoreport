@@ -34,6 +34,10 @@ function workbook(definitions: DefinedName[][] = [[], []]) {
 function makeViewer(_host: HTMLElement, options: XlsxViewerOptions, book: ReturnType<typeof workbook>) {
   const viewer = {
     sheetIndex: 0,
+    getScale: vi.fn(() => 1),
+    setScale: vi.fn(),
+    getViewportOffset: vi.fn(() => ({ x: 0, y: 0 })),
+    setViewportOffset: vi.fn(async (_offset: { x: number; y: number }) => undefined),
     destroy: vi.fn(destroy),
     goToSheet: vi.fn(async (index: number) => {
       viewer.sheetIndex = index;
@@ -50,7 +54,7 @@ function makeViewer(_host: HTMLElement, options: XlsxViewerOptions, book: Return
       options.onSelectionContextChange?.(selected);
     })
   };
-  queueMicrotask(() => options.onSheetChange?.(0, book.sheetNames.length));
+  queueMicrotask(() => { options.onSheetChange?.(0, book.sheetNames.length); options.onReady?.(book.sheetNames); });
   return viewer;
 }
 function sessionViewer(session = 0) { return create.mock.results[session].value as ReturnType<typeof makeViewer>; }
@@ -94,6 +98,49 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("XLSX preview boundary", () => {
+  it.each(["reordered", "hidden", "removed"])("restores same-source sheet by name, scale and offsets after %s sheets", async change => {
+    const first = workbook();
+    const second = workbook();
+    second.sheetNames = change === "removed" ? ["First"] : ["Second", "First"];
+    if (change === "hidden") second.isHidden.mockImplementation((...args: unknown[]) => args[0] === 0);
+    load.mockResolvedValueOnce(first).mockResolvedValueOnce(second);
+    const view = render(<XlsxPreview source={source()} label="Template" sourceId="same" />);
+    await waitFor(() => expect(create).toHaveBeenCalledOnce());
+    const old = sessionViewer();
+    old.sheetIndex = 1;
+    old.getScale.mockReturnValue(1.5);
+    old.getViewportOffset.mockReturnValue({ x: 90, y: 120 });
+    view.rerender(<XlsxPreview source={source()} label="Template" sourceId="same" />);
+    await waitFor(() => expect(create).toHaveBeenCalledTimes(2));
+    const next = sessionViewer(1);
+    await waitFor(() => expect(next.setViewportOffset).toHaveBeenCalledWith({ x: 90, y: 120 }));
+    expect(next.sheetIndex).toBe(change === "hidden" ? 1 : 0);
+    expect(next.setScale).toHaveBeenCalledWith(1.5);
+    expect(old.destroy.mock.invocationCallOrder[0]).toBeLessThan(first.destroy.mock.invocationCallOrder[0]);
+  });
+
+  it("resets view for unrelated sources and ignores late restoration after replacement", async () => {
+    const view = render(<XlsxPreview source={source()} label="Template" sourceId="one" />);
+    await waitFor(() => expect(create).toHaveBeenCalledOnce());
+    sessionViewer().getScale.mockReturnValue(2);
+    view.rerender(<XlsxPreview source={source()} label="Template" sourceId="two" />);
+    await waitFor(() => expect(create).toHaveBeenCalledTimes(2));
+    expect(sessionViewer(1).setScale).not.toHaveBeenCalled();
+    const pending = deferred<void>();
+    sessionViewer(1).sheetIndex = 1;
+    create.mockImplementationOnce((host, opts, book) => {
+      const viewer = makeViewer(host, opts, book);
+      viewer.goToSheet.mockImplementationOnce(() => pending.promise);
+      return viewer;
+    });
+    view.rerender(<XlsxPreview source={source()} label="Template" sourceId="two" />);
+    await waitFor(() => expect(create).toHaveBeenCalledTimes(3));
+    await waitFor(() => expect(sessionViewer(2).goToSheet).toHaveBeenCalled());
+    view.unmount();
+    await act(async () => pending.resolve());
+    expect(sessionViewer(2).setScale).not.toHaveBeenCalled();
+  });
+
   it("reports loading followed by a preview failure", async () => {
     const pending = deferred<ReturnType<typeof workbook>>();
     load.mockReturnValueOnce(pending.promise);

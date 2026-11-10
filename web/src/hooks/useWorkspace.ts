@@ -7,6 +7,7 @@ import { WorkspaceRestorer } from "../services/workspaceRestorer";
 import { useTemplateFileActions } from "./useTemplateFileActions";
 import { useDatasetFileActions } from "./useDatasetFileActions";
 import { useDocumentActions } from "./useDocumentActions";
+import { useLiveReload } from "./useLiveReload";
 import { useWorkspaceShortcuts } from "./useWorkspaceShortcuts";
 import { ExampleCatalog, filenameFromPath, type ExampleDefinition, type ExampleManifest } from "../services/examples";
 import type { Dataset, TemplateEntry, Tab, DiagnosticsTab, ExampleSelection, Problem, Diagnostic } from "../types";
@@ -66,10 +67,35 @@ export function useWorkspace() {
   const exampleLoadId = useRef(0);
   const currentTemplate = useRef<File | undefined>(undefined);
   const currentJson = useRef(json);
-  const { result, resultInputs, analysis, analysisWireResult, sampleCandidate, sampleFailure, acceptSample, clearAnalysis, closeResult, resetDocumentActions, disposeDocumentActions, jsonSettingsOpen, setJsonSettingsOpen, captureSampleValidation, jsonSettings, operationStatus, pending, invalidateOperation, generate, analyze, submitJsonSettings } = useDocumentActions({ template, datasetId, json, selectedTemplate: templateEntry, currentTemplate, contentRevision, datasetRecord, setErrors, openDiagnostics, setActive, addDataset, onSettingsRevision: sampleSettingsRevision });
+  const { result, resultInputs, analysis, analysisWireResult, sampleCandidate, sampleFailure, acceptSample, clearAnalysis, closeResult, resetDocumentActions, disposeDocumentActions, jsonSettingsOpen, setJsonSettingsOpen, captureSampleValidation, jsonSettings, operationStatus, pending, invalidateOperation, invalidateGeneration, cancelAutomatic, retryAutomatic, generate, analyze, submitJsonSettings } = useDocumentActions({ template, selectedTemplate: templateEntry, currentTemplate, contentRevision, datasetRecord, setErrors, openDiagnostics, setActive, addDataset, onSettingsRevision: sampleSettingsRevision, refreshTemplate: (owned, isCurrent) => liveReload.refreshTemplate(owned, isCurrent), reconcileInputs: () => liveReload.reconcileInputs() });
   generateAction.current = () => void generate();
-  const { openData, chooseDataFile, saveData, recoverData, saving, savingRef, dataInput, reopenDataId } = useDatasetFileActions({ files, resetRevision, contentRevision, datasetRecord, confirmDiscard, addDataset, setDatasetRecord, setErrors, fileError, downloadBlob, modal, feedback });
-  const { openTemplate, recoverTemplate, acceptTemplate, selected, drop, clearTemplate, dragging, setDragging, fileInput, reopenTemplateId } = useTemplateFileActions({ files, resetRevision, contentRevision, templateRecord, nextId, selectTemplateEntry, setErrors, fileError, openDiagnostics });
+  const { openData, chooseDataFile, saveData, recoverData, saving, savingRef, saveRevision, dataInput, reopenDataId } = useDatasetFileActions({ files, resetRevision, contentRevision, datasetRecord, confirmDiscard, addDataset, setDatasetRecord, setErrors, fileError, downloadBlob, modal, feedback });
+  const { openTemplate, recoverTemplate, acceptTemplate, selected, drop, clearTemplate, dragging, setDragging, fileInput, reopenTemplateId } = useTemplateFileActions({
+    files, resetRevision, contentRevision, templateRecord, nextId, selectTemplateEntry, setErrors, fileError, openDiagnostics,
+    retainTemplateHandle: (entry, handle) => {
+      if (templateRecord.current !== entry) return;
+      const updated = { ...entry, handle };
+      templateRecord.current = updated;
+      setTemplateEntry(updated);
+    }
+  });
+  const liveReload = useLiveReload({
+    files, template: templateEntry, templateRecord, dataset, datasetRecord, saving, savingRef, saveRevision, contentRevision, generate, cancelAutomatic, invalidateGeneration, retryAutomatic,
+    busy: Boolean(pending) || saving || clearing || exampleLoading || jsonSettingsOpen,
+    applyDataset: data => {
+      if (data.text !== datasetRecord.current.text) commitContent();
+      setDatasetRecord(data);
+    },
+    applyTemplate: (file, owned) => {
+      if (!templateRecord.current) return;
+      commitContent(owned);
+      const entry = { ...templateRecord.current, file, restoreError: undefined, needsPermission: undefined };
+      clearAnalysis();
+      templateRecord.current = entry;
+      currentTemplate.current = file;
+      setTemplateEntry(entry);
+    }
+  });
 
   function changeWordWrap(value: boolean) {
     setWordWrap(value);
@@ -177,12 +203,12 @@ export function useWorkspace() {
 
   useWorkspaceShortcuts({ generateAction, jsonSettingsOpen, shortcutsOpen, problemsOpen, saveData, changeProblemsOpen, setShortcutsOpen });
 
-  function commitContent() {
+  function commitContent(owned = false) {
     contentRevision.current += 1;
     exampleLoadId.current += 1;
     setPendingExample(undefined);
     setExampleLoading(false);
-    invalidateOperation();
+    invalidateOperation(owned);
   }
 
   async function loadExample(example: ExampleDefinition, loadId = ++exampleLoadId.current, expectedRevision = contentRevision.current) {
@@ -296,6 +322,7 @@ export function useWorkspace() {
           throw new Error("The workspace changed while confirmation was open.");
         }
         setClearing(true);
+        liveReload.setLiveReloadEnabled(false);
         setPersistenceReady(false);
         resetRevision.current += 1;
         commitContent();
@@ -376,9 +403,9 @@ export function useWorkspace() {
         settingsChanged: () => { sampleSettingsRevision.current += 1; invalidateOperation(); } }
     },
     layout: { workspaceKey, problemsOpen, onProblemsOpenChange: changeProblemsOpen },
-    header: { examples, pendingExample, selectedExample, chooseExample, generateShortcut, token, pending, dataset, selectedTemplate: templateEntry, generate, template, analyze, setJsonSettingsOpen, isMac, setShortcutsOpen, saving, clearing, clearLocalData },
-    datasetPanel: { dataset, modified, token, recoverData, editor, json, changeJson, wordWrap, changeWordWrap, chooseDataFile, editorAvailable, saveData, openLabel, commandKey, saveAsShortcut, formatShortcut, saving, formatJson, copyJson, dataInput, reopenDataId, openData },
-    documentPanel: { active, setActive, result, selectedTemplate: templateEntry, resultInputs, pending, exampleLoading, resultCurrent, dragging, setDragging, recoverTemplate, drop, files, openTemplate, openLabel, acceptTemplate, template, downloadBlob, clearTemplate, closeResult, fileInput, selected },
+    header: { examples, pendingExample, selectedExample, chooseExample, generateShortcut, token, pending, dataset, selectedTemplate: templateEntry, generate, template, analyze, setJsonSettingsOpen, isMac, setShortcutsOpen, saving, clearing, clearLocalData, ...liveReload },
+    datasetPanel: { liveReloadEnabled: liveReload.liveReloadEnabled, sourceStatus: liveReload.datasetStatus, dataset, modified, token, recoverData, editor, json, changeJson, wordWrap, changeWordWrap, chooseDataFile, editorAvailable, saveData, openLabel, commandKey, saveAsShortcut, formatShortcut, saving, formatJson, copyJson, dataInput, reopenDataId, openData },
+    documentPanel: { liveReloadEnabled: liveReload.liveReloadEnabled, sourceStatus: liveReload.templateStatus, active, setActive, result, selectedTemplate: templateEntry, resultInputs, pending, exampleLoading, resultCurrent, dragging, setDragging, recoverTemplate, drop, files, openTemplate, openLabel, acceptTemplate, template, downloadBlob, clearTemplate, closeResult, fileInput, selected },
     diagnosticsPanel: { token, diagnosticsTab, setDiagnosticsTab, changeProblemsOpen, errors, setErrors, copyProblems, analysis, analysisWireResult,
       copyAnalysis: async () => { try { await navigator.clipboard.writeText(JSON.stringify(analysisWireResult ?? {}, null, 2)); void feedback.success("Analysis results copied to clipboard."); } catch { void feedback.error("The analysis results could not be copied to the clipboard."); } } },
     footer: { token, operationStatus, errors, openDiagnostics, problemsOpen, diagnosticsTab }

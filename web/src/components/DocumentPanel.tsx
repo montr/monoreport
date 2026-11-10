@@ -9,7 +9,7 @@ import { PanelFilename } from "./PanelFilename";
 import type { Workspace } from "../hooks/useWorkspace";
 
 export function DocumentPanel({ model }: { model: Workspace["documentPanel"] }) {
-  const { active, setActive, result, selectedTemplate, resultInputs, pending, exampleLoading, resultCurrent, dragging, setDragging, recoverTemplate, drop, files, openTemplate, openLabel, acceptTemplate, template, downloadBlob, clearTemplate, closeResult, fileInput, selected } = model;
+  const { liveReloadEnabled, sourceStatus, active, setActive, result, selectedTemplate, resultInputs, pending, exampleLoading, resultCurrent, dragging, setDragging, recoverTemplate, drop, files, openTemplate, openLabel, acceptTemplate, template, downloadBlob, clearTemplate, closeResult, fileInput, selected } = model;
   const source = active === "result" ? result?.blob : template;
   const format = active === "result" ? result?.format : template && templateFormat(template.name);
   const label = active === "result" ? "Result" : "Template";
@@ -73,6 +73,11 @@ export function DocumentPanel({ model }: { model: Workspace["documentPanel"] }) 
                 : "Local file"}
           />
         </Flex>
+        {liveReloadEnabled && selectedTemplate && (
+          <Tag role="note" aria-label="Template Live Reload" color={sourceStatus?.error ? "warning" : undefined}>
+            {sourceStatus?.error ? "Template unavailable" : !selectedTemplate.handle ? "Template snapshot" : sourceStatus ? "Template monitored" : "Reading Template…"}
+          </Tag>
+        )}
         {(pending || exampleLoading) && (
           <Spin
             size="small"
@@ -110,10 +115,10 @@ export function DocumentPanel({ model }: { model: Workspace["documentPanel"] }) 
           />
         </Dropdown>
       </Flex>
-      {selectedTemplate?.restoreError && (
+      {selectedTemplate && (selectedTemplate.restoreError || sourceStatus?.error) && (
         <Alert
           type="warning"
-          title={`${selectedTemplate.name}: ${selectedTemplate.restoreError}`}
+          title={`${selectedTemplate.name}: ${selectedTemplate.restoreError ?? sourceStatus?.error}`}
           action={(
             <Button size="small" onClick={() => void recoverTemplate(selectedTemplate)}>
               {selectedTemplate.needsPermission && selectedTemplate.handle?.requestPermission
@@ -132,12 +137,15 @@ export function DocumentPanel({ model }: { model: Workspace["documentPanel"] }) 
         onDragLeave={event => {
           if (!event.currentTarget.contains(event.relatedTarget as Node)) setDragging(false);
         }}
-        onDrop={drop}
+        onDropCapture={event => {
+          event.stopPropagation();
+          drop(event);
+        }}
       >
         {source
           ? format === "xlsx"
-            ? <XlsxPreview source={source} label={label} />
-            : <DocxPreview source={source} label={label} />
+            ? <XlsxPreview source={source} label={label} sourceId={active === "template" ? selectedTemplate?.id : "result"} />
+            : <DocxPreview source={source} label={label} sourceId={active === "template" ? selectedTemplate?.id : "result"} />
           : active === "result"
             ? <Empty description="Not generated" />
             : files.canOpen

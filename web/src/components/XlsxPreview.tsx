@@ -4,10 +4,11 @@ import { useXlsxPreview } from "../hooks/useXlsxPreview";
 interface Props {
   source: Blob | File;
   label: string;
+  sourceId?: string;
 }
 
-export function XlsxPreview({ source, label }: Props) {
-  const { host, status, formulaBar, namedRanges, navigateToName } = useXlsxPreview(source, label);
+export function XlsxPreview({ source, label, sourceId }: Props) {
+  const { host, status, formulaBar, namedRanges, navigateToName } = useXlsxPreview(source, label, sourceId);
 
   return (
     <div className="xlsx-preview">

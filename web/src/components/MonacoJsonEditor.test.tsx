@@ -9,6 +9,8 @@ const monaco = vi.hoisted(() => {
   const editor = {
     getValue: vi.fn(() => '{\n  "value": 1\n}'),
     setValue: vi.fn(),
+    saveViewState: vi.fn(() => ({ cursorState: [], viewState: { scrollTop: 80 } })),
+    restoreViewState: vi.fn(),
     setModel: vi.fn((_model: typeof model): void => undefined),
     updateOptions: vi.fn(),
     getModel: vi.fn(() => model),
@@ -77,6 +79,15 @@ describe("Monaco JSON editor", () => {
     expect(monaco.model.dispose).toHaveBeenCalledOnce();
     expect(replacement.dispose).toHaveBeenCalledOnce();
     actionDisposals.forEach(dispose => expect(dispose).toHaveBeenCalledOnce());
+  });
+
+  it("restores cursor/scroll only for external content in the same Dataset", () => {
+    const view = render(<MonacoJsonEditor datasetId="same" value={text} onChange={() => undefined} />);
+    view.rerender(<MonacoJsonEditor datasetId="same" value="{}" onChange={() => undefined} />);
+    expect(monaco.editor.restoreViewState).toHaveBeenCalledWith(monaco.editor.saveViewState.mock.results[0].value);
+    monaco.editor.restoreViewState.mockClear();
+    view.rerender(<MonacoJsonEditor datasetId="other" value="{}" onChange={() => undefined} />);
+    expect(monaco.editor.restoreViewState).not.toHaveBeenCalled();
   });
 
   it("flushes history on every dataset identity change even for identical text and suppresses change echoes", () => {

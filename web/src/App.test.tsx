@@ -84,6 +84,12 @@ async function selectTemplate(user: ReturnType<typeof userEvent.setup>, file = t
   await user.upload(document.querySelector('input[type="file"][accept*=".docx"]') as HTMLInputElement, file);
 }
 
+async function expectTemplateBytes(value: unknown, expected: File) {
+  expect(value).toBeInstanceOf(File);
+  expect((value as File).name).toBe(expected.name);
+  expect(new Uint8Array(await (value as File).arrayBuffer())).toEqual(new Uint8Array(await expected.arrayBuffer()));
+}
+
 function selectedExample() {
   return document.querySelector(".source .context-name");
 }
@@ -184,6 +190,8 @@ describe("MonoReport playground", () => {
     vi.stubGlobal("isSecureContext", false);
     vi.stubGlobal("showOpenFilePicker", undefined);
     vi.stubGlobal("showSaveFilePicker", undefined);
+    vi.stubGlobal("showDirectoryPicker", undefined);
+    vi.stubGlobal("FileSystemObserver", undefined);
     class TestResizeObserver {
       observe() {}
       unobserve() {}
@@ -194,6 +202,272 @@ describe("MonoReport playground", () => {
     xlsxSources.length = 0;
     previewTestState.failResultPreview = false;
     mockPlaygroundFetch();
+  });
+
+  it("uses stable Preview and fresh Generate bytes after a native Template is replaced with Live Reload off", async () => {
+    const source = localHandle("current.docx", "before");
+    nativeFiles([source.handle]);
+    const { apiMock } = mockPlaygroundFetch(async () => success());
+    const user = userEvent.setup();
+    render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
+    await screen.findByText("Template preview");
+    await documentCommand(user, "Open…");
+    await screen.findByText("current.docx");
+    const accepted = previewSources.at(-1)!;
+    vi.spyOn(source.file, "arrayBuffer").mockRejectedValue(new DOMException("Changed", "NotReadableError"));
+    expect(await accepted.text()).toBe("before");
+    vi.mocked(source.handle.getFile).mockResolvedValue(new File(["after"], source.file.name));
+    await user.click(screen.getByRole("button", { name: "Generate document" }));
+    await waitFor(() => expect(apiMock).toHaveBeenCalledOnce());
+    const body = apiMock.mock.calls[0][1]!.body as FormData;
+    expect(await (body.get("template") as File).text()).toBe("after");
+    await screen.findByText("Result preview");
+    vi.mocked(source.handle.getFile).mockRejectedValue(new DOMException("Gone", "NotReadableError"));
+    await user.click(screen.getByRole("button", { name: "Generate document" }));
+    await screen.findByText("Generation failed", { exact: true });
+    expect(apiMock).toHaveBeenCalledOnce();
+    expect(screen.getByText("Result preview")).toBeInTheDocument();
+  });
+
+  it("debounces editor Live Reload, pauses invalid JSON and avoids retrying an unchanged server failure", async () => {
+    const { apiMock } = mockPlaygroundFetch(async () => success());
+    const user = userEvent.setup();
+    render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
+    await screen.findByText("Template preview");
+    await user.click(screen.getByRole("button", { name: "Generate actions" }));
+    await user.click(await screen.findByRole("menuitemcheckbox", { name: "Live Reload" }));
+    await waitFor(() => expect(apiMock).toHaveBeenCalledOnce());
+    fireEvent.change(screen.getByRole("textbox", { name: "Dataset" }), { target: { value: "{" } });
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 600)); });
+    expect(apiMock).toHaveBeenCalledOnce();
+    apiMock.mockRejectedValue(new Error("Offline"));
+    fireEvent.change(screen.getByRole("textbox", { name: "Dataset" }), { target: { value: '{"new":true}' } });
+    await waitFor(() => expect(apiMock).toHaveBeenCalledTimes(2));
+    await screen.findByText("Server unavailable", { exact: true });
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 650)); });
+    expect(apiMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("obsoletes Generate preparation when editor inputs change during a fresh native read", async () => {
+    const source = localHandle("preparation.docx", "before");
+    nativeFiles([source.handle]);
+    const { apiMock } = mockPlaygroundFetch(async () => success());
+    const user = userEvent.setup();
+    render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
+    await screen.findByText("Template preview");
+    await documentCommand(user, "Open…");
+    await screen.findByText("preparation.docx");
+    let finish!: (file: File) => void;
+    vi.mocked(source.handle.getFile).mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    await user.click(screen.getByRole("button", { name: "Generate document" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Dataset" }), { target: { value: '{"edit":true}' } });
+    await act(async () => { finish(new File(["after"], source.file.name)); });
+    expect(apiMock).not.toHaveBeenCalled();
+    expect(screen.getByRole("status")).toHaveTextContent("Cancelled");
+  });
+
+  it.each(["docx", "xlsx"])("polls production %s handles from Open and Drop through current multipart inputs without no-op generation", async format => {
+    const intervals = vi.spyOn(window, "setInterval");
+    const user = userEvent.setup();
+    const initial = localHandle(`production.${format}`, "one");
+    nativeFiles([initial.handle]);
+    const { apiMock } = mockPlaygroundFetch(async () => success(undefined, format === "xlsx" ? xlsxMime : mime));
+    render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
+    await screen.findByText("Template preview");
+    let expectedRequests = 0;
+    for (const origin of ["Open", "Drop"]) {
+      await user.click(screen.getByRole("radio", { name: "Template" }).closest("label")!);
+      const native = origin === "Open" ? initial.handle : { ...localHandle(`dropped.${format}`, "one").handle, kind: "file" as const };
+      if (origin === "Open") await documentCommand(user, "Open…");
+      else await act(async () => { fireEvent.drop(screen.getByLabelText("Preview").querySelector(".canvas")!, {
+        dataTransfer: { files: [new File(["one"], native.name)], types: ["Files"], items: [{ kind: "file", getAsFileSystemHandle: () => Promise.resolve(native) }] }
+      }); });
+      await screen.findByText(native.name);
+      await user.click(screen.getByRole("button", { name: "Generate actions" }));
+      await user.click(await screen.findByRole("menuitemcheckbox", { name: "Live Reload" }));
+      expectedRequests++;
+      await waitFor(() => expect(apiMock).toHaveBeenCalledTimes(expectedRequests));
+      const poll = intervals.mock.calls.filter(call => call[1] === 1000).at(-1)![0] as () => void;
+      vi.mocked(native.getFile).mockResolvedValue(new File(["two"], native.name, { lastModified: 42 }));
+      act(() => poll());
+      expectedRequests++;
+      await waitFor(() => expect(apiMock).toHaveBeenCalledTimes(expectedRequests));
+      expect(await ((apiMock.mock.calls.at(-1)![1]!.body as FormData).get("template") as File).text()).toBe("two");
+      await user.click(screen.getByRole("radio", { name: "Template" }).closest("label")!);
+      expect(await (format === "xlsx" ? xlsxSources : previewSources).at(-1)!.text()).toBe("two");
+      act(() => poll());
+      await act(async () => { await new Promise(resolve => setTimeout(resolve, 600)); });
+      expect(apiMock).toHaveBeenCalledTimes(expectedRequests);
+      await user.click(screen.getByRole("button", { name: "Generate actions" }));
+      await user.click(await screen.findByRole("menuitemcheckbox", { name: "Live Reload" }));
+    }
+  });
+
+  it("keeps long Generate ownership across unchanged polls and rejects a response after a confirmed Template change", async () => {
+    const intervals = vi.spyOn(window, "setInterval");
+    const source = localHandle("long.docx", "one");
+    nativeFiles([source.handle]);
+    let finish!: (response: Response) => void;
+    const { apiMock } = mockPlaygroundFetch(() => new Promise(resolve => { finish = resolve; }));
+    const user = userEvent.setup();
+    render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
+    await screen.findByText("Template preview");
+    await documentCommand(user, "Open…");
+    await screen.findByText("long.docx");
+    await user.click(screen.getByRole("button", { name: "Generate document" }));
+    await waitFor(() => expect(apiMock).toHaveBeenCalledOnce());
+    const signal = apiMock.mock.calls[0][1]!.signal!;
+    await user.click(screen.getByRole("button", { name: "Generate actions" }));
+    await user.click(await screen.findByRole("menuitemcheckbox", { name: "Live Reload" }));
+    const poll = intervals.mock.calls.find(call => call[1] === 1000)![0] as () => void;
+    await act(async () => { poll(); });
+    expect(signal.aborted).toBe(false);
+    vi.mocked(source.handle.getFile).mockResolvedValue(new File(["two"], source.file.name));
+    await act(async () => { poll(); });
+    expect(signal.aborted).toBe(true);
+    await act(async () => finish(success()));
+    expect(screen.queryByText("Result preview")).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Cancelled");
+  });
+
+  it("polls external JSON while dirty and confirms equal-metadata divergence before Save", async () => {
+    const intervals = vi.spyOn(window, "setInterval");
+    const source = localHandle("external.json", '{"v":1}');
+    nativeFiles([source.handle]);
+    vi.stubGlobal("showSaveFilePicker", vi.fn());
+    mockPlaygroundFetch(async () => success());
+    const user = userEvent.setup();
+    render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
+    await screen.findByText("Template preview");
+    await dataCommand(user, /^Open…/);
+    await waitFor(() => expect(screen.getByLabelText("Dataset")).toHaveValue('{"v":1}'));
+    await user.click(screen.getByRole("button", { name: "Generate actions" }));
+    await user.click(await screen.findByRole("menuitemcheckbox", { name: "Live Reload" }));
+    const poll = intervals.mock.calls.find(call => call[1] === 1000)![0] as () => void;
+    vi.mocked(source.handle.getFile).mockResolvedValue(new File(['{"v":2}'], source.file.name, { lastModified: source.file.lastModified }));
+    await act(async () => { poll(); });
+    await waitFor(() => expect(screen.getByLabelText("Dataset")).toHaveValue('{"v":2}'));
+    fireEvent.change(screen.getByLabelText("Dataset"), { target: { value: '{"v":3}' } });
+    vi.mocked(source.handle.getFile).mockResolvedValue(new File(['{"v":4}'], source.file.name, { lastModified: source.file.lastModified }));
+    await act(async () => { poll(); });
+    expect(screen.getByLabelText("Dataset")).toHaveValue('{"v":3}');
+    expect(screen.getByLabelText("Dataset modified")).toHaveTextContent("Disk differs");
+    await dataCommand(user, /^Save(?! As)/);
+    const confirmation = await screen.findByRole("dialog", { name: "File changed on disk" });
+    await user.click(within(confirmation).getByRole("button", { name: "Cancel" }));
+    expect(source.writable.write).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Dataset")).toHaveValue('{"v":3}');
+  });
+
+  it("reports Template monitoring only after a successful sample and removes the claim on read failure", async () => {
+    const intervals = vi.spyOn(window, "setInterval");
+    const source = localHandle("status.docx", "one");
+    nativeFiles([source.handle]);
+    mockPlaygroundFetch(async () => success());
+    const user = userEvent.setup();
+    render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
+    await screen.findByText("Template preview");
+    await documentCommand(user, "Open…");
+    await screen.findByText("status.docx");
+    let finish!: (file: File) => void;
+    vi.mocked(source.handle.getFile).mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    await user.click(screen.getByRole("button", { name: "Generate actions" }));
+    await user.click(await screen.findByRole("menuitemcheckbox", { name: "Live Reload" }));
+    expect(screen.getByLabelText("Template Live Reload")).toHaveTextContent("Reading Template");
+    await act(async () => finish(source.file));
+    expect(screen.getByLabelText("Template Live Reload")).toHaveTextContent("Template monitored");
+    const poll = intervals.mock.calls.find(call => call[1] === 1000)![0] as () => void;
+    vi.mocked(source.handle.getFile).mockRejectedValueOnce(new DOMException("Busy", "NotReadableError"));
+    await act(async () => { poll(); });
+    expect(screen.getByLabelText("Template Live Reload")).toHaveTextContent("Template unavailable");
+    expect(screen.getByRole("button", { name: "Reopen…" })).toBeInTheDocument();
+    await act(async () => { poll(); });
+    expect(screen.getByLabelText("Template Live Reload")).toHaveTextContent("Template monitored");
+    expect(screen.queryByRole("button", { name: "Reopen…" })).not.toBeInTheDocument();
+  });
+
+  it("disables automatic work without cancelling a subsequent explicit Analyze", async () => {
+    let finish!: (response: Response) => void;
+    const { apiMock } = mockPlaygroundFetch(async input => String(input).endsWith("/analyze") ? new Promise(resolve => { finish = resolve; }) : success());
+    const user = userEvent.setup();
+    render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
+    await screen.findByText("Template preview");
+    await user.click(screen.getByRole("button", { name: "Generate actions" }));
+    await user.click(await screen.findByRole("menuitemcheckbox", { name: "Live Reload" }));
+    await screen.findByText("Result preview");
+    await analyzeTemplate(user);
+    await waitFor(() => expect(apiMock).toHaveBeenCalledTimes(2));
+    const signal = apiMock.mock.calls[1][1]!.signal!;
+    await user.click(screen.getByRole("button", { name: "Generate actions" }));
+    await user.click(await screen.findByRole("menuitemcheckbox", { name: "Live Reload" }));
+    expect(signal.aborted).toBe(false);
+    await act(async () => finish(analysis()));
+    expect(screen.getByRole("status")).toHaveTextContent("Success");
+  });
+
+  it.each(["success", "failure"])("reconciles pending file reads before publishing Generate %s or diagnostics", async outcome => {
+    const intervals = vi.spyOn(window, "setInterval");
+    const source = localHandle("publication.docx", "one");
+    nativeFiles([source.handle]);
+    let finish!: (response: Response) => void;
+    let fail!: (error: Error) => void;
+    const { apiMock } = mockPlaygroundFetch(() => new Promise((resolve, reject) => { finish = resolve; fail = reject; }));
+    const user = userEvent.setup();
+    render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
+    await screen.findByText("Template preview");
+    await documentCommand(user, "Open…");
+    await screen.findByText("publication.docx");
+    await user.click(screen.getByRole("button", { name: "Generate document" }));
+    await waitFor(() => expect(apiMock).toHaveBeenCalledOnce());
+    await user.click(screen.getByRole("button", { name: "Generate actions" }));
+    await user.click(await screen.findByRole("menuitemcheckbox", { name: "Live Reload" }));
+    let finishRead!: (file: File) => void;
+    vi.mocked(source.handle.getFile).mockImplementationOnce(() => new Promise(resolve => { finishRead = resolve; }));
+    const poll = intervals.mock.calls.find(call => call[1] === 1000)![0] as () => void;
+    await act(async () => { poll(); });
+    await act(async () => { if (outcome === "success") finish(success()); else fail(new Error("Obsolete failure")); });
+    expect(screen.queryByText("Result preview")).not.toBeInTheDocument();
+    expect(screen.queryByText("Server unavailable", { exact: true })).not.toBeInTheDocument();
+    await act(async () => finishRead(new File(["two"], source.file.name)));
+    expect(screen.queryByText("Result preview")).not.toBeInTheDocument();
+    expect(screen.queryByText("Server unavailable", { exact: true })).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Cancelled");
+  });
+
+  it("enables Live Reload without regenerating a matching successful Result", async () => {
+    const { apiMock } = mockPlaygroundFetch(async () => success());
+    const user = userEvent.setup();
+    render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
+    await screen.findByText("Template preview");
+    await user.click(screen.getByRole("button", { name: "Generate document" }));
+    await screen.findByText("Result preview");
+    await user.click(screen.getByRole("button", { name: "Generate actions" }));
+    await user.click(await screen.findByRole("menuitemcheckbox", { name: "Live Reload" }));
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 650)); });
+    expect(apiMock).toHaveBeenCalledOnce();
+  });
+
+  it("disabling Live Reload prevents an automatic preparation from publishing late Template bytes", async () => {
+    const source = localHandle("disabled.docx", "one");
+    nativeFiles([source.handle]);
+    const { apiMock } = mockPlaygroundFetch(async () => success());
+    const user = userEvent.setup();
+    render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
+    await screen.findByText("Template preview");
+    await documentCommand(user, "Open…");
+    await screen.findByText("disabled.docx");
+    const accepted = previewSources.at(-1);
+    let finish!: (file: File) => void;
+    vi.mocked(source.handle.getFile).mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    await user.click(screen.getByRole("button", { name: "Generate actions" }));
+    await user.click(await screen.findByRole("menuitemcheckbox", { name: "Live Reload" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Generate document" })).toBeDisabled());
+    await user.click(screen.getByRole("button", { name: "Generate actions" }));
+    await user.click(await screen.findByRole("menuitemcheckbox", { name: "Live Reload" }));
+    await act(async () => finish(new File(["late"], source.file.name)));
+    expect(apiMock).not.toHaveBeenCalled();
+    expect(previewSources.at(-1)).toBe(accepted);
+    expect(screen.getByRole("status")).toHaveTextContent("Cancelled");
   });
 
   it("replaces the active dataset only after confirming unsaved edits and generates from its replacement", async () => {
@@ -487,6 +761,7 @@ describe("MonoReport playground", () => {
     expect(destination.writable.write).toHaveBeenCalledWith('{"value":3}');
     expect(screen.queryByLabelText("Dataset modified")).not.toBeInTheDocument();
     expect(selectedExample()).toHaveTextContent("copy.json");
+    vi.mocked(destination.handle.getFile).mockResolvedValue(new File(['{"value":3}'], "copy.json", { lastModified: destination.file.lastModified }));
     await dataCommand(user, /^Save(?! As)/);
     await waitFor(() => expect(destination.writable.close).toHaveBeenCalledTimes(2));
     expect(savePicker).toHaveBeenCalledOnce();
@@ -601,20 +876,20 @@ describe("MonoReport playground", () => {
     render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     await screen.findByText("Template preview");
     await documentCommand(user, "Open…");
-    await waitFor(() => expect(previewSources.at(-1)).toBe(one.file));
+    await waitFor(async () => expectTemplateBytes(previewSources.at(-1), one.file));
     await user.click(screen.getByRole("button", { name: "Generate document" }));
     await screen.findByText("Result preview");
     await user.click(screen.getByRole("radio", { name: "Template" }).closest("label")!);
     await documentCommand(user, "Open…");
-    await waitFor(() => expect(xlsxSources.at(-1)).toBe(two.file));
+    await waitFor(async () => expectTemplateBytes(xlsxSources.at(-1), two.file));
     expectResultOutdated();
     await documentCommand(user, "Open…");
     await waitFor(() => expect(picker).toHaveBeenCalledTimes(3));
-    await waitFor(() => expect(previewSources.at(-1)).toBe(one.file));
+    await waitFor(async () => expectTemplateBytes(previewSources.at(-1), one.file));
     expectResultOutdated(false);
     expect(screen.getByRole("status")).toHaveTextContent("Success");
     await documentCommand(user, "Open…");
-    expect(xlsxSources.at(-1)).toBe(two.file);
+    await expectTemplateBytes(xlsxSources.at(-1), two.file);
     await documentCommand(user, "Close");
     expect(screen.getByText("Select a DOCX or XLSX template")).toBeInTheDocument();
     expect(screen.getByLabelText("Dataset")).toHaveValue(sampleData);
@@ -754,9 +1029,9 @@ describe("MonoReport playground", () => {
     await documentCommand(user, "Close");
     const book = new File([new Uint8Array([80, 75])], "book.xlsx", { type: xlsxMime });
     fireEvent.dragEnter(screen.getByText("Select a DOCX or XLSX template"), { dataTransfer: { files: [book], types: ["Files"] } });
-    fireEvent.drop(screen.getByText("Select a DOCX or XLSX template"), { dataTransfer: { files: [book], types: ["Files"] } });
+    await act(async () => { fireEvent.drop(screen.getByText("Select a DOCX or XLSX template"), { dataTransfer: { files: [book], types: ["Files"] } }); });
     expect(await screen.findByText("Template XLSX preview")).toBeInTheDocument();
-    expect(xlsxSources.at(-1)).toBe(book);
+    await expectTemplateBytes(xlsxSources.at(-1), book);
     expect(screen.getByLabelText("Dataset")).toHaveValue(sampleData);
     expect(apiMock).not.toHaveBeenCalled();
   });
@@ -822,7 +1097,7 @@ describe("MonoReport playground", () => {
     await waitFor(() => expect(screen.getByText("custom.xlsx")).toBeInTheDocument());
     expect(selectedExample()).toHaveTextContent(/sample.json|Untitled.json/);
     expect(screen.getByLabelText("Dataset")).toHaveValue(sampleData);
-    expect(xlsxSources.at(-1)).toBe(custom);
+    await expectTemplateBytes(xlsxSources.at(-1), custom);
   });
 
   it("does not let a pending DOCX example replace a custom XLSX selection", async () => {
@@ -1012,13 +1287,13 @@ describe("MonoReport playground", () => {
     await selectTemplate(user);
     expect(screen.getByText("sample.template.docx")).toBeInTheDocument();
     const replacement = new File([new Uint8Array([1])], "second.docx", { type: mime });
-    fireEvent.drop(screen.getByLabelText("Preview").querySelector(".canvas")!, { dataTransfer: { files: [replacement], types: ["Files"] } });
+    await act(async () => { fireEvent.drop(screen.getByLabelText("Preview").querySelector(".canvas")!, { dataTransfer: { files: [replacement], types: ["Files"] } }); });
     expect(screen.getByText("second.docx")).toBeInTheDocument();
     expect(editor).toHaveValue('{"kept":true}');
     await user.click(screen.getByRole("button", { name: "Generate document" }));
     await screen.findByText("Result preview");
     expect(screen.getByRole("radio", { name: "Result" })).toBeChecked();
-    fireEvent.drop(screen.getByLabelText("Preview").querySelector(".canvas")!, { dataTransfer: { files: [new File([new Uint8Array([1])], "bad.pdf")], types: ["Files"] } });
+    await act(async () => { fireEvent.drop(screen.getByLabelText("Preview").querySelector(".canvas")!, { dataTransfer: { files: [new File([new Uint8Array([1])], "bad.pdf")], types: ["Files"] } }); });
     expect(screen.getByText("Unsupported template format")).toBeInTheDocument();
     expect(screen.getByText("second-result.docx")).toBeInTheDocument();
     await user.click(screen.getByRole("radio", { name: "Template" }).closest("label")!);
@@ -1026,7 +1301,7 @@ describe("MonoReport playground", () => {
     await user.click(screen.getByRole("radio", { name: "Result" }).closest("label")!);
     expect(screen.getByRole("radio", { name: "Result" })).toBeChecked();
     const third = new File([new Uint8Array([2])], "third.docx", { type: mime });
-    fireEvent.drop(screen.getByLabelText("Preview").querySelector(".canvas")!, { dataTransfer: { files: [third], types: ["Files"] } });
+    await act(async () => { fireEvent.drop(screen.getByLabelText("Preview").querySelector(".canvas")!, { dataTransfer: { files: [third], types: ["Files"] } }); });
     expect(screen.getByText("third.docx")).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Template" })).toBeChecked();
     expect(screen.getByText("Template preview")).toBeInTheDocument();
@@ -1049,15 +1324,15 @@ describe("MonoReport playground", () => {
     const book = new File([new Uint8Array([1])], "tender.XLSX", { type: mime });
     await selectTemplate(user, book);
     expect(screen.getByText("Template XLSX preview")).toBeInTheDocument();
-    expect(xlsxSources.at(-1)).toBe(book);
+    await expectTemplateBytes(xlsxSources.at(-1), book);
     expect(previewSources.at(-1)).not.toBe(book);
     expectResultOutdated();
     expect(screen.getByLabelText("Dataset")).toHaveValue(sampleData);
     const dropped = new File([new Uint8Array([2])], "second.xlsx");
-    fireEvent.drop(screen.getByLabelText("Preview").querySelector(".canvas")!, { dataTransfer: { files: [dropped], types: ["Files"] } });
-    expect(xlsxSources.at(-1)).toBe(dropped);
+    await act(async () => { fireEvent.drop(screen.getByLabelText("Preview").querySelector(".canvas")!, { dataTransfer: { files: [dropped], types: ["Files"] } }); });
+    await expectTemplateBytes(xlsxSources.at(-1), dropped);
     expect(screen.getByText("second.xlsx")).toBeInTheDocument();
-    fireEvent.drop(screen.getByLabelText("Preview").querySelector(".canvas")!, { dataTransfer: { files: [new File([], "bad.xls")], types: ["Files"] } });
+    await act(async () => { fireEvent.drop(screen.getByLabelText("Preview").querySelector(".canvas")!, { dataTransfer: { files: [new File([], "bad.xls")], types: ["Files"] } }); });
     expect(screen.getByText("Select a .docx or .xlsx file.")).toBeInTheDocument();
     expect(screen.getByText("second.xlsx")).toBeInTheDocument();
     await user.click(screen.getByRole("radio", { name: "Template" }).closest("label")!);
@@ -1152,7 +1427,7 @@ describe("MonoReport playground", () => {
     expect(apiMock).toHaveBeenCalledOnce();
     expect(String((apiMock.mock.calls[0] as [string])[0])).toBe("/api/documents/render");
     const requestBody = (apiMock.mock.calls[0] as [string, RequestInit])[1].body as FormData;
-    expect(requestBody.get("template")).toBe(sourceFile);
+    await expectTemplateBytes(requestBody.get("template"), sourceFile);
     expect(requestBody.get("data")).toBe('{"manual":true}');
 
     let downloadedFilename = "";
@@ -1391,7 +1666,7 @@ describe("MonoReport playground", () => {
     await selectTemplate(user);
     await user.click(screen.getByRole("button", { name: "Generate document" }));
     const xlsx = new File([new Uint8Array([80, 75])], "replacement.xlsx", { type: xlsxMime });
-    fireEvent.drop(screen.getByLabelText("Preview").querySelector(".canvas")!, { dataTransfer: { files: [xlsx], types: ["Files"] } });
+    await act(async () => { fireEvent.drop(screen.getByLabelText("Preview").querySelector(".canvas")!, { dataTransfer: { files: [xlsx], types: ["Files"] } }); });
     await act(async () => {
       resolveGeneration(success());
     });
@@ -1460,7 +1735,7 @@ describe("MonoReport playground", () => {
     expect(apiMock).toHaveBeenCalledOnce();
     const [url, init] = apiMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("/api/documents/sample");
-    expect((init.body as FormData).get("template")).toBe(xlsx);
+    await expectTemplateBytes((init.body as FormData).get("template"), xlsx);
     expect((init.body as FormData).get("itemsPerCollection")).toBe("1");
   });
 
@@ -1545,7 +1820,7 @@ describe("MonoReport playground", () => {
 
     await analyzeTemplate(user);
     const replacement = new File([new Uint8Array([1])], "replacement.docx", { type: mime });
-    fireEvent.drop(screen.getByLabelText("Preview").querySelector(".canvas")!, { dataTransfer: { files: [replacement], types: ["Files"] } });
+    await act(async () => { fireEvent.drop(screen.getByLabelText("Preview").querySelector(".canvas")!, { dataTransfer: { files: [replacement], types: ["Files"] } }); });
     await act(async () => {
       resolvers[1](analysis([{ name: "Stale", type: "value" }]));
     });
@@ -1565,7 +1840,7 @@ describe("MonoReport playground", () => {
     const editor = screen.getByLabelText("Dataset");
     await analyzeTemplate(user);
     const docx = template();
-    fireEvent.drop(screen.getByLabelText("Preview").querySelector(".canvas")!, { dataTransfer: { files: [docx], types: ["Files"] } });
+    await act(async () => { fireEvent.drop(screen.getByLabelText("Preview").querySelector(".canvas")!, { dataTransfer: { files: [docx], types: ["Files"] } }); });
     await act(async () => {
       resolveAnalysis(analysis([{ name: "Stale XLSX", type: "value" }]));
     });
@@ -1587,7 +1862,7 @@ describe("MonoReport playground", () => {
     const editor = screen.getByLabelText("Dataset");
     await analyzeTemplate(user);
     const xlsx = new File([new Uint8Array([80, 75])], "replacement.xlsx", { type: xlsxMime });
-    fireEvent.drop(screen.getByLabelText("Preview").querySelector(".canvas")!, { dataTransfer: { files: [xlsx], types: ["Files"] } });
+    await act(async () => { fireEvent.drop(screen.getByLabelText("Preview").querySelector(".canvas")!, { dataTransfer: { files: [xlsx], types: ["Files"] } }); });
     await act(async () => {
       resolveAnalysis(analysis([{ name: "Stale DOCX", type: "value" }]));
     });
@@ -1981,7 +2256,7 @@ describe("MonoReport playground", () => {
     expect(selectedExample()).toHaveTextContent("new-generated.json");
     expect(apiMock).toHaveBeenCalledTimes(2);
     expect(apiMock.mock.calls[1][0]).toBe("/api/documents/sample");
-    expect(((apiMock.mock.calls[1][1] as RequestInit).body as FormData).get("template")).toBe(replacement);
+    await expectTemplateBytes(((apiMock.mock.calls[1][1] as RequestInit).body as FormData).get("template"), replacement);
   });
 
   it("rejects server sample failures without a candidate and accepts a later sample", async () => {
@@ -2362,7 +2637,7 @@ describe("MonoReport playground", () => {
     let view = render(<ConfigProvider theme={{ token: { motion: false } }}><App /></ConfigProvider>);
     await waitFor(() => expect(screen.getByLabelText("Dataset")).toHaveValue('{"fresh":3}'));
     expect(await screen.findByText("Template XLSX preview")).toBeInTheDocument();
-    expect(xlsxSources.at(-1)).toBe(book.file);
+    await expectTemplateBytes(xlsxSources.at(-1), book.file);
     expect(one.handle.requestPermission).not.toHaveBeenCalled();
     await dataCommand(user, /^Save(?! As)/);
     expect(one.writable.write).toHaveBeenCalledWith('{"fresh":3}');
@@ -2605,7 +2880,7 @@ describe("MonoReport playground", () => {
     expect(accessible.handle.getFile).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "Grant access" }));
     expect(await screen.findByText("Template XLSX preview")).toBeInTheDocument();
-    expect(xlsxSources.at(-1)).toBe(blocked.file);
+    await expectTemplateBytes(xlsxSources.at(-1), blocked.file);
     expect(screen.getByLabelText("Dataset")).toHaveValue(sampleData);
     expect(blocked.handle.requestPermission).toHaveBeenCalledWith({ mode: "read" });
     expect(accessible.handle.requestPermission).not.toHaveBeenCalled();

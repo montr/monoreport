@@ -17,6 +17,22 @@ describe("DOCX preview boundary", () => {
     renderAsync.mockReset();
   });
 
+  it("restores bounded same-source canvas scroll after rendering and resets unrelated sources", async () => {
+    renderAsync.mockResolvedValue(undefined);
+    const view = render(<div className="canvas"><DocxPreview source={new Blob(["one"])} label="Template" sourceId="same" /></div>);
+    await waitFor(() => expect(renderAsync).toHaveBeenCalledOnce());
+    const canvas = screen.getByTestId("template-preview").closest<HTMLElement>(".canvas")!;
+    Object.defineProperties(canvas, { scrollHeight: { value: 500 }, clientHeight: { value: 100 }, scrollWidth: { value: 200 }, clientWidth: { value: 100 } });
+    canvas.scrollTop = 480;
+    canvas.scrollLeft = 60;
+    view.rerender(<div className="canvas"><DocxPreview source={new Blob(["two"])} label="Template" sourceId="same" /></div>);
+    await waitFor(() => expect(canvas.scrollTop).toBe(400));
+    expect(canvas.scrollLeft).toBe(60);
+    view.rerender(<div className="canvas"><DocxPreview source={new Blob(["three"])} label="Template" sourceId="other" /></div>);
+    await waitFor(() => expect(canvas.scrollTop).toBe(0));
+    expect(canvas.scrollLeft).toBe(0);
+  });
+
   it("reports a render failure without throwing away the supplied document", async () => {
     renderAsync.mockRejectedValueOnce(new Error("render detail"));
     const source = new Blob([new Uint8Array([1, 2, 3])]);

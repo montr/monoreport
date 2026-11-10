@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Dropdown, Flex, Typography } from "antd";
+import { Alert, Badge, Button, Dropdown, Flex, Tooltip, Typography } from "antd";
 import { CheckOutlined, EllipsisOutlined } from "@ant-design/icons";
 import type { ChangeEvent } from "react";
 import { MonacoJsonEditor } from "./MonacoJsonEditor";
@@ -7,7 +7,12 @@ import { PanelFilename } from "./PanelFilename";
 import type { Workspace } from "../hooks/useWorkspace";
 
 export function DatasetPanel({ model }: { model: Workspace["datasetPanel"] }) {
-  const { dataset, modified, token, recoverData, editor, json, changeJson, wordWrap, changeWordWrap, chooseDataFile, editorAvailable, saveData, openLabel, commandKey, saveAsShortcut, formatShortcut, saving, formatJson, copyJson, dataInput, reopenDataId, openData } = model;
+  const { liveReloadEnabled, sourceStatus, dataset, modified, token, recoverData, editor, json, changeJson, wordWrap, changeWordWrap, chooseDataFile, editorAvailable, saveData, openLabel, commandKey, saveAsShortcut, formatShortcut, saving, formatJson, copyJson, dataInput, reopenDataId, openData } = model;
+  const diskDiverged = sourceStatus?.diskText !== undefined && sourceStatus.diskText !== dataset.baseline && sourceStatus.diskText !== json;
+  let liveStatus = "Editor live";
+  try { JSON.parse(json); } catch { liveStatus = "Generation paused: invalid JSON"; }
+  if (dataset.handle) liveStatus += sourceStatus?.error ? " · Disk unavailable" : diskDiverged ? " · Disk differs" : sourceStatus ? " · Disk monitored" : " · Reading disk…";
+  if (modified) liveStatus = `Modified · ${liveStatus}`;
   function getDataMenuItems() {
     return [
       { key: "open", label: openLabel, extra: editorAvailable ? `${commandKey}O` : undefined, onClick: chooseDataFile },
@@ -58,13 +63,15 @@ export function DatasetPanel({ model }: { model: Workspace["datasetPanel"] }) {
                   ? "Local file"
                   : undefined}
             />
-            {modified && (
-              <Badge
-                status="default"
-                color={token.colorTextSecondary}
-                aria-label="Dataset modified"
-                style={{ flex: "none" }}
-              />
+            {(modified || liveReloadEnabled) && (
+              <Tooltip title={sourceStatus?.error ?? (diskDiverged ? "Disk content differs; unsaved editor text is retained." : "Linked files are checked every second while enabled. Background updates may be delayed.")}>
+                <Badge
+                  status={liveReloadEnabled ? sourceStatus?.error || diskDiverged ? "warning" : "processing" : "default"}
+                  aria-label={modified ? "Dataset modified" : "Dataset Live Reload"}
+                  text={liveReloadEnabled ? liveStatus : undefined}
+                  style={{ flex: "none" }}
+                />
+              </Tooltip>
             )}
           </Flex>
         </Flex>
@@ -81,10 +88,10 @@ export function DatasetPanel({ model }: { model: Workspace["datasetPanel"] }) {
           />
         </Dropdown>
       </Flex>
-      {dataset?.restoreError && (
+      {(dataset?.restoreError || sourceStatus?.error) && (
         <Alert
           type="warning"
-          title={`${dataset.name}: ${dataset.restoreError}`}
+          title={`${dataset.name}: ${dataset.restoreError ?? sourceStatus?.error}`}
           action={(
             <Button size="small" onClick={() => void recoverData(dataset)}>
               {dataset.needsPermission && dataset.handle?.requestPermission ? "Grant access" : "Reopen…"}

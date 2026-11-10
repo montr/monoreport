@@ -123,9 +123,11 @@ export function MonacoJsonEditor({ value, datasetId, onChange, ref, wordWrap = f
     if (editor && (previousDataset.current !== datasetId || editor.getValue() !== value)) {
       applying.current = true;
       // Monaco fixes large-file safeguards at model creation; setValue cannot refresh them.
+      const viewState = previousDataset.current === datasetId ? editor.saveViewState() : null;
       const previousModel = editor.getModel();
       try {
         editor.setModel(createJsonModel(value));
+        if (viewState) editor.restoreViewState(viewState);
         previousModel?.dispose();
       } finally { applying.current = false; }
     }

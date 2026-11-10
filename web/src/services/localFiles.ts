@@ -17,17 +17,61 @@ interface PickerOptions {
   types: { description: string; accept: Record<string, string[]> }[];
 }
 
+export interface LocalDirectoryHandle { name: string; kind: "directory"; }
+export interface NativeFileDropItem {
+  kind: string;
+  getAsFileSystemHandle?(): Promise<(LocalFileHandle & { kind: "file" }) | LocalDirectoryHandle | null>;
+}
 export interface FileAccess {
   isSecureContext?: boolean;
   showOpenFilePicker?: (options: PickerOptions) => Promise<LocalFileHandle[]>;
   showSaveFilePicker?: (options: PickerOptions) => Promise<LocalFileHandle>;
 }
 
+export interface FileRead { file: File; bytes: Uint8Array<ArrayBuffer>; }
+
 export class LocalFiles {
+  private readonly templateBytes = new WeakMap<File, Uint8Array<ArrayBuffer>>();
   constructor(private readonly access: FileAccess) {}
 
   get canOpen() { return this.access.isSecureContext === true && typeof this.access.showOpenFilePicker === "function"; }
   get canSave() { return this.access.isSecureContext === true && typeof this.access.showSaveFilePicker === "function"; }
+  async readFile(handle: LocalFileHandle): Promise<FileRead> {
+    const file = await handle.getFile();
+    return { file, bytes: new Uint8Array(await file.arrayBuffer()) };
+  }
+
+  acceptTemplateRead({ file, bytes }: FileRead, previous?: File) {
+    const accepted = previous && this.templateBytes.get(previous);
+    if (accepted && this.equalBytes(accepted, bytes)) return previous!;
+    const snapshot = new File([bytes], file.name, { type: file.type, lastModified: file.lastModified });
+    this.templateBytes.set(snapshot, bytes);
+    return snapshot;
+  }
+
+  equalBytes(left: Uint8Array, right: Uint8Array) {
+    return left.length === right.length && left.every((value, index) => value === right[index]);
+  }
+
+  async stableTemplate(file: File, previous?: File) {
+    if (this.templateBytes.has(file)) return file;
+    return this.acceptTemplateRead({ file, bytes: new Uint8Array(await file.arrayBuffer()) }, previous);
+  }
+
+  async readTemplateSnapshot(handle: LocalFileHandle, previous?: File) {
+    return this.acceptTemplateRead(await this.readFile(handle), previous);
+  }
+
+  inspectDatasetRead(read: FileRead) {
+    const text = new TextDecoder().decode(read.bytes);
+    try { JSON.parse(text); return { text, valid: true }; }
+    catch { return { text, valid: false }; }
+  }
+
+  async readDatasetSnapshot(handle: LocalFileHandle) {
+    const file = await handle.getFile();
+    return { text: await this.readJson(file), lastModified: file.lastModified, name: file.name, size: file.size };
+  }
 
   async open(kind: "json" | "template") {
     const handles = await this.access.showOpenFilePicker!({
@@ -54,9 +98,10 @@ export class LocalFiles {
     return this.access.showSaveFilePicker!({ suggestedName: name, types: [{ description: "JSON file", accept: { "application/json": [".json"] } }] });
   }
 
-  async hasChanged(handle: LocalFileHandle, lastModified: number | undefined) {
+  async hasChanged(handle: LocalFileHandle, lastModified: number | undefined, baseline?: string) {
     if (lastModified === undefined) throw new Error("The file's previous modification time is unavailable. Reopen it or use Save As before saving.");
-    return (await handle.getFile()).lastModified !== lastModified;
+    const file = await handle.getFile();
+    return file.lastModified !== lastModified || (baseline !== undefined && await file.text() !== baseline);
   }
 
   async write(handle: LocalFileHandle, text: string) {

@@ -38,7 +38,7 @@ export class WorkspaceRestorer {
           file = new File([await response.blob()], filenameFromPath(example.templatePath), { type: documentMimes[example.format] });
         } else {
           if (!entry.handle) throw new Error("Template bytes are not stored. Reopen this template to continue.");
-          file = await this.files.reopen(entry.handle);
+          file = await this.files.stableTemplate(await this.files.reopen(entry.handle));
         }
         if (!templateFormat(file.name)) throw new Error("Select a .docx or .xlsx file.");
         return { ...entry, name: file.name, file };

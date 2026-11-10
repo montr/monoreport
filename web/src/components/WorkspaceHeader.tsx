@@ -1,5 +1,5 @@
 import { Button, Dropdown, Flex, Space, Tooltip } from "antd";
-import { BulbOutlined, DownOutlined, EllipsisOutlined, FileExcelFilled, FileWordFilled } from "@ant-design/icons";
+import { BulbOutlined, CheckOutlined, DownOutlined, EllipsisOutlined, FileExcelFilled, FileWordFilled } from "@ant-design/icons";
 import { workspaceDropdownProps } from "./workspaceDropdownProps";
 import { ShortcutKeys } from "./ShortcutKeys";
 import type { DocumentFormat } from "../services/documentFormat";
@@ -27,6 +27,7 @@ function FormatLabel({ format, title }: { format: DocumentFormat; title: string 
 
 export function WorkspaceHeader({ model }: { model: Workspace["header"] }) {
   const { examples, pendingExample, selectedExample, chooseExample, generateShortcut, token, pending, dataset, selectedTemplate, generate, template, analyze, setJsonSettingsOpen, isMac, setShortcutsOpen, saving, clearing, clearLocalData } = model;
+  const { liveReloadEnabled, setLiveReloadEnabled } = model;
   function getExampleMenuItems() {
     return (["docx", "xlsx"] as const).map(format => ({
       type: "group" as const,
@@ -52,6 +53,15 @@ export function WorkspaceHeader({ model }: { model: Workspace["header"] }) {
         label: "Generate Dataset...",
         disabled: !template || Boolean(pending),
         onClick: () => setJsonSettingsOpen(true)
+      },
+      { type: "divider" as const },
+      {
+        key: "live-reload",
+        label: <Tooltip title="Automatically generates from editor changes and reads linked files every second. Background updates may be delayed."><span>Live Reload</span></Tooltip>,
+        role: "menuitemcheckbox",
+        "aria-checked": liveReloadEnabled,
+        icon: liveReloadEnabled ? <CheckOutlined aria-hidden="true" /> : undefined,
+        onClick: () => setLiveReloadEnabled(!liveReloadEnabled)
       }
     ];
   }
@@ -150,7 +160,6 @@ export function WorkspaceHeader({ model }: { model: Workspace["header"] }) {
                 type="primary"
                 aria-label="Generate actions"
                 icon={<DownOutlined />}
-                disabled={Boolean(pending)}
               />
             </Dropdown>
           </Space.Compact>

@@ -5,7 +5,8 @@ import { XlsxNamedRanges, type XlsxNamedRange } from "../services/xlsxNamedRange
 type PreviewStatus = { kind: "loading" | "error"; message: string };
 type FormulaBar = { address: string; text: string };
 
-export function useXlsxPreview(source: Blob | File, label: string) {
+export function useXlsxPreview(source: Blob | File, label: string, sourceId = label) {
+  const savedView = useRef<{ id: string; sheet: string; scale: number; offset: { x: number; y: number } } | undefined>(undefined);
   const host = useRef<HTMLDivElement>(null);
   const navigation = useRef<((id: string) => Promise<void>) | undefined>(undefined);
   const [status, setStatus] = useState<PreviewStatus>();
@@ -16,6 +17,7 @@ export function useXlsxPreview(source: Blob | File, label: string) {
     const container = host.current;
     if (!container) return;
     let current = true;
+    const previousView = savedView.current?.id === sourceId ? savedView.current : undefined;
     let constructingViewer = false;
     let viewer: Omit<XlsxViewer, "load"> | undefined;
     let workbook: XlsxWorkbook | undefined;
@@ -24,6 +26,7 @@ export function useXlsxPreview(source: Blob | File, label: string) {
     let catalogRequest = 0;
     let navigationRequest = 0;
     let destination: number | undefined;
+    let restorationStarted = false;
     const sessionHost = document.createElement("div");
     sessionHost.className = "xlsx-preview-session";
     container.replaceChildren(sessionHost);
@@ -34,6 +37,9 @@ export function useXlsxPreview(source: Blob | File, label: string) {
     function dispose() {
       navigation.current = undefined;
       if (constructingViewer) return;
+      if (viewer && workbook) savedView.current = {
+        id: sourceId, sheet: workbook.sheetNames[viewer.sheetIndex], scale: viewer.getScale(), offset: viewer.getViewportOffset()
+      };
       const ownedViewer = viewer;
       const ownedWorkbook = workbook;
       viewer = undefined;
@@ -75,6 +81,7 @@ export function useXlsxPreview(source: Blob | File, label: string) {
     function handleSheetChange(index: number) {
       if (!current) return;
       if (destination !== index) navigationRequest++;
+      if (!restorationStarted) { restorationStarted = true; restoreView(); }
       const request = ++catalogRequest;
       catalog = [];
       setNamedRanges([]);
@@ -86,6 +93,24 @@ export function useXlsxPreview(source: Blob | File, label: string) {
       }).catch(() => {
         if (current && request === catalogRequest && viewer?.sheetIndex === index) failed();
       });
+    }
+
+    function restoreView() {
+      if (!previousView) return;
+      void Promise.resolve().then(async () => {
+        if (!current || !viewer || !workbook) return;
+        const target = workbook.sheetNames.findIndex((name, index) => name === previousView.sheet && !workbook!.isHidden(index));
+        const sheet = target >= 0 ? target : workbook.sheetNames.findIndex((_, index) => !workbook!.isHidden(index));
+        if (sheet < 0) return;
+        const request = ++navigationRequest;
+        destination = sheet;
+        if (viewer.sheetIndex !== sheet) await viewer.goToSheet(sheet);
+        if (!current || request !== navigationRequest || viewer.sheetIndex !== sheet) return;
+        viewer.setScale(previousView.scale);
+        // The public viewer API clamps logical offsets to the new sheet bounds.
+        await viewer.setViewportOffset(previousView.offset);
+        if (current && request === navigationRequest) destination = undefined;
+      }).catch(() => { /* View restoration is best-effort; keep the normal viewer. */ });
     }
 
     navigation.current = async id => {
@@ -144,7 +169,7 @@ export function useXlsxPreview(source: Blob | File, label: string) {
       current = false;
       dispose();
     };
-  }, [source, label]);
+  }, [source, label, sourceId]);
 
   return { host, status, formulaBar, namedRanges, navigateToName: (id: string) => { void navigation.current?.(id); } };
 }

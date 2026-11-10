@@ -18,6 +18,38 @@ describe("Local files", () => {
     expect(new LocalFiles({ isSecureContext: true, showSaveFilePicker: vi.fn() }).canSave).toBe(true);
   });
 
+  it("fully reads fresh retained handles and copies template bytes into an independent File", async () => {
+    const files = new LocalFiles({});
+    const { target } = handle();
+    const disk = new File(["updated bytes"], "template.xlsx", { type: "application/octet-stream", lastModified: 42 });
+    vi.mocked(target.getFile).mockResolvedValue(disk);
+    const snapshot = await files.readTemplateSnapshot(target);
+    expect(snapshot).not.toBe(disk);
+    expect([snapshot.name, snapshot.type, snapshot.lastModified]).toEqual([disk.name, disk.type, 42]);
+    expect(await snapshot.text()).toBe("updated bytes");
+    vi.spyOn(disk, "arrayBuffer").mockRejectedValue(new DOMException("Replaced", "NotReadableError"));
+    expect(await snapshot.text()).toBe("updated bytes");
+    await expect(files.readTemplateSnapshot(target)).rejects.toThrow("Replaced");
+    vi.mocked(target.getFile).mockResolvedValue(new File(['{"fresh":true}'], "data.json", { lastModified: 43 }));
+    expect(await files.readDatasetSnapshot(target)).toEqual({ text: '{"fresh":true}', lastModified: 43, name: "data.json", size: 14 });
+    vi.mocked(target.getFile).mockResolvedValue(new File(["{"], "data.json"));
+    await expect(files.readDatasetSnapshot(target)).rejects.toBeInstanceOf(SyntaxError);
+    expect(target.createWritable).not.toHaveBeenCalled();
+  });
+
+  it("reuses stable accepted bytes on unchanged full reads and detects equal-metadata changes", async () => {
+    const files = new LocalFiles({});
+    const { target } = handle("report.docx", "one");
+    const accepted = await files.readTemplateSnapshot(target);
+    expect(await files.stableTemplate(accepted)).toBe(accepted);
+    expect(await files.readTemplateSnapshot(target, accepted)).toBe(accepted);
+    vi.mocked(target.getFile).mockResolvedValue(new File(["two"], accepted.name, { lastModified: accepted.lastModified }));
+    const changed = await files.readTemplateSnapshot(target, accepted);
+    expect(changed).not.toBe(accepted);
+    expect(await changed.text()).toBe("two");
+    expect(await accepted.text()).toBe("one");
+  });
+
   it.each(["json", "template"] as const)("opens %s with original file identity and a reusable handle", async kind => {
     const { target, file } = handle();
     const picker = vi.fn(async () => [target]);
@@ -64,6 +96,14 @@ describe("Local files", () => {
     await expect(files.hasChanged(target, file.lastModified)).rejects.toThrow("Access revoked");
     expect(target.createWritable).not.toHaveBeenCalled();
     expect(writable.write).not.toHaveBeenCalled();
+  });
+
+  it("protects Save from different disk contents with identical timestamps", async () => {
+    const { target, file } = handle();
+    const files = new LocalFiles({});
+    expect(await files.hasChanged(target, file.lastModified, await file.text())).toBe(false);
+    expect(await files.hasChanged(target, file.lastModified, "other accepted content")).toBe(true);
+    expect(target.createWritable).not.toHaveBeenCalled();
   });
 
   it("reports an unavailable timestamp after writing instead of claiming a reusable saved baseline", async () => {
