@@ -15,7 +15,7 @@
 
 ## Git Operations
 
-1. Do not stage, commit, push, merge, rebase, reset, or otherwise modify Git history, branches, tags, or the index without explicit Product Owner approval.
+1. Do not stage, commit, push, merge, rebase, reset, or otherwise modify Git history, branches, tags, or the index without explicit Product Owner approval for the specific Git operation. Completing a task or Feature, accepting implementation, or requesting commit preparation does not grant permission to execute a commit. By default, leave changes uncommitted for the Product Owner to review and commit manually.
 2. Git inspection is allowed. Preserve all existing staged and unstaged changes.
 
 ## Coding Guidelines
