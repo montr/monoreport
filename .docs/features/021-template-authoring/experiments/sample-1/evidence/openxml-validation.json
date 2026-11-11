@@ -1,0 +1,27 @@
+[
+  {
+    "File": ".docs/features/021-template-authoring/experiments/sample-1/input/skill-sample-1.docx",
+    "ErrorCount": 0,
+    "Errors": []
+  },
+  {
+    "File": ".docs/features/021-template-authoring/experiments/sample-1/output/skill-sample-1.template.docx",
+    "ErrorCount": 0,
+    "Errors": []
+  },
+  {
+    "File": ".docs/features/021-template-authoring/experiments/sample-1/evidence/original.result.docx",
+    "ErrorCount": 0,
+    "Errors": []
+  },
+  {
+    "File": ".docs/features/021-template-authoring/experiments/sample-1/output/skill-sample-1.result.docx",
+    "ErrorCount": 0,
+    "Errors": []
+  },
+  {
+    "File": ".docs/features/021-template-authoring/experiments/sample-1/evidence/empty.result.docx",
+    "ErrorCount": 0,
+    "Errors": []
+  }
+]

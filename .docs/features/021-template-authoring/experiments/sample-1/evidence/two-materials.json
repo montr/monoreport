@@ -1,0 +1,27 @@
+{
+  "Materials": [
+    {
+      "Reference": "MAT-001/2026",
+      "DeliveryDate": "2026-01-15",
+      "Name": "Portland cement (25 kg bag)",
+      "Quantity": 100,
+      "Unit": "bags",
+      "UnitPrice": 500.0,
+      "LineTotal": 50000.0,
+      "Currency": "USD"
+    },
+    {
+      "Reference": "MAT-003/2026",
+      "DeliveryDate": "2026-06-01",
+      "Name": "Washed building sand",
+      "Quantity": 5,
+      "Unit": "tonnes",
+      "UnitPrice": 2000.0,
+      "LineTotal": 10000.0,
+      "Currency": "USD"
+    }
+  ],
+  "MaterialCount": 2,
+  "TotalEstimatedCost": 60000,
+  "AmountInWords": "Sixty thousand dollars 00 cents"
+}

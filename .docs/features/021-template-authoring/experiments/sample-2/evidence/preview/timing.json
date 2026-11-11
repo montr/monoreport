@@ -1,0 +1,28 @@
+{
+  "installedLibreOffice": true,
+  "installationSeconds": 0,
+  "initialSandboxedFailureToolSeconds": 0.19,
+  "successfulSourceConversionToolSeconds": 0.998,
+  "originalConversionToolSeconds": 0.569,
+  "variantBatchInitialWaitSeconds": 1.002,
+  "logs": {
+    "source-conversion.log": {
+      "createdEpoch": 1794434303.1653225,
+      "lastWriteEpoch": 1794434330.4975228,
+      "logLifetimeSeconds": 27.332
+    },
+    "original-conversion.log": {
+      "createdEpoch": 1794434400.721491,
+      "lastWriteEpoch": 1794434401.321535,
+      "logLifetimeSeconds": 0.6
+    },
+    "variants-conversion.log": {
+      "createdEpoch": 1794434440.1818573,
+      "lastWriteEpoch": 1794434441.228071,
+      "logLifetimeSeconds": 1.046
+    }
+  },
+  "sourceSetupToPdfFileSeconds": 27.396,
+  "variantBatchStartToLastPdfSeconds": 1.089,
+  "caveat": "Tool durations are observed shell-call waits; file intervals are approximate. Source setup interval includes the failed attempt, permission retry and intervening work, not just conversion CPU time. No new conversions or visual rendering after user steering."
+}

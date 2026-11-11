@@ -1,0 +1,10 @@
+{
+  "previous_experiment_content_inspected": false,
+  "authoring_attempts": 1,
+  "analyzer_valid": true,
+  "analyzer_errors": 0,
+  "analyzer_warnings": 0,
+  "first_render_warnings": 0,
+  "template_revisions_after_initial_attempt": 0,
+  "modified_data_revision": "Round monetary line totals to cents before summing; regenerated modified case once."
+}

@@ -1,0 +1,65 @@
+{
+  "ProjectName": "Space 3",
+  "Period": "October 2026",
+  "Projects": [
+    {
+      "Name": "Warehouse Construction",
+      "Total": 0.0,
+      "Groups": [
+        {
+          "Name": "Foundation",
+          "Total": 0.0,
+          "Items": []
+        },
+        {
+          "Name": "Steel Frame",
+          "Total": 0.0,
+          "Items": []
+        },
+        {
+          "Name": "Roofing",
+          "Total": 0.0,
+          "Items": []
+        }
+      ]
+    },
+    {
+      "Name": "Office Renovation",
+      "Total": 0.0,
+      "Groups": [
+        {
+          "Name": "Building Services",
+          "Total": 0.0,
+          "Items": []
+        },
+        {
+          "Name": "Finishing Works",
+          "Total": 0.0,
+          "Items": []
+        }
+      ]
+    },
+    {
+      "Name": "Site Improvements",
+      "Total": 0.0,
+      "Groups": [
+        {
+          "Name": "Site Preparation",
+          "Total": 0.0,
+          "Items": []
+        },
+        {
+          "Name": "Site Lighting",
+          "Total": 0.0,
+          "Items": []
+        },
+        {
+          "Name": "Landscaping",
+          "Total": 0.0,
+          "Items": []
+        }
+      ]
+    }
+  ],
+  "GrandTotal": 0.0
+}

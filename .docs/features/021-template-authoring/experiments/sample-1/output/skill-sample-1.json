@@ -1,0 +1,37 @@
+{
+  "Materials": [
+    {
+      "Reference": "MAT-001/2026",
+      "DeliveryDate": "2026-01-15",
+      "Name": "Portland cement (25 kg bag)",
+      "Quantity": 100,
+      "Unit": "bags",
+      "UnitPrice": 500.0,
+      "LineTotal": 50000.0,
+      "Currency": "USD"
+    },
+    {
+      "Reference": "MAT-002/2026",
+      "DeliveryDate": "2026-03-10",
+      "Name": "Concrete paving slabs (600 x 600 x 50 mm)",
+      "Quantity": 50,
+      "Unit": "slabs",
+      "UnitPrice": 1308.61,
+      "LineTotal": 65430.5,
+      "Currency": "USD"
+    },
+    {
+      "Reference": "MAT-003/2026",
+      "DeliveryDate": "2026-06-01",
+      "Name": "Washed building sand",
+      "Quantity": 5,
+      "Unit": "tonnes",
+      "UnitPrice": 2000.0,
+      "LineTotal": 10000.0,
+      "Currency": "USD"
+    }
+  ],
+  "MaterialCount": 3,
+  "TotalEstimatedCost": 125430.5,
+  "AmountInWords": "One hundred twenty-five thousand four hundred thirty dollars 50 cents"
+}

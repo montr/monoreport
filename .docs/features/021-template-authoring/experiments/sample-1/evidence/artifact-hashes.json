@@ -1,0 +1,22 @@
+{
+  "input/skill-sample-1.docx": {
+    "sha256": "fdfd45abd1c60ada377afcf2cf6b1ea660a92963aca142d742a2cd8364aedcc2",
+    "bytes": 2741
+  },
+  "output/skill-sample-1.template.docx": {
+    "sha256": "1b30e13efbc1c941fafbaaf0284bffdfd030254d6408e5d695af275a317a2bd6",
+    "bytes": 2655
+  },
+  "output/skill-sample-1.json": {
+    "sha256": "2d60ac15fa62fffc9ad46517907c61e773620814a3917a295733ff1249327787",
+    "bytes": 938
+  },
+  "output/skill-sample-1.result.docx": {
+    "sha256": "1e10dc54ed4576bdf236a71697584ae5b179e5155277256a2a77dcc9f110b2d5",
+    "bytes": 2651
+  },
+  "evidence/two-materials.json": {
+    "sha256": "14a100f8979ba90197568a1c3afe7b923f452f0676bf0acfba7c56c78a29f247",
+    "bytes": 629
+  }
+}

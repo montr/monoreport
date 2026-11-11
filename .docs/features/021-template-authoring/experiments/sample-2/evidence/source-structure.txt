@@ -1,0 +1,369 @@
+[0] p 
+Sales Orders Report
+[1] p 
+Organization: Acme Distribution Ltd.
+[2] p 
+Warehouse: Central Fulfillment Warehouse
+[3] p 
+Warehouse address: 120 Commerce Road, Bristol, BS1 4ST, United Kingdom
+[4] p 
+Period: 01 Sep 2026 – 30 Sep 2026
+[5] p 
+Orders: 20     Total: 60,206.90 USD
+[6] p 
+The following section repeats for each order.
+[7] p 
+Order SO-2026-0001
+[8] p 
+Date: 01 Sep 2026    Customer: Northwind Retail Ltd.
+[9] p 
+Lines: 8    Order total: 2,638.80 USD
+[10] tbl 
+  row 0 # || SKU || Description || Qty || Unit || Unit price || Line total
+  row 1 1 || SKU-1011 || Whiteboard Marker || 14 || pcs || 2.90 || 40.60
+  row 2 2 || SKU-1004 || Packing Tape || 4 || roll || 3.80 || 15.20
+  row 3 3 || SKU-1006 || Office Chair || 10 || pcs || 145.00 || 1,450.00
+  row 4 4 || SKU-1002 || USB-C Docking Station || 10 || pcs || 89.00 || 890.00
+  row 5 5 || SKU-1005 || HDMI Cable 2m || 1 || pcs || 11.50 || 11.50
+  row 6 6 || SKU-1011 || Whiteboard Marker || 10 || pcs || 2.90 || 29.00
+  row 7 7 || SKU-1014 || Label Rolls || 16 || roll || 6.75 || 108.00
+  row 8 8 || SKU-1014 || Label Rolls || 14 || roll || 6.75 || 94.50
+[11] p 
+Order subtotal: 2,638.80 USD
+[12] p 
+Order SO-2026-0002
+[13] p 
+Date: 02 Sep 2026    Customer: Blue Harbor Supplies
+[14] p 
+Lines: 9    Order total: 3,319.95 USD
+[15] tbl 
+  row 0 # || SKU || Description || Qty || Unit || Unit price || Line total
+  row 1 1 || SKU-1008 || Printer Paper A4 || 11 || pack || 7.25 || 79.75
+  row 2 2 || SKU-1005 || HDMI Cable 2m || 15 || pcs || 11.50 || 172.50
+  row 3 3 || SKU-1002 || USB-C Docking Station || 16 || pcs || 89.00 || 1,424.00
+  row 4 4 || SKU-1002 || USB-C Docking Station || 15 || pcs || 89.00 || 1,335.00
+  row 5 5 || SKU-1005 || HDMI Cable 2m || 15 || pcs || 11.50 || 172.50
+  row 6 6 || SKU-1003 || Notebook A5 || 4 || pcs || 4.25 || 17.00
+  row 7 7 || SKU-1003 || Notebook A5 || 15 || pcs || 4.25 || 63.75
+  row 8 8 || SKU-1004 || Packing Tape || 9 || roll || 3.80 || 34.20
+  row 9 9 || SKU-1003 || Notebook A5 || 5 || pcs || 4.25 || 21.25
+[16] p 
+Order subtotal: 3,319.95 USD
+[17] p 
+Order SO-2026-0003
+[18] p 
+Date: 03 Sep 2026    Customer: Cedar & Co.
+[19] p 
+Lines: 6    Order total: 5,061.80 USD
+[20] tbl 
+  row 0 # || SKU || Description || Qty || Unit || Unit price || Line total
+  row 1 1 || SKU-1007 || Desk Lamp || 13 || pcs || 34.50 || 448.50
+  row 2 2 || SKU-1007 || Desk Lamp || 10 || pcs || 34.50 || 345.00
+  row 3 3 || SKU-1002 || USB-C Docking Station || 3 || pcs || 89.00 || 267.00
+  row 4 4 || SKU-1012 || Monitor 27-inch || 16 || pcs || 249.00 || 3,984.00
+  row 5 5 || SKU-1005 || HDMI Cable 2m || 1 || pcs || 11.50 || 11.50
+  row 6 6 || SKU-1011 || Whiteboard Marker || 2 || pcs || 2.90 || 5.80
+[21] p 
+Order subtotal: 5,061.80 USD
+[22] p 
+Order SO-2026-0004
+[23] p 
+Date: 04 Sep 2026    Customer: Summit Trading LLC
+[24] p 
+Lines: 9    Order total: 1,818.30 USD
+[25] tbl 
+  row 0 # || SKU || Description || Qty || Unit || Unit price || Line total
+  row 1 1 || SKU-1004 || Packing Tape || 4 || roll || 3.80 || 15.20
+  row 2 2 || SKU-1007 || Desk Lamp || 11 || pcs || 34.50 || 379.50
+  row 3 3 || SKU-1009 || Storage Box || 9 || pcs || 12.40 || 111.60
+  row 4 4 || SKU-1007 || Desk Lamp || 13 || pcs || 34.50 || 448.50
+  row 5 5 || SKU-1001 || Wireless Mouse || 4 || pcs || 19.90 || 79.60
+  row 6 6 || SKU-1002 || USB-C Docking Station || 5 || pcs || 89.00 || 445.00
+  row 7 7 || SKU-1008 || Printer Paper A4 || 10 || pack || 7.25 || 72.50
+  row 8 8 || SKU-1009 || Storage Box || 16 || pcs || 12.40 || 198.40
+  row 9 9 || SKU-1003 || Notebook A5 || 16 || pcs || 4.25 || 68.00
+[26] p 
+Order subtotal: 1,818.30 USD
+[27] p 
+Order SO-2026-0005
+[28] p 
+Date: 05 Sep 2026    Customer: Greenfield Services
+[29] p 
+Lines: 9    Order total: 8,634.30 USD
+[30] tbl 
+  row 0 # || SKU || Description || Qty || Unit || Unit price || Line total
+  row 1 1 || SKU-1001 || Wireless Mouse || 2 || pcs || 19.90 || 39.80
+  row 2 2 || SKU-1012 || Monitor 27-inch || 5 || pcs || 249.00 || 1,245.00
+  row 3 3 || SKU-1012 || Monitor 27-inch || 12 || pcs || 249.00 || 2,988.00
+  row 4 4 || SKU-1006 || Office Chair || 10 || pcs || 145.00 || 1,450.00
+  row 5 5 || SKU-1012 || Monitor 27-inch || 8 || pcs || 249.00 || 1,992.00
+  row 6 6 || SKU-1011 || Whiteboard Marker || 11 || pcs || 2.90 || 31.90
+  row 7 7 || SKU-1001 || Wireless Mouse || 14 || pcs || 19.90 || 278.60
+  row 8 8 || SKU-1011 || Whiteboard Marker || 10 || pcs || 2.90 || 29.00
+  row 9 9 || SKU-1006 || Office Chair || 4 || pcs || 145.00 || 580.00
+[31] p 
+Order subtotal: 8,634.30 USD
+[32] p 
+Order SO-2026-0006
+[33] p 
+Date: 06 Sep 2026    Customer: Orion Tech Partners
+[34] p 
+Lines: 6    Order total: 2,889.95 USD
+[35] tbl 
+  row 0 # || SKU || Description || Qty || Unit || Unit price || Line total
+  row 1 1 || SKU-1014 || Label Rolls || 7 || roll || 6.75 || 47.25
+  row 2 2 || SKU-1010 || Ethernet Cable 5m || 2 || pcs || 8.60 || 17.20
+  row 3 3 || SKU-1013 || Keyboard || 15 || pcs || 38.00 || 570.00
+  row 4 4 || SKU-1003 || Notebook A5 || 14 || pcs || 4.25 || 59.50
+  row 5 5 || SKU-1013 || Keyboard || 12 || pcs || 38.00 || 456.00
+  row 6 6 || SKU-1006 || Office Chair || 12 || pcs || 145.00 || 1,740.00
+[36] p 
+Order subtotal: 2,889.95 USD
+[37] p 
+Order SO-2026-0007
+[38] p 
+Date: 07 Sep 2026    Customer: Maple Street Market
+[39] p 
+Lines: 9    Order total: 1,865.55 USD
+[40] tbl 
+  row 0 # || SKU || Description || Qty || Unit || Unit price || Line total
+  row 1 1 || SKU-1013 || Keyboard || 10 || pcs || 38.00 || 380.00
+  row 2 2 || SKU-1009 || Storage Box || 5 || pcs || 12.40 || 62.00
+  row 3 3 || SKU-1008 || Printer Paper A4 || 7 || pack || 7.25 || 50.75
+  row 4 4 || SKU-1008 || Printer Paper A4 || 2 || pack || 7.25 || 14.50
+  row 5 5 || SKU-1013 || Keyboard || 4 || pcs || 38.00 || 152.00
+  row 6 6 || SKU-1008 || Printer Paper A4 || 2 || pack || 7.25 || 14.50
+  row 7 7 || SKU-1002 || USB-C Docking Station || 13 || pcs || 89.00 || 1,157.00
+  row 8 8 || SKU-1011 || Whiteboard Marker || 3 || pcs || 2.90 || 8.70
+  row 9 9 || SKU-1011 || Whiteboard Marker || 9 || pcs || 2.90 || 26.10
+[41] p 
+Order subtotal: 1,865.55 USD
+[42] p 
+Order SO-2026-0008
+[43] p 
+Date: 08 Sep 2026    Customer: Riverbend Logistics
+[44] p 
+Lines: 6    Order total: 454.50 USD
+[45] tbl 
+  row 0 # || SKU || Description || Qty || Unit || Unit price || Line total
+  row 1 1 || SKU-1014 || Label Rolls || 12 || roll || 6.75 || 81.00
+  row 2 2 || SKU-1014 || Label Rolls || 6 || roll || 6.75 || 40.50
+  row 3 3 || SKU-1008 || Printer Paper A4 || 4 || pack || 7.25 || 29.00
+  row 4 4 || SKU-1002 || USB-C Docking Station || 2 || pcs || 89.00 || 178.00
+  row 5 5 || SKU-1003 || Notebook A5 || 8 || pcs || 4.25 || 34.00
+  row 6 6 || SKU-1005 || HDMI Cable 2m || 8 || pcs || 11.50 || 92.00
+[46] p 
+Order subtotal: 454.50 USD
+[47] p 
+Order SO-2026-0009
+[48] p 
+Date: 09 Sep 2026    Customer: Atlas Office Group
+[49] p 
+Lines: 10    Order total: 4,970.70 USD
+[50] tbl 
+  row 0 # || SKU || Description || Qty || Unit || Unit price || Line total
+  row 1 1 || SKU-1001 || Wireless Mouse || 15 || pcs || 19.90 || 298.50
+  row 2 2 || SKU-1003 || Notebook A5 || 6 || pcs || 4.25 || 25.50
+  row 3 3 || SKU-1013 || Keyboard || 12 || pcs || 38.00 || 456.00
+  row 4 4 || SKU-1001 || Wireless Mouse || 13 || pcs || 19.90 || 258.70
+  row 5 5 || SKU-1002 || USB-C Docking Station || 11 || pcs || 89.00 || 979.00
+  row 6 6 || SKU-1007 || Desk Lamp || 4 || pcs || 34.50 || 138.00
+  row 7 7 || SKU-1002 || USB-C Docking Station || 2 || pcs || 89.00 || 178.00
+  row 8 8 || SKU-1012 || Monitor 27-inch || 10 || pcs || 249.00 || 2,490.00
+  row 9 9 || SKU-1010 || Ethernet Cable 5m || 7 || pcs || 8.60 || 60.20
+  row 10 10 || SKU-1009 || Storage Box || 7 || pcs || 12.40 || 86.80
+[51] p 
+Order subtotal: 4,970.70 USD
+[52] p 
+Order SO-2026-0010
+[53] p 
+Date: 10 Sep 2026    Customer: Silverline Distribution
+[54] p 
+Lines: 5    Order total: 1,501.55 USD
+[55] tbl 
+  row 0 # || SKU || Description || Qty || Unit || Unit price || Line total
+  row 1 1 || SKU-1002 || USB-C Docking Station || 5 || pcs || 89.00 || 445.00
+  row 2 2 || SKU-1010 || Ethernet Cable 5m || 13 || pcs || 8.60 || 111.80
+  row 3 3 || SKU-1008 || Printer Paper A4 || 13 || pack || 7.25 || 94.25
+  row 4 4 || SKU-1007 || Desk Lamp || 16 || pcs || 34.50 || 552.00
+  row 5 5 || SKU-1001 || Wireless Mouse || 15 || pcs || 19.90 || 298.50
+[56] p 
+Order subtotal: 1,501.55 USD
+[57] p 
+Order SO-2026-0011
+[58] p 
+Date: 11 Sep 2026    Customer: Northwind Retail Ltd.
+[59] p 
+Lines: 9    Order total: 4,838.40 USD
+[60] tbl 
+  row 0 # || SKU || Description || Qty || Unit || Unit price || Line total
+  row 1 1 || SKU-1011 || Whiteboard Marker || 4 || pcs || 2.90 || 11.60
+  row 2 2 || SKU-1004 || Packing Tape || 13 || roll || 3.80 || 49.40
+  row 3 3 || SKU-1008 || Printer Paper A4 || 2 || pack || 7.25 || 14.50
+  row 4 4 || SKU-1008 || Printer Paper A4 || 4 || pack || 7.25 || 29.00
+  row 5 5 || SKU-1012 || Monitor 27-inch || 10 || pcs || 249.00 || 2,490.00
+  row 6 6 || SKU-1003 || Notebook A5 || 4 || pcs || 4.25 || 17.00
+  row 7 7 || SKU-1002 || USB-C Docking Station || 10 || pcs || 89.00 || 890.00
+  row 8 8 || SKU-1011 || Whiteboard Marker || 11 || pcs || 2.90 || 31.90
+  row 9 9 || SKU-1006 || Office Chair || 9 || pcs || 145.00 || 1,305.00
+[61] p 
+Order subtotal: 4,838.40 USD
+[62] p 
+Order SO-2026-0012
+[63] p 
+Date: 12 Sep 2026    Customer: Blue Harbor Supplies
+[64] p 
+Lines: 10    Order total: 5,593.15 USD
+[65] tbl 
+  row 0 # || SKU || Description || Qty || Unit || Unit price || Line total
+  row 1 1 || SKU-1007 || Desk Lamp || 7 || pcs || 34.50 || 241.50
+  row 2 2 || SKU-1001 || Wireless Mouse || 11 || pcs || 19.90 || 218.90
+  row 3 3 || SKU-1007 || Desk Lamp || 7 || pcs || 34.50 || 241.50
+  row 4 4 || SKU-1008 || Printer Paper A4 || 10 || pack || 7.25 || 72.50
+  row 5 5 || SKU-1006 || Office Chair || 2 || pcs || 145.00 || 290.00
+  row 6 6 || SKU-1012 || Monitor 27-inch || 14 || pcs || 249.00 || 3,486.00
+  row 7 7 || SKU-1014 || Label Rolls || 3 || roll || 6.75 || 20.25
+  row 8 8 || SKU-1008 || Printer Paper A4 || 4 || pack || 7.25 || 29.00
+  row 9 9 || SKU-1007 || Desk Lamp || 3 || pcs || 34.50 || 103.50
+  row 10 10 || SKU-1002 || USB-C Docking Station || 10 || pcs || 89.00 || 890.00
+[66] p 
+Order subtotal: 5,593.15 USD
+[67] p 
+Order SO-2026-0013
+[68] p 
+Date: 13 Sep 2026    Customer: Cedar & Co.
+[69] p 
+Lines: 8    Order total: 5,658.15 USD
+[70] tbl 
+  row 0 # || SKU || Description || Qty || Unit || Unit price || Line total
+  row 1 1 || SKU-1007 || Desk Lamp || 15 || pcs || 34.50 || 517.50
+  row 2 2 || SKU-1012 || Monitor 27-inch || 5 || pcs || 249.00 || 1,245.00
+  row 3 3 || SKU-1014 || Label Rolls || 1 || roll || 6.75 || 6.75
+  row 4 4 || SKU-1014 || Label Rolls || 8 || roll || 6.75 || 54.00
+  row 5 5 || SKU-1001 || Wireless Mouse || 5 || pcs || 19.90 || 99.50
+  row 6 6 || SKU-1012 || Monitor 27-inch || 11 || pcs || 249.00 || 2,739.00
+  row 7 7 || SKU-1002 || USB-C Docking Station || 11 || pcs || 89.00 || 979.00
+  row 8 8 || SKU-1011 || Whiteboard Marker || 6 || pcs || 2.90 || 17.40
+[71] p 
+Order subtotal: 5,658.15 USD
+[72] p 
+Order SO-2026-0014
+[73] p 
+Date: 14 Sep 2026    Customer: Summit Trading LLC
+[74] p 
+Lines: 5    Order total: 1,422.70 USD
+[75] tbl 
+  row 0 # || SKU || Description || Qty || Unit || Unit price || Line total
+  row 1 1 || SKU-1010 || Ethernet Cable 5m || 5 || pcs || 8.60 || 43.00
+  row 2 2 || SKU-1004 || Packing Tape || 4 || roll || 3.80 || 15.20
+  row 3 3 || SKU-1009 || Storage Box || 8 || pcs || 12.40 || 99.20
+  row 4 4 || SKU-1012 || Monitor 27-inch || 5 || pcs || 249.00 || 1,245.00
+  row 5 5 || SKU-1011 || Whiteboard Marker || 7 || pcs || 2.90 || 20.30
+[76] p 
+Order subtotal: 1,422.70 USD
+[77] p 
+Order SO-2026-0015
+[78] p 
+Date: 15 Sep 2026    Customer: Greenfield Services
+[79] p 
+Lines: 6    Order total: 3,490.90 USD
+[80] tbl 
+  row 0 # || SKU || Description || Qty || Unit || Unit price || Line total
+  row 1 1 || SKU-1010 || Ethernet Cable 5m || 4 || pcs || 8.60 || 34.40
+  row 2 2 || SKU-1013 || Keyboard || 12 || pcs || 38.00 || 456.00
+  row 3 3 || SKU-1002 || USB-C Docking Station || 13 || pcs || 89.00 || 1,157.00
+  row 4 4 || SKU-1007 || Desk Lamp || 7 || pcs || 34.50 || 241.50
+  row 5 5 || SKU-1002 || USB-C Docking Station || 3 || pcs || 89.00 || 267.00
+  row 6 6 || SKU-1002 || USB-C Docking Station || 15 || pcs || 89.00 || 1,335.00
+[81] p 
+Order subtotal: 3,490.90 USD
+[82] p 
+Order SO-2026-0016
+[83] p 
+Date: 16 Sep 2026    Customer: Orion Tech Partners
+[84] p 
+Lines: 7    Order total: 943.25 USD
+[85] tbl 
+  row 0 # || SKU || Description || Qty || Unit || Unit price || Line total
+  row 1 1 || SKU-1004 || Packing Tape || 5 || roll || 3.80 || 19.00
+  row 2 2 || SKU-1005 || HDMI Cable 2m || 15 || pcs || 11.50 || 172.50
+  row 3 3 || SKU-1003 || Notebook A5 || 14 || pcs || 4.25 || 59.50
+  row 4 4 || SKU-1007 || Desk Lamp || 16 || pcs || 34.50 || 552.00
+  row 5 5 || SKU-1003 || Notebook A5 || 2 || pcs || 4.25 || 8.50
+  row 6 6 || SKU-1008 || Printer Paper A4 || 15 || pack || 7.25 || 108.75
+  row 7 7 || SKU-1005 || HDMI Cable 2m || 2 || pcs || 11.50 || 23.00
+[86] p 
+Order subtotal: 943.25 USD
+[87] p 
+Order SO-2026-0017
+[88] p 
+Date: 17 Sep 2026    Customer: Maple Street Market
+[89] p 
+Lines: 5    Order total: 1,112.75 USD
+[90] tbl 
+  row 0 # || SKU || Description || Qty || Unit || Unit price || Line total
+  row 1 1 || SKU-1012 || Monitor 27-inch || 4 || pcs || 249.00 || 996.00
+  row 2 2 || SKU-1003 || Notebook A5 || 2 || pcs || 4.25 || 8.50
+  row 3 3 || SKU-1013 || Keyboard || 2 || pcs || 38.00 || 76.00
+  row 4 4 || SKU-1014 || Label Rolls || 1 || roll || 6.75 || 6.75
+  row 5 5 || SKU-1003 || Notebook A5 || 6 || pcs || 4.25 || 25.50
+[91] p 
+Order subtotal: 1,112.75 USD
+[92] p 
+Order SO-2026-0018
+[93] p 
+Date: 18 Sep 2026    Customer: Riverbend Logistics
+[94] p 
+Lines: 7    Order total: 682.20 USD
+[95] tbl 
+  row 0 # || SKU || Description || Qty || Unit || Unit price || Line total
+  row 1 1 || SKU-1009 || Storage Box || 7 || pcs || 12.40 || 86.80
+  row 2 2 || SKU-1008 || Printer Paper A4 || 16 || pack || 7.25 || 116.00
+  row 3 3 || SKU-1004 || Packing Tape || 3 || roll || 3.80 || 11.40
+  row 4 4 || SKU-1007 || Desk Lamp || 1 || pcs || 34.50 || 34.50
+  row 5 5 || SKU-1005 || HDMI Cable 2m || 15 || pcs || 11.50 || 172.50
+  row 6 6 || SKU-1014 || Label Rolls || 8 || roll || 6.75 || 54.00
+  row 7 7 || SKU-1007 || Desk Lamp || 6 || pcs || 34.50 || 207.00
+[96] p 
+Order subtotal: 682.20 USD
+[97] p 
+Order SO-2026-0019
+[98] p 
+Date: 19 Sep 2026    Customer: Atlas Office Group
+[99] p 
+Lines: 9    Order total: 1,659.35 USD
+[100] tbl 
+  row 0 # || SKU || Description || Qty || Unit || Unit price || Line total
+  row 1 1 || SKU-1011 || Whiteboard Marker || 4 || pcs || 2.90 || 11.60
+  row 2 2 || SKU-1013 || Keyboard || 14 || pcs || 38.00 || 532.00
+  row 3 3 || SKU-1011 || Whiteboard Marker || 8 || pcs || 2.90 || 23.20
+  row 4 4 || SKU-1007 || Desk Lamp || 9 || pcs || 34.50 || 310.50
+  row 5 5 || SKU-1004 || Packing Tape || 6 || roll || 3.80 || 22.80
+  row 6 6 || SKU-1007 || Desk Lamp || 8 || pcs || 34.50 || 276.00
+  row 7 7 || SKU-1001 || Wireless Mouse || 5 || pcs || 19.90 || 99.50
+  row 8 8 || SKU-1008 || Printer Paper A4 || 11 || pack || 7.25 || 79.75
+  row 9 9 || SKU-1013 || Keyboard || 8 || pcs || 38.00 || 304.00
+[101] p 
+Order subtotal: 1,659.35 USD
+[102] p 
+Order SO-2026-0020
+[103] p 
+Date: 20 Sep 2026    Customer: Silverline Distribution
+[104] p 
+Lines: 9    Order total: 1,650.65 USD
+[105] tbl 
+  row 0 # || SKU || Description || Qty || Unit || Unit price || Line total
+  row 1 1 || SKU-1011 || Whiteboard Marker || 4 || pcs || 2.90 || 11.60
+  row 2 2 || SKU-1003 || Notebook A5 || 11 || pcs || 4.25 || 46.75
+  row 3 3 || SKU-1012 || Monitor 27-inch || 4 || pcs || 249.00 || 996.00
+  row 4 4 || SKU-1011 || Whiteboard Marker || 11 || pcs || 2.90 || 31.90
+  row 5 5 || SKU-1004 || Packing Tape || 11 || roll || 3.80 || 41.80
+  row 6 6 || SKU-1001 || Wireless Mouse || 11 || pcs || 19.90 || 218.90
+  row 7 7 || SKU-1004 || Packing Tape || 14 || roll || 3.80 || 53.20
+  row 8 8 || SKU-1007 || Desk Lamp || 6 || pcs || 34.50 || 207.00
+  row 9 9 || SKU-1011 || Whiteboard Marker || 15 || pcs || 2.90 || 43.50
+[106] p 
+Order subtotal: 1,650.65 USD
+[107] p 
+REPORT TOTAL: 60,206.90 USD
+[108] sectPr 

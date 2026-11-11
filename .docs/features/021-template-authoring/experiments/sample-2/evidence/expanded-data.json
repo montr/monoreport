@@ -1,0 +1,1036 @@
+{
+  "Organization": "Sample 2 Verification Ltd.",
+  "Warehouse": {
+    "Name": "Central Fulfillment Warehouse",
+    "Address": "120 Commerce Road, Bristol, BS1 4ST, United Kingdom"
+  },
+  "Period": {
+    "Start": "2026-09-01",
+    "End": "2026-09-30"
+  },
+  "Currency": "EUR",
+  "OrderCount": 24,
+  "Total": "17756.70",
+  "Orders": [
+    {
+      "Number": "VERIFY-001",
+      "Date": "2026-09-01",
+      "Customer": "Customer 001 & Partners",
+      "LineCount": 0,
+      "Total": "0.00",
+      "Lines": []
+    },
+    {
+      "Number": "VERIFY-002",
+      "Date": "2026-09-02",
+      "Customer": "Customer 002 & Partners",
+      "LineCount": 1,
+      "Total": "14.50",
+      "Lines": [
+        {
+          "Number": 1,
+          "Sku": "SKU-1008",
+          "Description": "Printer Paper A4",
+          "Quantity": 2,
+          "Unit": "pack",
+          "UnitPrice": "7.25",
+          "Total": "14.50"
+        }
+      ]
+    },
+    {
+      "Number": "VERIFY-003",
+      "Date": "2026-09-03",
+      "Customer": "Customer 003 & Partners",
+      "LineCount": 2,
+      "Total": "172.50",
+      "Lines": [
+        {
+          "Number": 1,
+          "Sku": "SKU-1007",
+          "Description": "Desk Lamp",
+          "Quantity": 2,
+          "Unit": "pcs",
+          "UnitPrice": "34.50",
+          "Total": "69.00"
+        },
+        {
+          "Number": 2,
+          "Sku": "SKU-1007",
+          "Description": "Desk Lamp",
+          "Quantity": 3,
+          "Unit": "pcs",
+          "UnitPrice": "34.50",
+          "Total": "103.50"
+        }
+      ]
+    },
+    {
+      "Number": "VERIFY-004",
+      "Date": "2026-09-04",
+      "Customer": "Customer 004 & Partners",
+      "LineCount": 12,
+      "Total": "1904.70",
+      "Lines": [
+        {
+          "Number": 1,
+          "Sku": "SKU-1004",
+          "Description": "Packing Tape",
+          "Quantity": 2,
+          "Unit": "roll",
+          "UnitPrice": "3.80",
+          "Total": "7.60"
+        },
+        {
+          "Number": 2,
+          "Sku": "SKU-1007",
+          "Description": "Desk Lamp",
+          "Quantity": 3,
+          "Unit": "pcs",
+          "UnitPrice": "34.50",
+          "Total": "103.50"
+        },
+        {
+          "Number": 3,
+          "Sku": "SKU-1009",
+          "Description": "Storage Box",
+          "Quantity": 4,
+          "Unit": "pcs",
+          "UnitPrice": "12.40",
+          "Total": "49.60"
+        },
+        {
+          "Number": 4,
+          "Sku": "SKU-1007",
+          "Description": "Desk Lamp",
+          "Quantity": 5,
+          "Unit": "pcs",
+          "UnitPrice": "34.50",
+          "Total": "172.50"
+        },
+        {
+          "Number": 5,
+          "Sku": "SKU-1001",
+          "Description": "Wireless Mouse",
+          "Quantity": 6,
+          "Unit": "pcs",
+          "UnitPrice": "19.90",
+          "Total": "119.40"
+        },
+        {
+          "Number": 6,
+          "Sku": "SKU-1002",
+          "Description": "USB-C Docking Station",
+          "Quantity": 7,
+          "Unit": "pcs",
+          "UnitPrice": "89.00",
+          "Total": "623.00"
+        },
+        {
+          "Number": 7,
+          "Sku": "SKU-1008",
+          "Description": "Printer Paper A4",
+          "Quantity": 8,
+          "Unit": "pack",
+          "UnitPrice": "7.25",
+          "Total": "58.00"
+        },
+        {
+          "Number": 8,
+          "Sku": "SKU-1009",
+          "Description": "Storage Box",
+          "Quantity": 9,
+          "Unit": "pcs",
+          "UnitPrice": "12.40",
+          "Total": "111.60"
+        },
+        {
+          "Number": 9,
+          "Sku": "SKU-1003",
+          "Description": "Notebook A5",
+          "Quantity": 10,
+          "Unit": "pcs",
+          "UnitPrice": "4.25",
+          "Total": "42.50"
+        },
+        {
+          "Number": 10,
+          "Sku": "SKU-1004",
+          "Description": "Packing Tape",
+          "Quantity": 11,
+          "Unit": "roll",
+          "UnitPrice": "3.80",
+          "Total": "41.80"
+        },
+        {
+          "Number": 11,
+          "Sku": "SKU-1007",
+          "Description": "Desk Lamp",
+          "Quantity": 12,
+          "Unit": "pcs",
+          "UnitPrice": "34.50",
+          "Total": "414.00"
+        },
+        {
+          "Number": 12,
+          "Sku": "SKU-1009",
+          "Description": "Storage Box",
+          "Quantity": 13,
+          "Unit": "pcs",
+          "UnitPrice": "12.40",
+          "Total": "161.20"
+        }
+      ]
+    },
+    {
+      "Number": "VERIFY-005",
+      "Date": "2026-09-05",
+      "Customer": "Customer 005 & Partners",
+      "LineCount": 0,
+      "Total": "0.00",
+      "Lines": []
+    },
+    {
+      "Number": "VERIFY-006",
+      "Date": "2026-09-06",
+      "Customer": "Customer 006 & Partners",
+      "LineCount": 1,
+      "Total": "13.50",
+      "Lines": [
+        {
+          "Number": 1,
+          "Sku": "SKU-1014",
+          "Description": "Label Rolls",
+          "Quantity": 2,
+          "Unit": "roll",
+          "UnitPrice": "6.75",
+          "Total": "13.50"
+        }
+      ]
+    },
+    {
+      "Number": "VERIFY-007",
+      "Date": "2026-09-07",
+      "Customer": "Customer 007 & Partners",
+      "LineCount": 2,
+      "Total": "113.20",
+      "Lines": [
+        {
+          "Number": 1,
+          "Sku": "SKU-1013",
+          "Description": "Keyboard",
+          "Quantity": 2,
+          "Unit": "pcs",
+          "UnitPrice": "38.00",
+          "Total": "76.00"
+        },
+        {
+          "Number": 2,
+          "Sku": "SKU-1009",
+          "Description": "Storage Box",
+          "Quantity": 3,
+          "Unit": "pcs",
+          "UnitPrice": "12.40",
+          "Total": "37.20"
+        }
+      ]
+    },
+    {
+      "Number": "VERIFY-008",
+      "Date": "2026-09-08",
+      "Customer": "Customer 008 & Partners",
+      "LineCount": 12,
+      "Total": "1980.50",
+      "Lines": [
+        {
+          "Number": 1,
+          "Sku": "SKU-1014",
+          "Description": "Label Rolls",
+          "Quantity": 2,
+          "Unit": "roll",
+          "UnitPrice": "6.75",
+          "Total": "13.50"
+        },
+        {
+          "Number": 2,
+          "Sku": "SKU-1014",
+          "Description": "Label Rolls",
+          "Quantity": 3,
+          "Unit": "roll",
+          "UnitPrice": "6.75",
+          "Total": "20.25"
+        },
+        {
+          "Number": 3,
+          "Sku": "SKU-1008",
+          "Description": "Printer Paper A4",
+          "Quantity": 4,
+          "Unit": "pack",
+          "UnitPrice": "7.25",
+          "Total": "29.00"
+        },
+        {
+          "Number": 4,
+          "Sku": "SKU-1002",
+          "Description": "USB-C Docking Station",
+          "Quantity": 5,
+          "Unit": "pcs",
+          "UnitPrice": "89.00",
+          "Total": "445.00"
+        },
+        {
+          "Number": 5,
+          "Sku": "SKU-1003",
+          "Description": "Notebook A5",
+          "Quantity": 6,
+          "Unit": "pcs",
+          "UnitPrice": "4.25",
+          "Total": "25.50"
+        },
+        {
+          "Number": 6,
+          "Sku": "SKU-1005",
+          "Description": "HDMI Cable 2m",
+          "Quantity": 7,
+          "Unit": "pcs",
+          "UnitPrice": "11.50",
+          "Total": "80.50"
+        },
+        {
+          "Number": 7,
+          "Sku": "SKU-1014",
+          "Description": "Label Rolls",
+          "Quantity": 8,
+          "Unit": "roll",
+          "UnitPrice": "6.75",
+          "Total": "54.00"
+        },
+        {
+          "Number": 8,
+          "Sku": "SKU-1014",
+          "Description": "Label Rolls",
+          "Quantity": 9,
+          "Unit": "roll",
+          "UnitPrice": "6.75",
+          "Total": "60.75"
+        },
+        {
+          "Number": 9,
+          "Sku": "SKU-1008",
+          "Description": "Printer Paper A4",
+          "Quantity": 10,
+          "Unit": "pack",
+          "UnitPrice": "7.25",
+          "Total": "72.50"
+        },
+        {
+          "Number": 10,
+          "Sku": "SKU-1002",
+          "Description": "USB-C Docking Station",
+          "Quantity": 11,
+          "Unit": "pcs",
+          "UnitPrice": "89.00",
+          "Total": "979.00"
+        },
+        {
+          "Number": 11,
+          "Sku": "SKU-1003",
+          "Description": "Notebook A5",
+          "Quantity": 12,
+          "Unit": "pcs",
+          "UnitPrice": "4.25",
+          "Total": "51.00"
+        },
+        {
+          "Number": 12,
+          "Sku": "SKU-1005",
+          "Description": "HDMI Cable 2m",
+          "Quantity": 13,
+          "Unit": "pcs",
+          "UnitPrice": "11.50",
+          "Total": "149.50"
+        }
+      ]
+    },
+    {
+      "Number": "VERIFY-009",
+      "Date": "2026-09-09",
+      "Customer": "Customer 009 & Partners",
+      "LineCount": 0,
+      "Total": "0.00",
+      "Lines": []
+    },
+    {
+      "Number": "VERIFY-010",
+      "Date": "2026-09-10",
+      "Customer": "Customer 010 & Partners",
+      "LineCount": 1,
+      "Total": "178.00",
+      "Lines": [
+        {
+          "Number": 1,
+          "Sku": "SKU-1002",
+          "Description": "USB-C Docking Station",
+          "Quantity": 2,
+          "Unit": "pcs",
+          "UnitPrice": "89.00",
+          "Total": "178.00"
+        }
+      ]
+    },
+    {
+      "Number": "VERIFY-011",
+      "Date": "2026-09-11",
+      "Customer": "Customer 011 & Partners",
+      "LineCount": 2,
+      "Total": "17.20",
+      "Lines": [
+        {
+          "Number": 1,
+          "Sku": "SKU-1011",
+          "Description": "Whiteboard Marker",
+          "Quantity": 2,
+          "Unit": "pcs",
+          "UnitPrice": "2.90",
+          "Total": "5.80"
+        },
+        {
+          "Number": 2,
+          "Sku": "SKU-1004",
+          "Description": "Packing Tape",
+          "Quantity": 3,
+          "Unit": "roll",
+          "UnitPrice": "3.80",
+          "Total": "11.40"
+        }
+      ]
+    },
+    {
+      "Number": "VERIFY-012",
+      "Date": "2026-09-12",
+      "Customer": "Customer 012 & Partners",
+      "LineCount": 12,
+      "Total": "5031.90",
+      "Lines": [
+        {
+          "Number": 1,
+          "Sku": "SKU-1007",
+          "Description": "Desk Lamp",
+          "Quantity": 2,
+          "Unit": "pcs",
+          "UnitPrice": "34.50",
+          "Total": "69.00"
+        },
+        {
+          "Number": 2,
+          "Sku": "SKU-1001",
+          "Description": "Wireless Mouse",
+          "Quantity": 3,
+          "Unit": "pcs",
+          "UnitPrice": "19.90",
+          "Total": "59.70"
+        },
+        {
+          "Number": 3,
+          "Sku": "SKU-1007",
+          "Description": "Desk Lamp",
+          "Quantity": 4,
+          "Unit": "pcs",
+          "UnitPrice": "34.50",
+          "Total": "138.00"
+        },
+        {
+          "Number": 4,
+          "Sku": "SKU-1008",
+          "Description": "Printer Paper A4",
+          "Quantity": 5,
+          "Unit": "pack",
+          "UnitPrice": "7.25",
+          "Total": "36.25"
+        },
+        {
+          "Number": 5,
+          "Sku": "SKU-1006",
+          "Description": "Office Chair",
+          "Quantity": 6,
+          "Unit": "pcs",
+          "UnitPrice": "145.00",
+          "Total": "870.00"
+        },
+        {
+          "Number": 6,
+          "Sku": "SKU-1012",
+          "Description": "Monitor 27-inch",
+          "Quantity": 7,
+          "Unit": "pcs",
+          "UnitPrice": "249.00",
+          "Total": "1743.00"
+        },
+        {
+          "Number": 7,
+          "Sku": "SKU-1014",
+          "Description": "Label Rolls",
+          "Quantity": 8,
+          "Unit": "roll",
+          "UnitPrice": "6.75",
+          "Total": "54.00"
+        },
+        {
+          "Number": 8,
+          "Sku": "SKU-1008",
+          "Description": "Printer Paper A4",
+          "Quantity": 9,
+          "Unit": "pack",
+          "UnitPrice": "7.25",
+          "Total": "65.25"
+        },
+        {
+          "Number": 9,
+          "Sku": "SKU-1007",
+          "Description": "Desk Lamp",
+          "Quantity": 10,
+          "Unit": "pcs",
+          "UnitPrice": "34.50",
+          "Total": "345.00"
+        },
+        {
+          "Number": 10,
+          "Sku": "SKU-1002",
+          "Description": "USB-C Docking Station",
+          "Quantity": 11,
+          "Unit": "pcs",
+          "UnitPrice": "89.00",
+          "Total": "979.00"
+        },
+        {
+          "Number": 11,
+          "Sku": "SKU-1007",
+          "Description": "Desk Lamp",
+          "Quantity": 12,
+          "Unit": "pcs",
+          "UnitPrice": "34.50",
+          "Total": "414.00"
+        },
+        {
+          "Number": 12,
+          "Sku": "SKU-1001",
+          "Description": "Wireless Mouse",
+          "Quantity": 13,
+          "Unit": "pcs",
+          "UnitPrice": "19.90",
+          "Total": "258.70"
+        }
+      ]
+    },
+    {
+      "Number": "VERIFY-013",
+      "Date": "2026-09-13",
+      "Customer": "Customer 013 & Partners",
+      "LineCount": 0,
+      "Total": "0.00",
+      "Lines": []
+    },
+    {
+      "Number": "VERIFY-014",
+      "Date": "2026-09-14",
+      "Customer": "Customer 014 & Partners",
+      "LineCount": 1,
+      "Total": "17.20",
+      "Lines": [
+        {
+          "Number": 1,
+          "Sku": "SKU-1010",
+          "Description": "Ethernet Cable 5m",
+          "Quantity": 2,
+          "Unit": "pcs",
+          "UnitPrice": "8.60",
+          "Total": "17.20"
+        }
+      ]
+    },
+    {
+      "Number": "VERIFY-015",
+      "Date": "2026-09-15",
+      "Customer": "Customer 015 & Partners",
+      "LineCount": 2,
+      "Total": "131.20",
+      "Lines": [
+        {
+          "Number": 1,
+          "Sku": "SKU-1010",
+          "Description": "Ethernet Cable 5m",
+          "Quantity": 2,
+          "Unit": "pcs",
+          "UnitPrice": "8.60",
+          "Total": "17.20"
+        },
+        {
+          "Number": 2,
+          "Sku": "SKU-1013",
+          "Description": "Keyboard",
+          "Quantity": 3,
+          "Unit": "pcs",
+          "UnitPrice": "38.00",
+          "Total": "114.00"
+        }
+      ]
+    },
+    {
+      "Number": "VERIFY-016",
+      "Date": "2026-09-16",
+      "Customer": "Customer 016 & Partners",
+      "LineCount": 12,
+      "Total": "1065.05",
+      "Lines": [
+        {
+          "Number": 1,
+          "Sku": "SKU-1004",
+          "Description": "Packing Tape",
+          "Quantity": 2,
+          "Unit": "roll",
+          "UnitPrice": "3.80",
+          "Total": "7.60"
+        },
+        {
+          "Number": 2,
+          "Sku": "SKU-1005",
+          "Description": "HDMI Cable 2m",
+          "Quantity": 3,
+          "Unit": "pcs",
+          "UnitPrice": "11.50",
+          "Total": "34.50"
+        },
+        {
+          "Number": 3,
+          "Sku": "SKU-1003",
+          "Description": "Notebook A5",
+          "Quantity": 4,
+          "Unit": "pcs",
+          "UnitPrice": "4.25",
+          "Total": "17.00"
+        },
+        {
+          "Number": 4,
+          "Sku": "SKU-1007",
+          "Description": "Desk Lamp",
+          "Quantity": 5,
+          "Unit": "pcs",
+          "UnitPrice": "34.50",
+          "Total": "172.50"
+        },
+        {
+          "Number": 5,
+          "Sku": "SKU-1003",
+          "Description": "Notebook A5",
+          "Quantity": 6,
+          "Unit": "pcs",
+          "UnitPrice": "4.25",
+          "Total": "25.50"
+        },
+        {
+          "Number": 6,
+          "Sku": "SKU-1008",
+          "Description": "Printer Paper A4",
+          "Quantity": 7,
+          "Unit": "pack",
+          "UnitPrice": "7.25",
+          "Total": "50.75"
+        },
+        {
+          "Number": 7,
+          "Sku": "SKU-1005",
+          "Description": "HDMI Cable 2m",
+          "Quantity": 8,
+          "Unit": "pcs",
+          "UnitPrice": "11.50",
+          "Total": "92.00"
+        },
+        {
+          "Number": 8,
+          "Sku": "SKU-1004",
+          "Description": "Packing Tape",
+          "Quantity": 9,
+          "Unit": "roll",
+          "UnitPrice": "3.80",
+          "Total": "34.20"
+        },
+        {
+          "Number": 9,
+          "Sku": "SKU-1005",
+          "Description": "HDMI Cable 2m",
+          "Quantity": 10,
+          "Unit": "pcs",
+          "UnitPrice": "11.50",
+          "Total": "115.00"
+        },
+        {
+          "Number": 10,
+          "Sku": "SKU-1003",
+          "Description": "Notebook A5",
+          "Quantity": 11,
+          "Unit": "pcs",
+          "UnitPrice": "4.25",
+          "Total": "46.75"
+        },
+        {
+          "Number": 11,
+          "Sku": "SKU-1007",
+          "Description": "Desk Lamp",
+          "Quantity": 12,
+          "Unit": "pcs",
+          "UnitPrice": "34.50",
+          "Total": "414.00"
+        },
+        {
+          "Number": 12,
+          "Sku": "SKU-1003",
+          "Description": "Notebook A5",
+          "Quantity": 13,
+          "Unit": "pcs",
+          "UnitPrice": "4.25",
+          "Total": "55.25"
+        }
+      ]
+    },
+    {
+      "Number": "VERIFY-017",
+      "Date": "2026-09-17",
+      "Customer": "Customer 017 & Partners",
+      "LineCount": 0,
+      "Total": "0.00",
+      "Lines": []
+    },
+    {
+      "Number": "VERIFY-018",
+      "Date": "2026-09-18",
+      "Customer": "Customer 018 & Partners",
+      "LineCount": 1,
+      "Total": "24.80",
+      "Lines": [
+        {
+          "Number": 1,
+          "Sku": "SKU-1009",
+          "Description": "Storage Box",
+          "Quantity": 2,
+          "Unit": "pcs",
+          "UnitPrice": "12.40",
+          "Total": "24.80"
+        }
+      ]
+    },
+    {
+      "Number": "VERIFY-019",
+      "Date": "2026-09-19",
+      "Customer": "Customer 019 & Partners",
+      "LineCount": 2,
+      "Total": "119.80",
+      "Lines": [
+        {
+          "Number": 1,
+          "Sku": "SKU-1011",
+          "Description": "Whiteboard Marker",
+          "Quantity": 2,
+          "Unit": "pcs",
+          "UnitPrice": "2.90",
+          "Total": "5.80"
+        },
+        {
+          "Number": 2,
+          "Sku": "SKU-1013",
+          "Description": "Keyboard",
+          "Quantity": 3,
+          "Unit": "pcs",
+          "UnitPrice": "38.00",
+          "Total": "114.00"
+        }
+      ]
+    },
+    {
+      "Number": "VERIFY-020",
+      "Date": "2026-09-20",
+      "Customer": "Customer 020 & Partners",
+      "LineCount": 12,
+      "Total": "4880.95",
+      "Lines": [
+        {
+          "Number": 1,
+          "Sku": "SKU-1011",
+          "Description": "Whiteboard Marker",
+          "Quantity": 2,
+          "Unit": "pcs",
+          "UnitPrice": "2.90",
+          "Total": "5.80"
+        },
+        {
+          "Number": 2,
+          "Sku": "SKU-1003",
+          "Description": "Notebook A5",
+          "Quantity": 3,
+          "Unit": "pcs",
+          "UnitPrice": "4.25",
+          "Total": "12.75"
+        },
+        {
+          "Number": 3,
+          "Sku": "SKU-1012",
+          "Description": "Monitor 27-inch",
+          "Quantity": 4,
+          "Unit": "pcs",
+          "UnitPrice": "249.00",
+          "Total": "996.00"
+        },
+        {
+          "Number": 4,
+          "Sku": "SKU-1011",
+          "Description": "Whiteboard Marker",
+          "Quantity": 5,
+          "Unit": "pcs",
+          "UnitPrice": "2.90",
+          "Total": "14.50"
+        },
+        {
+          "Number": 5,
+          "Sku": "SKU-1004",
+          "Description": "Packing Tape",
+          "Quantity": 6,
+          "Unit": "roll",
+          "UnitPrice": "3.80",
+          "Total": "22.80"
+        },
+        {
+          "Number": 6,
+          "Sku": "SKU-1001",
+          "Description": "Wireless Mouse",
+          "Quantity": 7,
+          "Unit": "pcs",
+          "UnitPrice": "19.90",
+          "Total": "139.30"
+        },
+        {
+          "Number": 7,
+          "Sku": "SKU-1004",
+          "Description": "Packing Tape",
+          "Quantity": 8,
+          "Unit": "roll",
+          "UnitPrice": "3.80",
+          "Total": "30.40"
+        },
+        {
+          "Number": 8,
+          "Sku": "SKU-1007",
+          "Description": "Desk Lamp",
+          "Quantity": 9,
+          "Unit": "pcs",
+          "UnitPrice": "34.50",
+          "Total": "310.50"
+        },
+        {
+          "Number": 9,
+          "Sku": "SKU-1011",
+          "Description": "Whiteboard Marker",
+          "Quantity": 10,
+          "Unit": "pcs",
+          "UnitPrice": "2.90",
+          "Total": "29.00"
+        },
+        {
+          "Number": 10,
+          "Sku": "SKU-1011",
+          "Description": "Whiteboard Marker",
+          "Quantity": 11,
+          "Unit": "pcs",
+          "UnitPrice": "2.90",
+          "Total": "31.90"
+        },
+        {
+          "Number": 11,
+          "Sku": "SKU-1003",
+          "Description": "Notebook A5",
+          "Quantity": 12,
+          "Unit": "pcs",
+          "UnitPrice": "4.25",
+          "Total": "51.00"
+        },
+        {
+          "Number": 12,
+          "Sku": "SKU-1012",
+          "Description": "Monitor 27-inch",
+          "Quantity": 13,
+          "Unit": "pcs",
+          "UnitPrice": "249.00",
+          "Total": "3237.00"
+        }
+      ]
+    },
+    {
+      "Number": "VERIFY-021",
+      "Date": "2026-09-01",
+      "Customer": "Customer 021 & Partners",
+      "LineCount": 0,
+      "Total": "0.00",
+      "Lines": []
+    },
+    {
+      "Number": "VERIFY-022",
+      "Date": "2026-09-02",
+      "Customer": "Customer 022 & Partners",
+      "LineCount": 1,
+      "Total": "14.50",
+      "Lines": [
+        {
+          "Number": 1,
+          "Sku": "SKU-1008",
+          "Description": "Printer Paper A4",
+          "Quantity": 2,
+          "Unit": "pack",
+          "UnitPrice": "7.25",
+          "Total": "14.50"
+        }
+      ]
+    },
+    {
+      "Number": "VERIFY-023",
+      "Date": "2026-09-03",
+      "Customer": "Customer 023 & Partners",
+      "LineCount": 2,
+      "Total": "172.50",
+      "Lines": [
+        {
+          "Number": 1,
+          "Sku": "SKU-1007",
+          "Description": "Desk Lamp",
+          "Quantity": 2,
+          "Unit": "pcs",
+          "UnitPrice": "34.50",
+          "Total": "69.00"
+        },
+        {
+          "Number": 2,
+          "Sku": "SKU-1007",
+          "Description": "Desk Lamp",
+          "Quantity": 3,
+          "Unit": "pcs",
+          "UnitPrice": "34.50",
+          "Total": "103.50"
+        }
+      ]
+    },
+    {
+      "Number": "VERIFY-024",
+      "Date": "2026-09-04",
+      "Customer": "Customer 024 & Partners",
+      "LineCount": 12,
+      "Total": "1904.70",
+      "Lines": [
+        {
+          "Number": 1,
+          "Sku": "SKU-1004",
+          "Description": "Packing Tape",
+          "Quantity": 2,
+          "Unit": "roll",
+          "UnitPrice": "3.80",
+          "Total": "7.60"
+        },
+        {
+          "Number": 2,
+          "Sku": "SKU-1007",
+          "Description": "Desk Lamp",
+          "Quantity": 3,
+          "Unit": "pcs",
+          "UnitPrice": "34.50",
+          "Total": "103.50"
+        },
+        {
+          "Number": 3,
+          "Sku": "SKU-1009",
+          "Description": "Storage Box",
+          "Quantity": 4,
+          "Unit": "pcs",
+          "UnitPrice": "12.40",
+          "Total": "49.60"
+        },
+        {
+          "Number": 4,
+          "Sku": "SKU-1007",
+          "Description": "Desk Lamp",
+          "Quantity": 5,
+          "Unit": "pcs",
+          "UnitPrice": "34.50",
+          "Total": "172.50"
+        },
+        {
+          "Number": 5,
+          "Sku": "SKU-1001",
+          "Description": "Wireless Mouse",
+          "Quantity": 6,
+          "Unit": "pcs",
+          "UnitPrice": "19.90",
+          "Total": "119.40"
+        },
+        {
+          "Number": 6,
+          "Sku": "SKU-1002",
+          "Description": "USB-C Docking Station",
+          "Quantity": 7,
+          "Unit": "pcs",
+          "UnitPrice": "89.00",
+          "Total": "623.00"
+        },
+        {
+          "Number": 7,
+          "Sku": "SKU-1008",
+          "Description": "Printer Paper A4",
+          "Quantity": 8,
+          "Unit": "pack",
+          "UnitPrice": "7.25",
+          "Total": "58.00"
+        },
+        {
+          "Number": 8,
+          "Sku": "SKU-1009",
+          "Description": "Storage Box",
+          "Quantity": 9,
+          "Unit": "pcs",
+          "UnitPrice": "12.40",
+          "Total": "111.60"
+        },
+        {
+          "Number": 9,
+          "Sku": "SKU-1003",
+          "Description": "Notebook A5",
+          "Quantity": 10,
+          "Unit": "pcs",
+          "UnitPrice": "4.25",
+          "Total": "42.50"
+        },
+        {
+          "Number": 10,
+          "Sku": "SKU-1004",
+          "Description": "Packing Tape",
+          "Quantity": 11,
+          "Unit": "roll",
+          "UnitPrice": "3.80",
+          "Total": "41.80"
+        },
+        {
+          "Number": 11,
+          "Sku": "SKU-1007",
+          "Description": "Desk Lamp",
+          "Quantity": 12,
+          "Unit": "pcs",
+          "UnitPrice": "34.50",
+          "Total": "414.00"
+        },
+        {
+          "Number": 12,
+          "Sku": "SKU-1009",
+          "Description": "Storage Box",
+          "Quantity": 13,
+          "Unit": "pcs",
+          "UnitPrice": "12.40",
+          "Total": "161.20"
+        }
+      ]
+    }
+  ]
+}

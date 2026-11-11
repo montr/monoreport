@@ -1,0 +1,59 @@
+{
+  "parts": [
+    "_rels/.rels",
+    "xl/workbook.xml",
+    "xl/_rels/workbook.xml.rels",
+    "xl/worksheets/sheet1.xml",
+    "xl/theme/theme1.xml",
+    "xl/styles.xml",
+    "docProps/core.xml",
+    "docProps/app.xml",
+    "[Content_Types].xml"
+  ],
+  "sheet": "Employees",
+  "range": "A1:D112",
+  "departments": 10,
+  "employees": 100,
+  "merges": [
+    "B3:D3",
+    "B14:D14",
+    "B25:D25",
+    "B36:D36",
+    "B47:D47",
+    "B58:D58",
+    "B69:D69",
+    "B80:D80",
+    "B91:D91",
+    "B102:D102"
+  ],
+  "columns": [
+    {
+      "min": "1",
+      "max": "1",
+      "width": "4.6640625",
+      "style": "1",
+      "customWidth": "1"
+    },
+    {
+      "min": "2",
+      "max": "2",
+      "width": "14.6640625",
+      "style": "1",
+      "customWidth": "1"
+    },
+    {
+      "min": "3",
+      "max": "3",
+      "width": "23",
+      "style": "1",
+      "customWidth": "1"
+    },
+    {
+      "min": "4",
+      "max": "4",
+      "width": "23.1640625",
+      "style": "1",
+      "customWidth": "1"
+    }
+  ]
+}

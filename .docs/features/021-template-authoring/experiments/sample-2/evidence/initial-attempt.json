@@ -1,0 +1,11 @@
+{
+  "sourceSha256": "416e42c6f7a178efbcf44d98108d7833b6b7d333dcecf6adf02e58d93ffa78e5",
+  "templateSha256": "1632e60cb88b3ed90be3fea925b9edbb86426a3aef182097c3e59c72ef7ee0ee",
+  "outerLoop": "Orders",
+  "innerLoop": "Lines",
+  "orders": 20,
+  "lines": 152,
+  "total": "60206.90",
+  "consultedExamples": false,
+  "approach": "Python standard-library ZIP/minidom, one-off targeted text and block edits"
+}

@@ -1,0 +1,74 @@
+[
+  {
+    "file" : "skill-sample-2.pdf",
+    "method" : "PDFKit metadata and text extraction; no rendering",
+    "pageCount" : 9,
+    "pageTextLengths" : [
+      1392,
+      1327,
+      1308,
+      1299,
+      1391,
+      1292,
+      1346,
+      1312,
+      448
+    ]
+  },
+  {
+    "file" : "original.result.pdf",
+    "method" : "PDFKit metadata and text extraction; no rendering",
+    "pageCount" : 9,
+    "pageTextEqualsSource" : true,
+    "pageTextLengths" : [
+      1392,
+      1327,
+      1308,
+      1299,
+      1391,
+      1292,
+      1346,
+      1312,
+      448
+    ]
+  },
+  {
+    "file" : "skill-sample-2.result.pdf",
+    "method" : "PDFKit metadata and text extraction; no rendering",
+    "pageCount" : 2,
+    "pageTextLengths" : [
+      1376,
+      718
+    ]
+  },
+  {
+    "file" : "expanded.result.pdf",
+    "method" : "PDFKit metadata and text extraction; no rendering",
+    "pageCount" : 7,
+    "pageTextLengths" : [
+      1386,
+      1316,
+      1366,
+      1339,
+      1295,
+      1310,
+      770
+    ]
+  },
+  {
+    "file" : "empty-inner.result.pdf",
+    "method" : "PDFKit metadata and text extraction; no rendering",
+    "pageCount" : 1,
+    "pageTextLengths" : [
+      680
+    ]
+  },
+  {
+    "file" : "empty-outer.result.pdf",
+    "method" : "PDFKit metadata and text extraction; no rendering",
+    "pageCount" : 1,
+    "pageTextLengths" : [
+      332
+    ]
+  }
+]

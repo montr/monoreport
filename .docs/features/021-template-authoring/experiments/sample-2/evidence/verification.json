@@ -1,0 +1,146 @@
+{
+  "inputUnchanged": true,
+  "template": {
+    "parts": 23,
+    "changedParts": [
+      "word/document.xml"
+    ],
+    "unchangedParts": 22,
+    "validMarkerFootprint": true
+  },
+  "cases": [
+    {
+      "case": "original",
+      "orders": 20,
+      "lines": 152,
+      "tableRowsIncludingHeaders": [
+        9,
+        10,
+        7,
+        10,
+        10,
+        7,
+        10,
+        7,
+        11,
+        6,
+        10,
+        11,
+        9,
+        6,
+        7,
+        8,
+        6,
+        8,
+        10,
+        10
+      ],
+      "total": "60206.90",
+      "currency": "USD",
+      "changedParts": [
+        "word/document.xml"
+      ],
+      "unchangedParts": 22,
+      "allValuesHierarchyAndSummariesCorrect": true,
+      "sourceFormattingRetained": true,
+      "parsedMainDocumentEqualsSource": true,
+      "relationships": 19
+    },
+    {
+      "case": "modified",
+      "orders": 3,
+      "lines": 25,
+      "tableRowsIncludingHeaders": [
+        1,
+        2,
+        25
+      ],
+      "total": "22636.10",
+      "currency": "EUR",
+      "changedParts": [
+        "word/document.xml"
+      ],
+      "unchangedParts": 22,
+      "allValuesHierarchyAndSummariesCorrect": true,
+      "sourceFormattingRetained": true,
+      "parsedMainDocumentEqualsSource": false,
+      "relationships": 19
+    },
+    {
+      "case": "expanded",
+      "orders": 24,
+      "lines": 90,
+      "tableRowsIncludingHeaders": [
+        1,
+        2,
+        3,
+        13,
+        1,
+        2,
+        3,
+        13,
+        1,
+        2,
+        3,
+        13,
+        1,
+        2,
+        3,
+        13,
+        1,
+        2,
+        3,
+        13,
+        1,
+        2,
+        3,
+        13
+      ],
+      "total": "17756.70",
+      "currency": "EUR",
+      "changedParts": [
+        "word/document.xml"
+      ],
+      "unchangedParts": 22,
+      "allValuesHierarchyAndSummariesCorrect": true,
+      "sourceFormattingRetained": true,
+      "parsedMainDocumentEqualsSource": false,
+      "relationships": 19
+    },
+    {
+      "case": "empty-inner",
+      "orders": 2,
+      "lines": 0,
+      "tableRowsIncludingHeaders": [
+        1,
+        1
+      ],
+      "total": "0.00",
+      "currency": "EUR",
+      "changedParts": [
+        "word/document.xml"
+      ],
+      "unchangedParts": 22,
+      "allValuesHierarchyAndSummariesCorrect": true,
+      "sourceFormattingRetained": true,
+      "parsedMainDocumentEqualsSource": false,
+      "relationships": 19
+    },
+    {
+      "case": "empty-outer",
+      "orders": 0,
+      "lines": 0,
+      "tableRowsIncludingHeaders": [],
+      "total": "0.00",
+      "currency": "EUR",
+      "changedParts": [
+        "word/document.xml"
+      ],
+      "unchangedParts": 22,
+      "allValuesHierarchyAndSummariesCorrect": true,
+      "sourceFormattingRetained": true,
+      "parsedMainDocumentEqualsSource": false,
+      "relationships": 19
+    }
+  ]
+}

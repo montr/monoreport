@@ -1,0 +1,10 @@
+{
+  "start_unix_ms": 1794438748416,
+  "start_utc": "2026-11-11T23:12:28.416Z",
+  "basis": "Wall clock from first tool batch; final task-completion time written after deliverable checks. API request durations exclude authoring and verification.",
+  "token_consumption": "Not available from execution tooling; not estimated.",
+  "first_verified_output_seconds": 268.526,
+  "complete_verification_seconds": 340.222,
+  "task_completion_seconds": 407.428,
+  "task_completion_utc": "2026-11-11T23:19:15.845307+00:00"
+}

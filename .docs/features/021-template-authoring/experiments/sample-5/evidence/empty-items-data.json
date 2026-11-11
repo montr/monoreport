@@ -1,0 +1,12 @@
+{
+  "Title": "Office equipment",
+  "Suppliers": [
+    {
+      "Company": "Alpha"
+    },
+    {
+      "Company": "Beta"
+    }
+  ],
+  "Items": []
+}

@@ -1,0 +1,184 @@
+{
+  "ProjectName": "Space 3",
+  "Period": "October 2026",
+  "Projects": [
+    {
+      "Name": "Warehouse Construction",
+      "Total": 8059500.0,
+      "Groups": [
+        {
+          "Name": "Foundation",
+          "Total": 2053500.0,
+          "Items": [
+            {
+              "Description": "C35 Concrete",
+              "Unit": "m³",
+              "Quantity": 85.0,
+              "UnitPrice": 9200.0,
+              "Total": 782000.0
+            },
+            {
+              "Description": "Reinforcing Steel B500",
+              "Unit": "t",
+              "Quantity": 12.0,
+              "UnitPrice": 68500.0,
+              "Total": 822000.0
+            },
+            {
+              "Description": "Formwork",
+              "Unit": "m²",
+              "Quantity": 310.0,
+              "UnitPrice": 1450.0,
+              "Total": 449500.0
+            }
+          ]
+        },
+        {
+          "Name": "Steel Frame",
+          "Total": 3630000.0,
+          "Items": [
+            {
+              "Description": "Structural Steel",
+              "Unit": "t",
+              "Quantity": 26.0,
+              "UnitPrice": 115000.0,
+              "Total": 2990000.0
+            },
+            {
+              "Description": "Installation Work",
+              "Unit": "lot",
+              "Quantity": 1.0,
+              "UnitPrice": 640000.0,
+              "Total": 640000.0
+            }
+          ]
+        },
+        {
+          "Name": "Roofing",
+          "Total": 2376000.0,
+          "Items": [
+            {
+              "Description": "Sandwich Panels",
+              "Unit": "m²",
+              "Quantity": 720.0,
+              "UnitPrice": 2450.0,
+              "Total": 1764000.0
+            },
+            {
+              "Description": "Roof Installation",
+              "Unit": "m²",
+              "Quantity": 720.0,
+              "UnitPrice": 850.0,
+              "Total": 612000.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "Office Renovation",
+      "Total": 1740400.0,
+      "Groups": [
+        {
+          "Name": "Building Services",
+          "Total": 506600.0,
+          "Items": [
+            {
+              "Description": "Power Cable",
+              "Unit": "m",
+              "Quantity": 980.0,
+              "UnitPrice": 210.0,
+              "Total": 205800.0
+            },
+            {
+              "Description": "LED Fixtures",
+              "Unit": "pcs",
+              "Quantity": 64.0,
+              "UnitPrice": 4700.0,
+              "Total": 300800.0
+            }
+          ]
+        },
+        {
+          "Name": "Finishing Works",
+          "Total": 1233800.0,
+          "Items": [
+            {
+              "Description": "Drywall",
+              "Unit": "m²",
+              "Quantity": 410.0,
+              "UnitPrice": 740.0,
+              "Total": 303400.0
+            },
+            {
+              "Description": "Wall Painting",
+              "Unit": "m²",
+              "Quantity": 860.0,
+              "UnitPrice": 390.0,
+              "Total": 335400.0
+            },
+            {
+              "Description": "Flooring",
+              "Unit": "m²",
+              "Quantity": 340.0,
+              "UnitPrice": 1750.0,
+              "Total": 595000.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "Site Improvements",
+      "Total": 732800.0,
+      "Groups": [
+        {
+          "Name": "Site Preparation",
+          "Total": 374500.0,
+          "Items": [
+            {
+              "Description": "Soil Removal",
+              "Unit": "m³",
+              "Quantity": 140.0,
+              "UnitPrice": 1250.0,
+              "Total": 175000.0
+            },
+            {
+              "Description": "Crushed Stone",
+              "Unit": "m³",
+              "Quantity": 95.0,
+              "UnitPrice": 2100.0,
+              "Total": 199500.0
+            }
+          ]
+        },
+        {
+          "Name": "Site Lighting",
+          "Total": 358300.0,
+          "Items": [
+            {
+              "Description": "Lighting Poles",
+              "Unit": "pcs",
+              "Quantity": 12.0,
+              "UnitPrice": 18500.0,
+              "Total": 222000.0
+            },
+            {
+              "Description": "Cable Installation",
+              "Unit": "m",
+              "Quantity": 470.0,
+              "UnitPrice": 290.0,
+              "Total": 136300.0
+            }
+          ]
+        },
+        {
+          "Name": "Landscaping",
+          "Total": 0.0,
+          "Items": []
+        }
+      ]
+    }
+  ],
+  "GrandTotal": 10532700.0
+}

@@ -1,0 +1,79 @@
+{
+  "original": {
+    "http_status": 200,
+    "elapsed_seconds": 0.0192,
+    "warnings": []
+  },
+  "modified": {
+    "http_status": 200,
+    "elapsed_seconds": 0.0201,
+    "warnings": []
+  },
+  "single-supplier": {
+    "http_status": 200,
+    "elapsed_seconds": 0.0136,
+    "warnings": []
+  },
+  "empty-items": {
+    "http_status": 200,
+    "elapsed_seconds": 0.0131,
+    "warnings": []
+  },
+  "empty-lot": {
+    "http_status": 422,
+    "elapsed_seconds": 0.0173,
+    "error": {
+      "type": "urn:monoreport:error:template.xlsx_unsafe_formula",
+      "title": "Document generation failed",
+      "status": 422,
+      "detail": "The XLSX formula reference cannot be transformed safely; re-author it using explicit retained A1 operands.",
+      "code": "template.xlsx_unsafe_formula",
+      "traceId": "0HNQ070OQKUV9:00000008",
+      "field": null,
+      "errors": [
+        {
+          "code": "template.xlsx_unsafe_formula",
+          "message": "The XLSX formula reference cannot be transformed safely; re-author it using explicit retained A1 operands. Reference E7:E7 has an empty, discarded, disjoint or ambiguous image. Re-author it inside one compatible owner using a retained contiguous A1 range; scalar operands must identify one cell.",
+          "field": null,
+          "part": "/xl/worksheets/sheet1.xml",
+          "location": "/xl/worksheets/sheet1.xml, sheet 'Tender', E8",
+          "formatter": null,
+          "dataPath": null
+        },
+        {
+          "code": "template.xlsx_unsafe_formula",
+          "message": "The XLSX formula reference cannot be transformed safely; re-author it using explicit retained A1 operands. Reference E7:E7 has an empty, discarded, disjoint or ambiguous image. Re-author it inside one compatible owner using a retained contiguous A1 range; scalar operands must identify one cell.",
+          "field": null,
+          "part": "/xl/worksheets/sheet1.xml",
+          "location": "/xl/worksheets/sheet1.xml, sheet 'Tender', E8",
+          "formatter": null,
+          "dataPath": null
+        },
+        {
+          "code": "template.xlsx_unsafe_formula",
+          "message": "The XLSX formula reference cannot be transformed safely; re-author it using explicit retained A1 operands. Reference F7:F7 has an empty, discarded, disjoint or ambiguous image. Re-author it inside one compatible owner using a retained contiguous A1 range; scalar operands must identify one cell.",
+          "field": null,
+          "part": "/xl/worksheets/sheet1.xml",
+          "location": "/xl/worksheets/sheet1.xml, sheet 'Tender', F8",
+          "formatter": null,
+          "dataPath": null
+        },
+        {
+          "code": "template.xlsx_unsafe_formula",
+          "message": "The XLSX formula reference cannot be transformed safely; re-author it using explicit retained A1 operands. Reference F7:F7 has an empty, discarded, disjoint or ambiguous image. Re-author it inside one compatible owner using a retained contiguous A1 range; scalar operands must identify one cell.",
+          "field": null,
+          "part": "/xl/worksheets/sheet1.xml",
+          "location": "/xl/worksheets/sheet1.xml, sheet 'Tender', F8",
+          "formatter": null,
+          "dataPath": null
+        }
+      ],
+      "limitReached": false
+    }
+  },
+  "empty-suppliers": {
+    "http_status": 200,
+    "elapsed_seconds": 0.0107,
+    "warnings": []
+  }
+}

@@ -1,0 +1,267 @@
+{
+  "Organization": "Sample 2 Verification Ltd.",
+  "Warehouse": {
+    "Name": "Central Fulfillment Warehouse",
+    "Address": "120 Commerce Road, Bristol, BS1 4ST, United Kingdom"
+  },
+  "Period": {
+    "Start": "2026-09-01",
+    "End": "2026-09-30"
+  },
+  "Currency": "EUR",
+  "OrderCount": 3,
+  "Total": "22636.10",
+  "Orders": [
+    {
+      "Number": "VERIFY-001",
+      "Date": "2026-09-01",
+      "Customer": "Customer 001 & Partners",
+      "LineCount": 0,
+      "Total": "0.00",
+      "Lines": []
+    },
+    {
+      "Number": "VERIFY-002",
+      "Date": "2026-09-02",
+      "Customer": "Customer 002 & Partners",
+      "LineCount": 1,
+      "Total": "14.50",
+      "Lines": [
+        {
+          "Number": 1,
+          "Sku": "SKU-1008",
+          "Description": "Printer Paper A4",
+          "Quantity": 2,
+          "Unit": "pack",
+          "UnitPrice": "7.25",
+          "Total": "14.50"
+        }
+      ]
+    },
+    {
+      "Number": "VERIFY-003",
+      "Date": "2026-09-03",
+      "Customer": "Customer 003 & Partners",
+      "LineCount": 24,
+      "Total": "22621.60",
+      "Lines": [
+        {
+          "Number": 1,
+          "Sku": "SKU-1007",
+          "Description": "Desk Lamp",
+          "Quantity": 2,
+          "Unit": "pcs",
+          "UnitPrice": "34.50",
+          "Total": "69.00"
+        },
+        {
+          "Number": 2,
+          "Sku": "SKU-1007",
+          "Description": "Desk Lamp",
+          "Quantity": 3,
+          "Unit": "pcs",
+          "UnitPrice": "34.50",
+          "Total": "103.50"
+        },
+        {
+          "Number": 3,
+          "Sku": "SKU-1002",
+          "Description": "USB-C Docking Station",
+          "Quantity": 4,
+          "Unit": "pcs",
+          "UnitPrice": "89.00",
+          "Total": "356.00"
+        },
+        {
+          "Number": 4,
+          "Sku": "SKU-1012",
+          "Description": "Monitor 27-inch",
+          "Quantity": 5,
+          "Unit": "pcs",
+          "UnitPrice": "249.00",
+          "Total": "1245.00"
+        },
+        {
+          "Number": 5,
+          "Sku": "SKU-1005",
+          "Description": "HDMI Cable 2m",
+          "Quantity": 6,
+          "Unit": "pcs",
+          "UnitPrice": "11.50",
+          "Total": "69.00"
+        },
+        {
+          "Number": 6,
+          "Sku": "SKU-1011",
+          "Description": "Whiteboard Marker",
+          "Quantity": 7,
+          "Unit": "pcs",
+          "UnitPrice": "2.90",
+          "Total": "20.30"
+        },
+        {
+          "Number": 7,
+          "Sku": "SKU-1007",
+          "Description": "Desk Lamp",
+          "Quantity": 8,
+          "Unit": "pcs",
+          "UnitPrice": "34.50",
+          "Total": "276.00"
+        },
+        {
+          "Number": 8,
+          "Sku": "SKU-1007",
+          "Description": "Desk Lamp",
+          "Quantity": 9,
+          "Unit": "pcs",
+          "UnitPrice": "34.50",
+          "Total": "310.50"
+        },
+        {
+          "Number": 9,
+          "Sku": "SKU-1002",
+          "Description": "USB-C Docking Station",
+          "Quantity": 10,
+          "Unit": "pcs",
+          "UnitPrice": "89.00",
+          "Total": "890.00"
+        },
+        {
+          "Number": 10,
+          "Sku": "SKU-1012",
+          "Description": "Monitor 27-inch",
+          "Quantity": 11,
+          "Unit": "pcs",
+          "UnitPrice": "249.00",
+          "Total": "2739.00"
+        },
+        {
+          "Number": 11,
+          "Sku": "SKU-1005",
+          "Description": "HDMI Cable 2m",
+          "Quantity": 12,
+          "Unit": "pcs",
+          "UnitPrice": "11.50",
+          "Total": "138.00"
+        },
+        {
+          "Number": 12,
+          "Sku": "SKU-1011",
+          "Description": "Whiteboard Marker",
+          "Quantity": 13,
+          "Unit": "pcs",
+          "UnitPrice": "2.90",
+          "Total": "37.70"
+        },
+        {
+          "Number": 13,
+          "Sku": "SKU-1007",
+          "Description": "Desk Lamp",
+          "Quantity": 14,
+          "Unit": "pcs",
+          "UnitPrice": "34.50",
+          "Total": "483.00"
+        },
+        {
+          "Number": 14,
+          "Sku": "SKU-1007",
+          "Description": "Desk Lamp",
+          "Quantity": 15,
+          "Unit": "pcs",
+          "UnitPrice": "34.50",
+          "Total": "517.50"
+        },
+        {
+          "Number": 15,
+          "Sku": "SKU-1002",
+          "Description": "USB-C Docking Station",
+          "Quantity": 16,
+          "Unit": "pcs",
+          "UnitPrice": "89.00",
+          "Total": "1424.00"
+        },
+        {
+          "Number": 16,
+          "Sku": "SKU-1012",
+          "Description": "Monitor 27-inch",
+          "Quantity": 17,
+          "Unit": "pcs",
+          "UnitPrice": "249.00",
+          "Total": "4233.00"
+        },
+        {
+          "Number": 17,
+          "Sku": "SKU-1005",
+          "Description": "HDMI Cable 2m",
+          "Quantity": 18,
+          "Unit": "pcs",
+          "UnitPrice": "11.50",
+          "Total": "207.00"
+        },
+        {
+          "Number": 18,
+          "Sku": "SKU-1011",
+          "Description": "Whiteboard Marker",
+          "Quantity": 19,
+          "Unit": "pcs",
+          "UnitPrice": "2.90",
+          "Total": "55.10"
+        },
+        {
+          "Number": 19,
+          "Sku": "SKU-1007",
+          "Description": "Desk Lamp",
+          "Quantity": 20,
+          "Unit": "pcs",
+          "UnitPrice": "34.50",
+          "Total": "690.00"
+        },
+        {
+          "Number": 20,
+          "Sku": "SKU-1007",
+          "Description": "Desk Lamp",
+          "Quantity": 21,
+          "Unit": "pcs",
+          "UnitPrice": "34.50",
+          "Total": "724.50"
+        },
+        {
+          "Number": 21,
+          "Sku": "SKU-1002",
+          "Description": "USB-C Docking Station",
+          "Quantity": 22,
+          "Unit": "pcs",
+          "UnitPrice": "89.00",
+          "Total": "1958.00"
+        },
+        {
+          "Number": 22,
+          "Sku": "SKU-1012",
+          "Description": "Monitor 27-inch",
+          "Quantity": 23,
+          "Unit": "pcs",
+          "UnitPrice": "249.00",
+          "Total": "5727.00"
+        },
+        {
+          "Number": 23,
+          "Sku": "SKU-1005",
+          "Description": "HDMI Cable 2m",
+          "Quantity": 24,
+          "Unit": "pcs",
+          "UnitPrice": "11.50",
+          "Total": "276.00"
+        },
+        {
+          "Number": 24,
+          "Sku": "SKU-1011",
+          "Description": "Whiteboard Marker",
+          "Quantity": 25,
+          "Unit": "pcs",
+          "UnitPrice": "2.90",
+          "Total": "72.50"
+        }
+      ]
+    }
+  ]
+}

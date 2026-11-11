@@ -1,0 +1,19 @@
+MONOREPORT / TEMPLATE EXAMPLE
+Sales Orders Report
+Organization: Sample 2 Verification Ltd.
+Warehouse: Central Fulficllment Warehouse
+Warehouse address: 120 Commerce Road, Bristol, BS1 4ST, United Kingdom
+Period: 01 Sep 2026 – 30 Sep 2026
+Orders: 2 Total: 0.00 EUR
+The following section repeats for each order.
+Order VERIFY-001
+Date: 01 Sep 2026 Customer: Customer 001 & Partners
+Lines: 0 Order total: 0.00 EUR
+# SKU Description Qty Unit Unit price Line total
+Order subtotal: 0.00 EUR
+Order VERIFY-002
+Date: 02 Sep 2026 Customer: Customer 002 & Partners
+Lines: 0 Order total: 0.00 EUR
+# SKU Description Qty Unit Unit price Line total
+Order subtotal: 0.00 EUR
+REPORT TOTAL: 0.00 EUR

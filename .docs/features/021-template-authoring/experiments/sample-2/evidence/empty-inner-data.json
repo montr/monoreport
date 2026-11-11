@@ -1,0 +1,32 @@
+{
+  "Organization": "Sample 2 Verification Ltd.",
+  "Warehouse": {
+    "Name": "Central Fulfillment Warehouse",
+    "Address": "120 Commerce Road, Bristol, BS1 4ST, United Kingdom"
+  },
+  "Period": {
+    "Start": "2026-09-01",
+    "End": "2026-09-30"
+  },
+  "Currency": "EUR",
+  "OrderCount": 2,
+  "Total": "0.00",
+  "Orders": [
+    {
+      "Number": "VERIFY-001",
+      "Date": "2026-09-01",
+      "Customer": "Customer 001 & Partners",
+      "LineCount": 0,
+      "Total": "0.00",
+      "Lines": []
+    },
+    {
+      "Number": "VERIFY-002",
+      "Date": "2026-09-02",
+      "Customer": "Customer 002 & Partners",
+      "LineCount": 0,
+      "Total": "0.00",
+      "Lines": []
+    }
+  ]
+}

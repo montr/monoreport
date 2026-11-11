@@ -1,0 +1,37 @@
+{
+  "skill-sample-5.xlsx": {
+    "errors": 0,
+    "new_error_count": 0,
+    "new_errors": []
+  },
+  "skill-sample-5.template.xlsx": {
+    "errors": 0,
+    "new_error_count": 0,
+    "new_errors": []
+  },
+  "skill-sample-5.result.xlsx": {
+    "errors": 0,
+    "new_error_count": 0,
+    "new_errors": []
+  },
+  "original.result.xlsx": {
+    "errors": 0,
+    "new_error_count": 0,
+    "new_errors": []
+  },
+  "single-supplier.result.xlsx": {
+    "errors": 0,
+    "new_error_count": 0,
+    "new_errors": []
+  },
+  "empty-items.result.xlsx": {
+    "errors": 0,
+    "new_error_count": 0,
+    "new_errors": []
+  },
+  "empty-suppliers.result.xlsx": {
+    "errors": 0,
+    "new_error_count": 0,
+    "new_errors": []
+  }
+}

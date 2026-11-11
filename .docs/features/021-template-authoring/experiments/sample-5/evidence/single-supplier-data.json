@@ -1,0 +1,31 @@
+{
+  "Title": "Office equipment",
+  "Suppliers": [
+    {
+      "Company": "Alpha"
+    }
+  ],
+  "Items": [
+    {
+      "$level": 1,
+      "$path": "it",
+      "Name": "IT equipment"
+    },
+    {
+      "$level": 2,
+      "$path": "laptop",
+      "Name": "Laptop",
+      "Quantity": "2.00",
+      "Price": "1,200.00",
+      "LeadDays": "10.00"
+    },
+    {
+      "$level": 2,
+      "$path": "dock",
+      "Name": "Dock",
+      "Quantity": "3.00",
+      "Price": "80.00",
+      "LeadDays": "5.00"
+    }
+  ]
+}

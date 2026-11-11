@@ -1,0 +1,102 @@
+{
+  "cases": {
+    "original": {
+      "rows": 29,
+      "projects": 3,
+      "groups": 8,
+      "items": 16,
+      "grand_total": 10532700.0,
+      "exact_cell_text_and_order": true,
+      "all_totals_reconciled": true,
+      "source_row_formatting_matches": true
+    },
+    "modified": {
+      "rows": 31,
+      "projects": 4,
+      "groups": 9,
+      "items": 16,
+      "grand_total": 5504246.13,
+      "exact_cell_text_and_order": true,
+      "all_totals_reconciled": true,
+      "source_row_formatting_matches": true
+    },
+    "empty-items": {
+      "rows": 13,
+      "projects": 3,
+      "groups": 8,
+      "items": 0,
+      "grand_total": 0.0,
+      "exact_cell_text_and_order": true,
+      "all_totals_reconciled": true,
+      "source_row_formatting_matches": true
+    },
+    "empty-groups": {
+      "rows": 5,
+      "projects": 3,
+      "groups": 0,
+      "items": 0,
+      "grand_total": 0.0,
+      "exact_cell_text_and_order": true,
+      "all_totals_reconciled": true,
+      "source_row_formatting_matches": true
+    },
+    "empty-projects": {
+      "rows": 2,
+      "projects": 0,
+      "groups": 0,
+      "items": 0,
+      "grand_total": 0.0,
+      "exact_cell_text_and_order": true,
+      "all_totals_reconciled": true,
+      "source_row_formatting_matches": true
+    }
+  },
+  "preservation": {
+    "template": {
+      "byte_identical_non_main_parts": 14,
+      "package_parts": 15,
+      "relationships_resolve": true,
+      "table_grid_properties_and_section": "identical"
+    },
+    "original": {
+      "byte_identical_non_main_parts": 14,
+      "package_parts": 15,
+      "relationships_resolve": true,
+      "table_grid_properties_and_section": "identical"
+    },
+    "modified": {
+      "byte_identical_non_main_parts": 14,
+      "package_parts": 15,
+      "relationships_resolve": true,
+      "table_grid_properties_and_section": "identical"
+    },
+    "empty-items": {
+      "byte_identical_non_main_parts": 14,
+      "package_parts": 15,
+      "relationships_resolve": true,
+      "table_grid_properties_and_section": "identical"
+    },
+    "empty-groups": {
+      "byte_identical_non_main_parts": 14,
+      "package_parts": 15,
+      "relationships_resolve": true,
+      "table_grid_properties_and_section": "identical"
+    },
+    "empty-projects": {
+      "byte_identical_non_main_parts": 14,
+      "package_parts": 15,
+      "relationships_resolve": true,
+      "table_grid_properties_and_section": "identical"
+    }
+  },
+  "hashes": {
+    "output/skill-sample-3.template.docx": "e16394c860768f4c7c8343e22e475de4eef393cb079391b7f01abe28e3ae421c",
+    "evidence/original.result.docx": "1cdd899bb24758726de5382b5b8426eaff13558ef99186278919478c40ae234a",
+    "output/skill-sample-3.result.docx": "45914e2d0f60d92c56bc4efbc110244ecc5691cf9b245bceae51c3d78c853f04",
+    "evidence/empty-items.result.docx": "7b4c6add6cb01c67e7417946cd2e4ee3e446709517f5ac4d9073b46c89ab182c",
+    "evidence/empty-groups.result.docx": "7c52802eaf46207dfae312f3afd2c9cd34a864d71bcf0e1424bd6f97f607a77d",
+    "evidence/empty-projects.result.docx": "4d5b2847f3037b0c77d3cb885d72c962cdcf9b4333a654d9edcf5aa56aa65da1",
+    "input/skill-sample-3.docx": "c30d82d712bc6daa1ab338556c47811bde8671d0ca1c718dd100955a5de927e9",
+    "output/skill-sample-3.json": "a03bfc5debed42f633fdb87d13ad30376a9d39ffd637933b6c81ba699037d3ff"
+  }
+}

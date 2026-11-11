@@ -1,0 +1,86 @@
+{
+  "Data": [
+    {
+      "$level": 1,
+      "Department": "Platform Engineering"
+    },
+    {
+      "$level": 2,
+      "Name": "Alex Rivera",
+      "Position": "Principal Engineer"
+    },
+    {
+      "$level": 2,
+      "Name": "Sam Bell",
+      "Position": "QA Lead"
+    },
+    {
+      "$level": 1,
+      "Department": "Research"
+    },
+    {
+      "$level": 1,
+      "Department": "Customer Operations"
+    },
+    {
+      "$level": 2,
+      "Name": "Support Agent 01",
+      "Position": "Support Specialist"
+    },
+    {
+      "$level": 2,
+      "Name": "Support Agent 02",
+      "Position": "Support Specialist"
+    },
+    {
+      "$level": 2,
+      "Name": "Support Agent 03",
+      "Position": "Support Specialist"
+    },
+    {
+      "$level": 2,
+      "Name": "Support Agent 04",
+      "Position": "Support Specialist"
+    },
+    {
+      "$level": 2,
+      "Name": "Support Agent 05",
+      "Position": "Support Specialist"
+    },
+    {
+      "$level": 2,
+      "Name": "Support Agent 06",
+      "Position": "Support Specialist"
+    },
+    {
+      "$level": 2,
+      "Name": "Support Agent 07",
+      "Position": "Support Specialist"
+    },
+    {
+      "$level": 2,
+      "Name": "Support Agent 08",
+      "Position": "Support Specialist"
+    },
+    {
+      "$level": 2,
+      "Name": "Support Agent 09",
+      "Position": "Support Specialist"
+    },
+    {
+      "$level": 2,
+      "Name": "Support Agent 10",
+      "Position": "Support Specialist"
+    },
+    {
+      "$level": 2,
+      "Name": "Support Agent 11",
+      "Position": "Support Specialist"
+    },
+    {
+      "$level": 2,
+      "Name": "Support Agent 12",
+      "Position": "Support Specialist"
+    }
+  ]
+}

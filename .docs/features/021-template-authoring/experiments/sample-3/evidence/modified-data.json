@@ -1,0 +1,196 @@
+{
+  "ProjectName": "Orion 7",
+  "Period": "December 2027",
+  "Projects": [
+    {
+      "Name": "Depot Expansion",
+      "Total": 3024260.63,
+      "Groups": [
+        {
+          "Name": "Revised Foundation",
+          "Total": 648260.63,
+          "Items": [
+            {
+              "Description": "Concrete & aggregate",
+              "Unit": "m³",
+              "Quantity": 42.5,
+              "UnitPrice": 8100.25,
+              "Total": 344260.63
+            },
+            {
+              "Description": "Steel <premium>",
+              "Unit": "t",
+              "Quantity": 4.75,
+              "UnitPrice": 64000,
+              "Total": 304000.0
+            }
+          ]
+        },
+        {
+          "Name": "Roofing",
+          "Total": 2376000.0,
+          "Items": [
+            {
+              "Description": "Sandwich Panels",
+              "Unit": "m²",
+              "Quantity": 720.0,
+              "UnitPrice": 2450.0,
+              "Total": 1764000.0
+            },
+            {
+              "Description": "Roof Installation",
+              "Unit": "m²",
+              "Quantity": 720.0,
+              "UnitPrice": 850.0,
+              "Total": 612000.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "Office Renovation",
+      "Total": 1744001.5,
+      "Groups": [
+        {
+          "Name": "Building Services",
+          "Total": 510201.5,
+          "Items": [
+            {
+              "Description": "Power Cable",
+              "Unit": "m",
+              "Quantity": 980.0,
+              "UnitPrice": 210.0,
+              "Total": 205800.0
+            },
+            {
+              "Description": "LED Fixtures",
+              "Unit": "pcs",
+              "Quantity": 64.0,
+              "UnitPrice": 4700.0,
+              "Total": 300800.0
+            },
+            {
+              "Description": "Control Panels",
+              "Unit": "pcs",
+              "Quantity": 3,
+              "UnitPrice": 1200.5,
+              "Total": 3601.5
+            }
+          ]
+        },
+        {
+          "Name": "Finishing Works",
+          "Total": 1233800.0,
+          "Items": [
+            {
+              "Description": "Drywall",
+              "Unit": "m²",
+              "Quantity": 410.0,
+              "UnitPrice": 740.0,
+              "Total": 303400.0
+            },
+            {
+              "Description": "Wall Painting",
+              "Unit": "m²",
+              "Quantity": 860.0,
+              "UnitPrice": 390.0,
+              "Total": 335400.0
+            },
+            {
+              "Description": "Flooring",
+              "Unit": "m²",
+              "Quantity": 340.0,
+              "UnitPrice": 1750.0,
+              "Total": 595000.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "Site Improvements",
+      "Total": 733484.0,
+      "Groups": [
+        {
+          "Name": "Site Preparation",
+          "Total": 374500.0,
+          "Items": [
+            {
+              "Description": "Soil Removal",
+              "Unit": "m³",
+              "Quantity": 140.0,
+              "UnitPrice": 1250.0,
+              "Total": 175000.0
+            },
+            {
+              "Description": "Crushed Stone",
+              "Unit": "m³",
+              "Quantity": 95.0,
+              "UnitPrice": 2100.0,
+              "Total": 199500.0
+            }
+          ]
+        },
+        {
+          "Name": "Site Lighting",
+          "Total": 358300.0,
+          "Items": [
+            {
+              "Description": "Lighting Poles",
+              "Unit": "pcs",
+              "Quantity": 12.0,
+              "UnitPrice": 18500.0,
+              "Total": 222000.0
+            },
+            {
+              "Description": "Cable Installation",
+              "Unit": "m",
+              "Quantity": 470.0,
+              "UnitPrice": 290.0,
+              "Total": 136300.0
+            }
+          ]
+        },
+        {
+          "Name": "Landscaping",
+          "Total": 684.0,
+          "Items": [
+            {
+              "Description": "Maple Trees",
+              "Unit": "pcs",
+              "Quantity": 8,
+              "UnitPrice": 85.5,
+              "Total": 684.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "Reserve Works",
+      "Groups": [
+        {
+          "Name": "Commissioning",
+          "Items": [
+            {
+              "Description": "Final Inspection",
+              "Unit": "lot",
+              "Quantity": 1,
+              "UnitPrice": 2500,
+              "Total": 2500.0
+            }
+          ],
+          "Total": 2500.0
+        },
+        {
+          "Name": "Deferred Work",
+          "Items": [],
+          "Total": 0.0
+        }
+      ],
+      "Total": 2500.0
+    }
+  ],
+  "GrandTotal": 5504246.13
+}

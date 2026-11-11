@@ -1,0 +1,10 @@
+{
+  "input/skill-sample-2.docx": "416e42c6f7a178efbcf44d98108d7833b6b7d333dcecf6adf02e58d93ffa78e5",
+  "output/skill-sample-2.result.docx": "fff5d589b9e672cc26b327f7b408ec393ad99f24afaecf2551151326b138dda3",
+  "output/skill-sample-2.template.docx": "1632e60cb88b3ed90be3fea925b9edbb86426a3aef182097c3e59c72ef7ee0ee",
+  "output/skill-sample-2.json": "041c3b70f70587141b3c614695e83927f73c81933eb9589558274f3435e4020c",
+  "evidence/modified-data.json": "d1fea2b8897ec00e5aadfd72bec1d06f09cec5f30e1d1b788987b9575712e000",
+  "evidence/expanded-data.json": "d71ffc9ce33a69875d1b24ad758e9fdc05b6ce2f0ff377638a0bfabf14841af0",
+  "evidence/empty-inner-data.json": "8ef5174f4c11f511c8d8d5abe9c8bff6607e5293ee0c50c48ef13551ed399572",
+  "evidence/empty-outer-data.json": "648294f4fe4eb568338b06ae42c664afca324d4bf6eb2c7382fe64c6a3da0abc"
+}

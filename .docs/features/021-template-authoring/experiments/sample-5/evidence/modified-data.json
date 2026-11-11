@@ -1,0 +1,142 @@
+{
+  "Title": "Workplace refresh",
+  "Suppliers": [
+    {
+      "Company": "Gamma"
+    },
+    {
+      "Company": "Delta"
+    },
+    {
+      "Company": "Epsilon"
+    }
+  ],
+  "Items": [
+    {
+      "$level": 1,
+      "$path": "devices",
+      "Name": "Devices"
+    },
+    {
+      "$level": 1,
+      "$path": "devices",
+      "Name": "Devices"
+    },
+    {
+      "$level": 1,
+      "$path": "devices",
+      "Name": "Devices"
+    },
+    {
+      "$level": 2,
+      "$path": "monitor",
+      "Name": "Monitor",
+      "Quantity": "4.00",
+      "Price": 260,
+      "LeadDays": 7
+    },
+    {
+      "$level": 2,
+      "$path": "monitor",
+      "Name": "Monitor",
+      "Quantity": "4.00",
+      "Price": 245.5,
+      "LeadDays": 9
+    },
+    {
+      "$level": 2,
+      "$path": "monitor",
+      "Name": "Monitor",
+      "Quantity": "4.00",
+      "Price": 275,
+      "LeadDays": 3
+    },
+    {
+      "$level": 2,
+      "$path": "keyboard",
+      "Name": "Keyboard",
+      "Quantity": "8.00",
+      "Price": 45,
+      "LeadDays": 2
+    },
+    {
+      "$level": 2,
+      "$path": "keyboard",
+      "Name": "Keyboard",
+      "Quantity": "8.00",
+      "Price": 42,
+      "LeadDays": 4
+    },
+    {
+      "$level": 2,
+      "$path": "keyboard",
+      "Name": "Keyboard",
+      "Quantity": "8.00",
+      "Price": 50,
+      "LeadDays": 1
+    },
+    {
+      "$level": 2,
+      "$path": "mouse",
+      "Name": "Mouse",
+      "Quantity": "8.00",
+      "Price": 25,
+      "LeadDays": 3
+    },
+    {
+      "$level": 2,
+      "$path": "mouse",
+      "Name": "Mouse",
+      "Quantity": "8.00",
+      "Price": 22.5,
+      "LeadDays": 5
+    },
+    {
+      "$level": 2,
+      "$path": "mouse",
+      "Name": "Mouse",
+      "Quantity": "8.00",
+      "Price": 29,
+      "LeadDays": 2
+    },
+    {
+      "$level": 1,
+      "$path": "furniture",
+      "Name": "Furniture"
+    },
+    {
+      "$level": 1,
+      "$path": "furniture",
+      "Name": "Furniture"
+    },
+    {
+      "$level": 1,
+      "$path": "furniture",
+      "Name": "Furniture"
+    },
+    {
+      "$level": 2,
+      "$path": "desk",
+      "Name": "Desk",
+      "Quantity": "2.00",
+      "Price": 400,
+      "LeadDays": 14
+    },
+    {
+      "$level": 2,
+      "$path": "desk",
+      "Name": "Desk",
+      "Quantity": "2.00",
+      "Price": 380,
+      "LeadDays": 18
+    },
+    {
+      "$level": 2,
+      "$path": "desk",
+      "Name": "Desk",
+      "Quantity": "2.00",
+      "Price": 425,
+      "LeadDays": 10
+    }
+  ]
+}

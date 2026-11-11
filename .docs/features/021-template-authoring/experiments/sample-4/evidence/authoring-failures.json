@@ -1,0 +1,20 @@
+[
+  {
+    "stage": "API access",
+    "failure": "Sandboxed curl could not connect to localhost:3000 (curl exit 7).",
+    "resolution": "Repeated the same read/generation requests with sandbox escalation; API was reachable.",
+    "engine_failure": false
+  },
+  {
+    "stage": "First render request",
+    "failure": "Shell interpreted unquoted data=<path as input redirection; API returned HTTP 400 request.empty_input for data.",
+    "resolution": "Quoted the complete curl form argument; original-data generation then succeeded.",
+    "engine_failure": false
+  },
+  {
+    "stage": "Independent Open XML validation build",
+    "failure": "NU1900: package vulnerability lookup unavailable at api.nuget.org; repository treats warnings as errors.",
+    "resolution": "Built the isolated validator using cached Open XML SDK 3.5.1 with -p:NuGetAudit=false.",
+    "engine_failure": false
+  }
+]

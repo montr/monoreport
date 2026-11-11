@@ -1,0 +1,72 @@
+{
+  "previous_experiment_solutions_inspected": false,
+  "existing_templates_or_test_fixtures_inspected": false,
+  "initial_authoring_completed_before_user_clarification": true,
+  "implementation_inspection_after_user_clarification": false,
+  "documentation": [
+    "docs/xlsx-template-compatibility.md",
+    "docs/xlsx-template-guide.md",
+    "docs/docx-template-guide.md: shared paths",
+    "Feature 021 feature-spec.md and relevant architecture guidance",
+    ".agents/skills/feature-developer/SKILL.md",
+    "AGENTS.md"
+  ],
+  "source_inspections_before_clarification": [
+    {
+      "question": "How does a horizontal marker describe a three-column supplier block including its hidden item-name column?",
+      "files": [
+        "src/MonoReport/Xlsx/Planning/XlsxTemplatePlanner.Controls.cs",
+        "src/MonoReport/Xlsx/Planning/XlsxTemplatePlanner.Structure.cs"
+      ],
+      "missing_from_guide": "The guide demonstrates single-column and nested dimensions but does not explicitly specify that every adjacent column in a multi-column block needs the same geometry marker.",
+      "answer": "Place $h(1) in each of the three adjacent top control cells; each block is one horizontal tuple."
+    },
+    {
+      "question": "How do repeated lot headers, detail rows and subtotal footers form one region?",
+      "files": [
+        "src/MonoReport/Xlsx/Planning/XlsxTemplatePlanner.Vertical.cs",
+        "src/MonoReport/Xlsx/Planning/XlsxTemplatePlanner.Hierarchy.cs"
+      ],
+      "missing_from_guide": "The guide shows level-1/2/1 markers but does not fully specify contiguous control runs or header/body/footer interval ownership.",
+      "answer": "Use one contiguous level-1/level-2/level-1 control run; data input order supplies group ancestry."
+    },
+    {
+      "question": "How can full warnings and generated workbook bytes be retained over REST?",
+      "files": [
+        "src/MonoReport.Api/Services/DocumentEndpoints.cs",
+        "src/MonoReport.Api/Program.cs: route search"
+      ],
+      "missing_from_guide": "The XLSX guide does not document REST multipart negotiation. Feature 021 documents it; source inspection was avoidable using that document and live OpenAPI.",
+      "answer": "Accept multipart/mixed; retain workbook and diagnostics.json."
+    },
+    {
+      "question": "Which installed Open XML SDK version can validate source and outputs without new dependencies?",
+      "files": [
+        "src/MonoReport/MonoReport.csproj",
+        "Directory.Build.props"
+      ],
+      "missing_from_guide": "The XLSX guide is not a dependency inventory.",
+      "answer": "Use installed DocumentFormat.OpenXml 3.5.1 and net10.0; no engine behavior consulted."
+    }
+  ],
+  "runtime_provenance": {
+    "api": "http://localhost:3000/",
+    "openapi": "evidence/openapi.json",
+    "engine_build": "Unknown: live REST contract does not attest loaded engine build or documentation revision.",
+    "documentation_match": "Repository documentation used; exact match to the running server is unverified."
+  },
+  "authoring_issues": [
+    {
+      "issue": "Initial author.py had a mismatched closing bracket.",
+      "effect": "Corrected before initial template creation; no template redesign."
+    },
+    {
+      "issue": "Initial MIME parser included HTTP status line as a MIME header.",
+      "effect": "Local response extraction failed after HTTP 200; corrected parser to exclude status line, then generated all cases."
+    },
+    {
+      "issue": "Sandbox could not reach localhost.",
+      "effect": "Authorized API requests executed with sandbox escalation; no server restart or configuration changes."
+    }
+  ]
+}

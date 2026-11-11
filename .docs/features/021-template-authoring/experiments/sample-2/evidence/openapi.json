@@ -1,0 +1,1821 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "MonoReport.Api | v1",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000/"
+    }
+  ],
+  "paths": {
+    "/api/documents/analyze": {
+      "post": {
+        "tags": [
+          "MonoReport.Api"
+        ],
+        "summary": "Analyze a Word or XLSX template",
+        "description": "Returns diagnostics, an ordered recursive dependency tree, and source occurrences without JSON input or generation. Invalid nonempty package content returns 200 with valid=false. XLSX source analysis supports nested templates and supported scalar formula references; generation additionally checks matrix cardinalities, ancestor availability and final reference images.",
+        "operationId": "AnalyzeTemplate",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "template"
+                ],
+                "type": "object",
+                "properties": {
+                  "template": {
+                    "type": "string",
+                    "description": "Required nonempty Word or ordinary XLSX template. Actual OOXML content selects the handler; filename and upload MIME are not authoritative.",
+                    "format": "binary"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateAnalysisResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "request.missing_input, request.empty_input, request.duplicate_input, request.invalid_input, request.invalid_multipart, request.unexpected_input",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "traceId"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "request.missing_input, request.empty_input, request.duplicate_input, request.invalid_input, request.invalid_multipart, request.unexpected_input"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "request.too_large (pre-application host/proxy rejection may use a host-owned response)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "traceId"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "request.too_large (pre-application host/proxy rejection may use a host-owned response)"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "request.unsupported_media_type",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "traceId"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "request.unsupported_media_type"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "server.internal_error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "traceId"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "server.internal_error"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/documents/sample": {
+      "post": {
+        "tags": [
+          "MonoReport.Api"
+        ],
+        "summary": "Generate deterministic sample JSON from a Word or XLSX template",
+        "description": "Inspects the supplied template and returns a deterministic JSON value with ordered advisory warnings. itemsPerCollection defaults to 10 and values defaults to filled; empty retains the applicable structure and uses empty scalar values. A successful sample is not a validation guarantee and may need editing before document generation.",
+        "operationId": "GenerateSampleJson",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "template"
+                ],
+                "type": "object",
+                "properties": {
+                  "template": {
+                    "type": "string",
+                    "description": "Required nonempty DOCX or XLSX template.",
+                    "format": "binary"
+                  },
+                  "itemsPerCollection": {
+                    "type": "string",
+                    "description": "Optional positive decimal integer text; default 10."
+                  },
+                  "values": {
+                    "type": "string",
+                    "description": "Optional 'filled' or 'empty'; default 'filled'."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Complete sample JSON value and ordered warnings; warnings do not prevent success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "warnings"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "description": "The generated JSON value."
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "required": [
+                          "code",
+                          "message"
+                        ],
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "field": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "part": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "location": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "formatter": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "dataPath": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          }
+                        }
+                      },
+                      "description": "Ordered actionable sample limitations; an empty array when none exist."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "request.missing_input, request.empty_input, request.duplicate_input, request.invalid_input, request.unexpected_input, sample.count_invalid, sample.values_invalid",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "traceId"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "request.missing_input, request.empty_input, request.duplicate_input, request.invalid_input, request.unexpected_input, sample.count_invalid, sample.values_invalid"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "request.too_large",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "traceId"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "request.too_large"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "request.unsupported_media_type",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "traceId"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "request.unsupported_media_type"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "template.invalid_package, template.invalid_xml, template.unsupported_structure, template.invalid_expression, template.invalid_context, template.invalid_structure, template.requirement_conflict, template.tracked_revision, template.xlsx_invalid_print_area, template.xlsx_unsupported_feature, template.xlsx_invalid_package, sample.element_limit, sample.incompatible_demand",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "traceId",
+                    "errors",
+                    "limitReached"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "template.invalid_package, template.invalid_xml, template.unsupported_structure, template.invalid_expression, template.invalid_context, template.invalid_structure, template.requirement_conflict, template.tracked_revision, template.xlsx_invalid_print_area, template.xlsx_unsupported_feature, template.xlsx_invalid_package, sample.element_limit, sample.incompatible_demand"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "limitReached": {
+                      "type": "boolean"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "required": [
+                          "code",
+                          "message"
+                        ],
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "field": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "part": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "location": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "formatter": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "dataPath": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "server.internal_error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "traceId"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "server.internal_error"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/documents/render": {
+      "post": {
+        "tags": [
+          "MonoReport.Api"
+        ],
+        "summary": "Generate a Word or XLSX document",
+        "description": "Returns raw DOCX or XLSX bytes by default after one operation. Explicit Accept: multipart/mixed opts into document and diagnostics.json attachments. Wildcards alone never opt in; q=0 excludes multipart. Among explicit supported document types and multipart, higher quality wins and binary wins ties. Other Accept values fall back to binary. Vary: Accept is always set. All generation and diagnostic preparation completes before success publication. XLSX supports static fields, nested vertical groups, multirow blocks and safe scalar formulas over finite A1 operands including supported sheet/name/shared references, with physical PrintArea crop; it requires JSON object data. Recursive horizontal expansion supports branching sibling blocks and multirow headers, with at most one horizontal region per worksheet. Template structure and values are validated before output is produced.",
+        "operationId": "GenerateDocument",
+        "parameters": [
+          {
+            "name": "Accept",
+            "in": "header",
+            "description": "Explicit multipart/mixed opts in to two attachments. Quality zero excludes multipart; higher explicit quality wins, binary wins ties. Wildcards alone and unsupported values retain binary fallback.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "template",
+                  "data"
+                ],
+                "type": "object",
+                "properties": {
+                  "template": {
+                    "type": "string",
+                    "description": "Required nonempty Word or ordinary XLSX template. Actual OOXML content selects the handler; filename and upload MIME are not authoritative.",
+                    "format": "binary"
+                  },
+                  "data": {
+                    "type": "string",
+                    "description": "Required text field containing one raw JSON value."
+                  },
+                  "culture": {
+                    "type": "string",
+                    "description": "Optional culture name; invariant when omitted or blank. Accept-Language is ignored."
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Generated document; warnings do not make generation fail. Multipart has two attachments from the same merge, without base64 encoding.",
+            "headers": {
+              "Content-Disposition": {
+                "description": "Binary response only: attachment with deterministic document.docx or document.xlsx filename selected from actual package content.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "description": "Accept",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-MonoReport-Warning-Count": {
+                "description": "Present only when generation warnings exist.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "multipart/mixed": {
+                "schema": {
+                  "required": [
+                    "document",
+                    "diagnostics"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "document": {
+                      "type": "string",
+                      "description": "Attachment document.docx or document.xlsx with the corresponding binary MIME type.",
+                      "format": "binary"
+                    },
+                    "diagnostics": {
+                      "required": [
+                        "format",
+                        "fileName",
+                        "warnings"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "format": {
+                          "type": "string",
+                          "description": "docx or xlsx"
+                        },
+                        "fileName": {
+                          "type": "string",
+                          "description": "document.docx or document.xlsx"
+                        },
+                        "warnings": {
+                          "type": "array",
+                          "items": {
+                            "required": [
+                              "message",
+                              "field",
+                              "fieldCode",
+                              "part",
+                              "location",
+                              "dataPath"
+                            ],
+                            "type": "object",
+                            "properties": {
+                              "message": {
+                                "type": "string"
+                              },
+                              "field": {
+                                "type": "string"
+                              },
+                              "fieldCode": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              },
+                              "part": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              },
+                              "location": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              },
+                              "dataPath": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ]
+                              },
+                              "code": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ],
+                                "description": "Optional stable generation warning code; omitted when unset."
+                              },
+                              "removedCharacterCount": {
+                                "type": [
+                                  "null",
+                                  "integer"
+                                ],
+                                "description": "Number of prohibited XML 1.0 characters removed from this replacement."
+                              }
+                            }
+                          },
+                          "description": "Original ordered GenerationResult.Warnings, including an explicit empty array."
+                        }
+                      },
+                      "description": "application/json attachment named diagnostics.json."
+                    }
+                  }
+                },
+                "encoding": {
+                  "document": {
+                    "contentType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                  },
+                  "diagnostics": {
+                    "contentType": "application/json"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "request.missing_input, request.empty_input, request.duplicate_input, request.invalid_input, request.invalid_multipart, data.invalid_json, culture.invalid",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "traceId"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "request.missing_input, request.empty_input, request.duplicate_input, request.invalid_input, request.invalid_multipart, data.invalid_json, culture.invalid"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "request.too_large (pre-application host/proxy rejection may use a host-owned response)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "traceId"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "request.too_large (pre-application host/proxy rejection may use a host-owned response)"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "request.unsupported_media_type",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "traceId"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "request.unsupported_media_type"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "template.invalid_package, template.invalid_xml, template.unsupported_structure, template.invalid_expression, template.unmatched_brace, template.invalid_context, template.invalid_structure, template.requirement_conflict, template.tracked_revision, generation.invalid_data, generation.invalid_format, template.xlsx_invalid_print_area, template.xlsx_unsupported_feature, generation.xlsx_dimension_limit, generation.xlsx_unsafe_number, template.xlsx_invalid_package, template.xlsx_unsafe_formula",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "traceId",
+                    "errors",
+                    "limitReached"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "template.invalid_package, template.invalid_xml, template.unsupported_structure, template.invalid_expression, template.unmatched_brace, template.invalid_context, template.invalid_structure, template.requirement_conflict, template.tracked_revision, generation.invalid_data, generation.invalid_format, template.xlsx_invalid_print_area, template.xlsx_unsupported_feature, generation.xlsx_dimension_limit, generation.xlsx_unsafe_number, template.xlsx_invalid_package, template.xlsx_unsafe_formula"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "limitReached": {
+                      "type": "boolean"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "required": [
+                          "code",
+                          "message"
+                        ],
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "field": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "part": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "location": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "formatter": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "dataPath": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "server.internal_error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "traceId"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "server.internal_error"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/formatters": {
+      "get": {
+        "tags": [
+          "MonoReport.Api"
+        ],
+        "summary": "List registered formatters and their parameter metadata",
+        "operationId": "ListFormatters",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FormatterDescription"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "server.internal_error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "traceId",
+                    "field"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "server.internal_error"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/formatters/{name}/execute": {
+      "post": {
+        "tags": [
+          "MonoReport.Api"
+        ],
+        "summary": "Format a JSON value using a registered formatter",
+        "operationId": "ExecuteFormatter",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "value"
+                ],
+                "type": "object",
+                "properties": {
+                  "value": { },
+                  "parameters": {
+                    "type": [
+                      "null",
+                      "object"
+                    ],
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "culture": {
+                    "type": [
+                      "null",
+                      "string"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormatterExecutionResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "request.missing_input, request.invalid_input, culture.invalid",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "traceId",
+                    "field"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "request.missing_input, request.invalid_input, culture.invalid"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Parameter validation errors; omitted for other request failures."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "formatter.not_found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "traceId",
+                    "field"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "formatter.not_found"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "request.too_large (pre-application host/proxy rejection may use a host-owned response)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "traceId",
+                    "field"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "request.too_large (pre-application host/proxy rejection may use a host-owned response)"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "request.unsupported_media_type",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "traceId",
+                    "field"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "request.unsupported_media_type"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "formatter.invalid_value",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "traceId",
+                    "field"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "formatter.invalid_value"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "server.internal_error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "traceId",
+                    "field"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "server.internal_error"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "FormatterDescription": {
+        "required": [
+          "name",
+          "parameters",
+          "positionalParameter"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "parameters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FormatterParameterDescription"
+            }
+          },
+          "positionalParameter": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "FormatterExecutionResult": {
+        "required": [
+          "result"
+        ],
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "string"
+          }
+        }
+      },
+      "FormatterParameterDescription": {
+        "required": [
+          "name",
+          "type",
+          "required"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          }
+        }
+      },
+      "GenerationDiagnostic": {
+        "required": [
+          "code",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "field": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "part": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "location": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "formatter": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "dataPath": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "JsonElement": { },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "instance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SampleJsonResponse": {
+        "required": [
+          "data",
+          "warnings"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/JsonElement"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GenerationDiagnostic"
+            }
+          }
+        }
+      },
+      "TemplateAnalysisResult": {
+        "required": [
+          "valid",
+          "errors",
+          "warnings",
+          "requirements",
+          "occurrences"
+        ],
+        "type": "object",
+        "properties": {
+          "errors": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/TemplateValidationIssue"
+            }
+          },
+          "warnings": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/TemplateValidationIssue"
+            }
+          },
+          "requirements": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/TemplateRequirement"
+            }
+          },
+          "occurrences": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/TemplateOccurrence"
+            }
+          },
+          "valid": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TemplateOccurrence": {
+        "required": [
+          "kind",
+          "expression",
+          "path",
+          "part",
+          "location"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "expression": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "part": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "semanticType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "TemplateRequirement": {
+        "required": [
+          "name",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "fields": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/TemplateRequirement"
+            }
+          }
+        },
+        "description": "A dependency node. Type is object, array, value, or boolean. Omitted fields means no child dependencies; array fields describe expressions used against elements, not an element schema."
+      },
+      "TemplateValidationIssue": {
+        "required": [
+          "code",
+          "message",
+          "field",
+          "part",
+          "location"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "field": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "part": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "location": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "A location-bearing analyzer diagnostic. Syntax, context, structural, tracked-revision, and static format errors invalidate the template; warnings do not."
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "MonoReport.Api"
+    }
+  ]
+}

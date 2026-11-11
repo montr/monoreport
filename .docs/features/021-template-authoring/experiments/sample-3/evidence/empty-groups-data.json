@@ -1,0 +1,22 @@
+{
+  "ProjectName": "Space 3",
+  "Period": "October 2026",
+  "Projects": [
+    {
+      "Name": "Warehouse Construction",
+      "Total": 0.0,
+      "Groups": []
+    },
+    {
+      "Name": "Office Renovation",
+      "Total": 0.0,
+      "Groups": []
+    },
+    {
+      "Name": "Site Improvements",
+      "Total": 0.0,
+      "Groups": []
+    }
+  ],
+  "GrandTotal": 0.0
+}

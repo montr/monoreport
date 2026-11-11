@@ -1,0 +1,12 @@
+{
+  "Data": [
+    {
+      "$level": 1,
+      "Department": "Research"
+    },
+    {
+      "$level": 1,
+      "Department": "Operations"
+    }
+  ]
+}

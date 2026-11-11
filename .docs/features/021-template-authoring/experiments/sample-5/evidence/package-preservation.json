@@ -1,0 +1,92 @@
+{
+  "original": {
+    "unchanged_parts": [
+      "_rels/.rels",
+      "xl/_rels/workbook.xml.rels",
+      "xl/theme/theme1.xml",
+      "xl/styles.xml",
+      "docProps/core.xml",
+      "docProps/app.xml",
+      "[Content_Types].xml"
+    ],
+    "changed_parts": [
+      "xl/workbook.xml",
+      "xl/worksheets/sheet1.xml"
+    ]
+  },
+  "modified": {
+    "unchanged_parts": [
+      "_rels/.rels",
+      "xl/_rels/workbook.xml.rels",
+      "xl/theme/theme1.xml",
+      "xl/styles.xml",
+      "docProps/core.xml",
+      "docProps/app.xml",
+      "[Content_Types].xml"
+    ],
+    "changed_parts": [
+      "xl/workbook.xml",
+      "xl/worksheets/sheet1.xml"
+    ]
+  },
+  "single-supplier": {
+    "unchanged_parts": [
+      "_rels/.rels",
+      "xl/_rels/workbook.xml.rels",
+      "xl/theme/theme1.xml",
+      "xl/styles.xml",
+      "docProps/core.xml",
+      "docProps/app.xml",
+      "[Content_Types].xml"
+    ],
+    "changed_parts": [
+      "xl/workbook.xml",
+      "xl/worksheets/sheet1.xml"
+    ]
+  },
+  "empty-items": {
+    "unchanged_parts": [
+      "_rels/.rels",
+      "xl/_rels/workbook.xml.rels",
+      "xl/theme/theme1.xml",
+      "xl/styles.xml",
+      "docProps/core.xml",
+      "docProps/app.xml",
+      "[Content_Types].xml"
+    ],
+    "changed_parts": [
+      "xl/workbook.xml",
+      "xl/worksheets/sheet1.xml"
+    ]
+  },
+  "empty-suppliers": {
+    "unchanged_parts": [
+      "_rels/.rels",
+      "xl/_rels/workbook.xml.rels",
+      "xl/theme/theme1.xml",
+      "xl/styles.xml",
+      "docProps/core.xml",
+      "docProps/app.xml",
+      "[Content_Types].xml"
+    ],
+    "changed_parts": [
+      "xl/workbook.xml",
+      "xl/worksheets/sheet1.xml"
+    ]
+  },
+  "template": {
+    "unchanged_parts": [
+      "_rels/.rels",
+      "xl/_rels/workbook.xml.rels",
+      "xl/theme/theme1.xml",
+      "xl/styles.xml",
+      "docProps/core.xml",
+      "docProps/app.xml",
+      "[Content_Types].xml"
+    ],
+    "changed_parts": [
+      "xl/workbook.xml",
+      "xl/worksheets/sheet1.xml"
+    ]
+  }
+}

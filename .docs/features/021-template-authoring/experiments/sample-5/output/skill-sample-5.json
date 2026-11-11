@@ -1,0 +1,55 @@
+{
+  "Title": "Office equipment",
+  "Suppliers": [
+    {
+      "Company": "Alpha"
+    },
+    {
+      "Company": "Beta"
+    }
+  ],
+  "Items": [
+    {
+      "$level": 1,
+      "$path": "it",
+      "Name": "IT equipment"
+    },
+    {
+      "$level": 1,
+      "$path": "it",
+      "Name": "IT equipment"
+    },
+    {
+      "$level": 2,
+      "$path": "laptop",
+      "Name": "Laptop",
+      "Quantity": "2.00",
+      "Price": "1,200.00",
+      "LeadDays": "10.00"
+    },
+    {
+      "$level": 2,
+      "$path": "laptop",
+      "Name": "Laptop",
+      "Quantity": "2.00",
+      "Price": "1,150.00",
+      "LeadDays": "12.00"
+    },
+    {
+      "$level": 2,
+      "$path": "dock",
+      "Name": "Dock",
+      "Quantity": "3.00",
+      "Price": "80.00",
+      "LeadDays": "5.00"
+    },
+    {
+      "$level": 2,
+      "$path": "dock",
+      "Name": "Dock",
+      "Quantity": "3.00",
+      "Price": "75.00",
+      "LeadDays": "7.00"
+    }
+  ]
+}

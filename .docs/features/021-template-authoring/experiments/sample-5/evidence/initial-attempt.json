@@ -1,0 +1,6 @@
+{
+  "model": "fixed price/lead-day criteria; repeat complete three-column supplier blocks, including hidden item names; hierarchical lots/items",
+  "previous_solutions_inspected": false,
+  "source_numeric_text_preserved": true,
+  "template": "output/skill-sample-5.template.xlsx"
+}

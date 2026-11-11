@@ -1,0 +1,103 @@
+MONOREPORT / TEMPLATE EXAMPLE
+Sales Orders Report
+Organization: Sample 2 Verification Ltd.
+Warehouse: Central Fulficllment Warehouse
+Warehouse address: 120 Commerce Road, Bristol, BS1 4ST, United Kingdom
+Period: 01 Sep 2026 – 30 Sep 2026
+Orders: 3 Total: 22,636.10 EUR
+The following section repeats for each order.
+Order VERIFY-001
+Date: 01 Sep 2026 Customer: Customer 001 & Partners
+Lines: 0 Order total: 0.00 EUR
+# SKU Description Qty Unit Unit price Line total
+Order subtotal: 0.00 EUR
+Order VERIFY-002
+Date: 02 Sep 2026 Customer: Customer 002 & Partners
+Lines: 1 Order total: 14.50 EUR
+# SKU Description Qty Unit Unit price Line total
+1 SKU-1
+008
+Printer Paper A4 2 pack 7.25 14.50
+Order subtotal: 14.50 EUR
+Order VERIFY-003
+Date: 03 Sep 2026 Customer: Customer 003 & Partners
+Lines: 24 Order total: 22,621.60 EUR
+# SKU Description Qty Unit Unit price Line total
+1 SKU-1
+007
+Desk Lamp 2 pcs 34.50 69.00
+2 SKU-1
+007
+Desk Lamp 3 pcs 34.50 103.50
+3 SKU-1
+002
+USB-C Docking Station 4 pcs 89.00 356.00
+4 SKU-1
+012
+Monitor 27-inch 5 pcs 249.00 1,245.00
+5 SKU-1
+005
+HDMI Cable 2m 6 pcs 11.50 69.00
+6 SKU-1
+011
+Whiteboard Marker 7 pcs 2.90 20.30
+7 SKU-1
+007
+Desk Lamp 8 pcs 34.50 276.00
+8 SKU-1
+007
+Desk Lamp 9 pcs 34.50 310.50
+9 SKU-1
+002
+USB-C Docking Station 10 pcs 89.00 890.00
+10 SKU-1
+012
+Monitor 27-inch 11 pcs 249.00 2,739.00
+11 SKU-1
+005
+HDMI Cable 2m 12 pcs 11.50 138.00
+
+--- PAGE BREAK ---
+
+MONOREPORT / TEMPLATE EXAMPLE
+12 SKU-1
+011
+Whiteboard Marker 13 pcs 2.90 37.70
+13 SKU-1
+007
+Desk Lamp 14 pcs 34.50 483.00
+14 SKU-1
+007
+Desk Lamp 15 pcs 34.50 517.50
+15 SKU-1
+002
+USB-C Docking Station 16 pcs 89.00 1,424.00
+16 SKU-1
+012
+Monitor 27-inch 17 pcs 249.00 4,233.00
+17 SKU-1
+005
+HDMI Cable 2m 18 pcs 11.50 207.00
+18 SKU-1
+011
+Whiteboard Marker 19 pcs 2.90 55.10
+19 SKU-1
+007
+Desk Lamp 20 pcs 34.50 690.00
+20 SKU-1
+007
+Desk Lamp 21 pcs 34.50 724.50
+21 SKU-1
+002
+USB-C Docking Station 22 pcs 89.00 1,958.00
+22 SKU-1
+012
+Monitor 27-inch 23 pcs 249.00 5,727.00
+23 SKU-1
+005
+HDMI Cable 2m 24 pcs 11.50 276.00
+24 SKU-1
+011
+Whiteboard Marker 25 pcs 2.90 72.50
+Order subtotal: 22,621.60 EUR
+REPORT TOTAL: 22,636.10 EUR

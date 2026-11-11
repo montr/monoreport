@@ -1,0 +1,98 @@
+{
+  "original": {
+    "cells_checked": 61,
+    "supplier_count": 2,
+    "logical_records": 3,
+    "print_area": "'Tender'!$A$1:$I$10",
+    "formulas": {
+      "D8": "SUM(D6:D7)",
+      "E8": "SUM(E6:E7)",
+      "G8": "SUM(G6:G7)",
+      "H8": "SUM(H6:H7)"
+    },
+    "independent_SUM_expectations_not_Excel_calculation": {
+      "D8": 0,
+      "E8": 0,
+      "G8": 0,
+      "H8": 0
+    },
+    "styles_and_geometry": "match mapped source",
+    "warnings": []
+  },
+  "modified": {
+    "cells_checked": 129,
+    "supplier_count": 3,
+    "logical_records": 6,
+    "print_area": "'Tender'!$A$1:$L$14",
+    "formulas": {
+      "D9": "SUM(D6:D8)",
+      "E9": "SUM(E6:E8)",
+      "G9": "SUM(G6:G8)",
+      "H9": "SUM(H6:H8)",
+      "J9": "SUM(J6:J8)",
+      "K9": "SUM(K6:K8)",
+      "D12": "SUM(D11:D11)",
+      "E12": "SUM(E11:E11)",
+      "G12": "SUM(G11:G11)",
+      "H12": "SUM(H11:H11)",
+      "J12": "SUM(J11:J11)",
+      "K12": "SUM(K11:K11)"
+    },
+    "independent_SUM_expectations_not_Excel_calculation": {
+      "D9": 330.0,
+      "E9": 12.0,
+      "G9": 310.0,
+      "H9": 18.0,
+      "J9": 354.0,
+      "K9": 6.0,
+      "D12": 400.0,
+      "E12": 14.0,
+      "G12": 380.0,
+      "H12": 18.0,
+      "J12": 425.0,
+      "K12": 10.0
+    },
+    "styles_and_geometry": "match mapped source",
+    "warnings": []
+  },
+  "single-supplier": {
+    "cells_checked": 41,
+    "supplier_count": 1,
+    "logical_records": 3,
+    "print_area": "'Tender'!$A$1:$F$10",
+    "formulas": {
+      "D8": "SUM(D6:D7)",
+      "E8": "SUM(E6:E7)"
+    },
+    "independent_SUM_expectations_not_Excel_calculation": {
+      "D8": 0,
+      "E8": 0
+    },
+    "styles_and_geometry": "match mapped source",
+    "warnings": []
+  },
+  "empty-items": {
+    "cells_checked": 25,
+    "supplier_count": 2,
+    "logical_records": 0,
+    "print_area": "'Tender'!$A$1:$I$6",
+    "formulas": {},
+    "independent_SUM_expectations_not_Excel_calculation": {},
+    "styles_and_geometry": "match mapped source",
+    "warnings": []
+  },
+  "empty-suppliers": {
+    "cells_checked": 21,
+    "supplier_count": 0,
+    "logical_records": 3,
+    "print_area": "'Tender'!$A$1:$C$10",
+    "formulas": {},
+    "independent_SUM_expectations_not_Excel_calculation": {},
+    "styles_and_geometry": "match mapped source",
+    "warnings": []
+  },
+  "empty-lot": {
+    "expected_rejection": "template.xlsx_unsafe_formula",
+    "reason": "Subtotal range has no retained item cells."
+  }
+}

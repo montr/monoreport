@@ -1,0 +1,61 @@
+{
+  "sourceSha256": "fdfd45abd1c60ada377afcf2cf6b1ea660a92963aca142d742a2cd8364aedcc2",
+  "initialTemplateUnchanged": true,
+  "templateChangedParts": [
+    "word/document.xml"
+  ],
+  "templateOtherEntriesByteIdentical": true,
+  "templateFormattingMatches": true,
+  "templateMarkerRowsValid": true,
+  "results": [
+    {
+      "case": "original",
+      "materialRows": 3,
+      "totalRows": 4,
+      "valuesMatch": true,
+      "formattingMatches": true,
+      "unrelatedContentMatches": true,
+      "relationships": 2,
+      "unchangedParts": [
+        "[Content_Types].xml",
+        "_rels/.rels",
+        "word/document.xml",
+        "word/styles.xml",
+        "word/_rels/document.xml.rels"
+      ],
+      "originalBodyStructurallyIdentical": true
+    },
+    {
+      "case": "two",
+      "materialRows": 2,
+      "totalRows": 3,
+      "valuesMatch": true,
+      "formattingMatches": true,
+      "unrelatedContentMatches": true,
+      "relationships": 2,
+      "unchangedParts": [
+        "[Content_Types].xml",
+        "_rels/.rels",
+        "word/styles.xml",
+        "word/_rels/document.xml.rels"
+      ],
+      "originalBodyStructurallyIdentical": false
+    },
+    {
+      "case": "empty",
+      "materialRows": 0,
+      "totalRows": 1,
+      "valuesMatch": true,
+      "formattingMatches": true,
+      "unrelatedContentMatches": true,
+      "relationships": 2,
+      "unchangedParts": [
+        "[Content_Types].xml",
+        "_rels/.rels",
+        "word/styles.xml",
+        "word/_rels/document.xml.rels"
+      ],
+      "originalBodyStructurallyIdentical": false
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "experiment_started": "2026-11-11T22:38:43+00:00",
+  "authoring_started": "2026-11-11T22:40:15.845480+00:00",
+  "initial_authoring_completed": "2026-11-11T22:40:15.860147+00:00",
+  "first_successful_document": "2026-11-11T22:41:05.331389+00:00",
+  "test_cases_prepared": "2026-11-11T22:42:34.265310+00:00",
+  "modified_generated": "2026-11-11T22:42:45.146536+00:00",
+  "empty-items_generated": "2026-11-11T22:41:38.069215+00:00",
+  "empty-groups_generated": "2026-11-11T22:41:38.070855+00:00",
+  "empty-projects_generated": "2026-11-11T22:41:38.073147+00:00",
+  "focused_verification_completed": "2026-11-11T22:42:45.281966+00:00",
+  "sdk_validation_completed": "2026-11-11T22:44:26.805468+00:00",
+  "findings_completed": "2026-11-11T22:44:45.342422+00:00"
+}

@@ -1,0 +1,7 @@
+Fontconfig warning: no <cachedir> elements found. Check configuration.
+Fontconfig warning: adding <cachedir>/usr/local/var/cache/fontconfig</cachedir>
+Fontconfig warning: adding <cachedir prefix="xdg">fontconfig</cachedir>
+convert /Users/blackish/Projects/monoreport/.docs/features/021-template-authoring/experiments/sample-2/output/skill-sample-2.result.docx as a Writer document -> /Users/blackish/Projects/monoreport/.docs/features/021-template-authoring/experiments/sample-2/evidence/preview/skill-sample-2.result.pdf using filter : writer_pdf_Export
+convert /Users/blackish/Projects/monoreport/.docs/features/021-template-authoring/experiments/sample-2/evidence/empty-inner.result.docx as a Writer document -> /Users/blackish/Projects/monoreport/.docs/features/021-template-authoring/experiments/sample-2/evidence/preview/empty-inner.result.pdf using filter : writer_pdf_Export
+convert /Users/blackish/Projects/monoreport/.docs/features/021-template-authoring/experiments/sample-2/evidence/empty-outer.result.docx as a Writer document -> /Users/blackish/Projects/monoreport/.docs/features/021-template-authoring/experiments/sample-2/evidence/preview/empty-outer.result.pdf using filter : writer_pdf_Export
+convert /Users/blackish/Projects/monoreport/.docs/features/021-template-authoring/experiments/sample-2/evidence/expanded.result.docx as a Writer document -> /Users/blackish/Projects/monoreport/.docs/features/021-template-authoring/experiments/sample-2/evidence/preview/expanded.result.pdf using filter : writer_pdf_Export

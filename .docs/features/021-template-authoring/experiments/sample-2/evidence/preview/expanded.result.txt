@@ -1,0 +1,421 @@
+MONOREPORT / TEMPLATE EXAMPLE
+Sales Orders Report
+Organization: Sample 2 Verification Ltd.
+Warehouse: Central Fulficllment Warehouse
+Warehouse address: 120 Commerce Road, Bristol, BS1 4ST, United Kingdom
+Period: 01 Sep 2026 – 30 Sep 2026
+Orders: 24 Total: 17,756.70 EUR
+The following section repeats for each order.
+Order VERIFY-001
+Date: 01 Sep 2026 Customer: Customer 001 & Partners
+Lines: 0 Order total: 0.00 EUR
+# SKU Description Qty Unit Unit price Line total
+Order subtotal: 0.00 EUR
+Order VERIFY-002
+Date: 02 Sep 2026 Customer: Customer 002 & Partners
+Lines: 1 Order total: 14.50 EUR
+# SKU Description Qty Unit Unit price Line total
+1 SKU-1
+008
+Printer Paper A4 2 pack 7.25 14.50
+Order subtotal: 14.50 EUR
+Order VERIFY-003
+Date: 03 Sep 2026 Customer: Customer 003 & Partners
+Lines: 2 Order total: 172.50 EUR
+# SKU Description Qty Unit Unit price Line total
+1 SKU-1
+007
+Desk Lamp 2 pcs 34.50 69.00
+2 SKU-1
+007
+Desk Lamp 3 pcs 34.50 103.50
+Order subtotal: 172.50 EUR
+Order VERIFY-004
+Date: 04 Sep 2026 Customer: Customer 004 & Partners
+Lines: 12 Order total: 1,904.70 EUR
+# SKU Description Qty Unit Unit price Line total
+1 SKU-1
+004
+Packing Tape 2 roll 3.80 7.60
+2 SKU-1
+007
+Desk Lamp 3 pcs 34.50 103.50
+3 SKU-1
+009
+Storage Box 4 pcs 12.40 49.60
+4 SKU-1
+007
+Desk Lamp 5 pcs 34.50 172.50
+5 SKU-1
+001
+Wireless Mouse 6 pcs 19.90 119.40
+6 SKU-1 USB-C Docking Station 7 pcs 89.00 623.00
+
+--- PAGE BREAK ---
+
+MONOREPORT / TEMPLATE EXAMPLE
+002
+7 SKU-1
+008
+Printer Paper A4 8 pack 7.25 58.00
+8 SKU-1
+009
+Storage Box 9 pcs 12.40 111.60
+9 SKU-1
+003
+Notebook A5 10 pcs 4.25 42.50
+10 SKU-1
+004
+Packing Tape 11 roll 3.80 41.80
+11 SKU-1
+007
+Desk Lamp 12 pcs 34.50 414.00
+12 SKU-1
+009
+Storage Box 13 pcs 12.40 161.20
+Order subtotal: 1,904.70 EUR
+Order VERIFY-005
+Date: 05 Sep 2026 Customer: Customer 005 & Partners
+Lines: 0 Order total: 0.00 EUR
+# SKU Description Qty Unit Unit price Line total
+Order subtotal: 0.00 EUR
+Order VERIFY-006
+Date: 06 Sep 2026 Customer: Customer 006 & Partners
+Lines: 1 Order total: 13.50 EUR
+# SKU Description Qty Unit Unit price Line total
+1 SKU-1
+014
+Label Rolls 2 roll 6.75 13.50
+Order subtotal: 13.50 EUR
+Order VERIFY-007
+Date: 07 Sep 2026 Customer: Customer 007 & Partners
+Lines: 2 Order total: 113.20 EUR
+# SKU Description Qty Unit Unit price Line total
+1 SKU-1
+013
+Keyboard 2 pcs 38.00 76.00
+2 SKU-1
+009
+Storage Box 3 pcs 12.40 37.20
+Order subtotal: 113.20 EUR
+Order VERIFY-008
+Date: 08 Sep 2026 Customer: Customer 008 & Partners
+Lines: 12 Order total: 1,980.50 EUR
+# SKU Description Qty Unit Unit price Line total
+1 SKU-1
+014
+Label Rolls 2 roll 6.75 13.50
+2 SKU-1
+014
+Label Rolls 3 roll 6.75 20.25
+3 SKU-1
+008
+Printer Paper A4 4 pack 7.25 29.00
+4 SKU-1
+002
+USB-C Docking Station 5 pcs 89.00 445.00
+
+--- PAGE BREAK ---
+
+MONOREPORT / TEMPLATE EXAMPLE
+5 SKU-1
+003
+Notebook A5 6 pcs 4.25 25.50
+6 SKU-1
+005
+HDMI Cable 2m 7 pcs 11.50 80.50
+7 SKU-1
+014
+Label Rolls 8 roll 6.75 54.00
+8 SKU-1
+014
+Label Rolls 9 roll 6.75 60.75
+9 SKU-1
+008
+Printer Paper A4 10 pack 7.25 72.50
+10 SKU-1
+002
+USB-C Docking Station 11 pcs 89.00 979.00
+11 SKU-1
+003
+Notebook A5 12 pcs 4.25 51.00
+12 SKU-1
+005
+HDMI Cable 2m 13 pcs 11.50 149.50
+Order subtotal: 1,980.50 EUR
+Order VERIFY-009
+Date: 09 Sep 2026 Customer: Customer 009 & Partners
+Lines: 0 Order total: 0.00 EUR
+# SKU Description Qty Unit Unit price Line total
+Order subtotal: 0.00 EUR
+Order VERIFY-010
+Date: 10 Sep 2026 Customer: Customer 010 & Partners
+Lines: 1 Order total: 178.00 EUR
+# SKU Description Qty Unit Unit price Line total
+1 SKU-1
+002
+USB-C Docking Station 2 pcs 89.00 178.00
+Order subtotal: 178.00 EUR
+Order VERIFY-011
+Date: 11 Sep 2026 Customer: Customer 011 & Partners
+Lines: 2 Order total: 17.20 EUR
+# SKU Description Qty Unit Unit price Line total
+1 SKU-1
+011
+Whiteboard Marker 2 pcs 2.90 5.80
+2 SKU-1
+004
+Packing Tape 3 roll 3.80 11.40
+Order subtotal: 17.20 EUR
+Order VERIFY-012
+Date: 12 Sep 2026 Customer: Customer 012 & Partners
+Lines: 12 Order total: 5,031.90 EUR
+# SKU Description Qty Unit Unit price Line total
+1 SKU-1
+007
+Desk Lamp 2 pcs 34.50 69.00
+2 SKU-1
+001
+Wireless Mouse 3 pcs 19.90 59.70
+3 SKU-1 Desk Lamp 4 pcs 34.50 138.00
+
+--- PAGE BREAK ---
+
+MONOREPORT / TEMPLATE EXAMPLE
+007
+4 SKU-1
+008
+Printer Paper A4 5 pack 7.25 36.25
+5 SKU-1
+006
+Office Chair 6 pcs 145.00 870.00
+6 SKU-1
+012
+Monitor 27-inch 7 pcs 249.00 1,743.00
+7 SKU-1
+014
+Label Rolls 8 roll 6.75 54.00
+8 SKU-1
+008
+Printer Paper A4 9 pack 7.25 65.25
+9 SKU-1
+007
+Desk Lamp 10 pcs 34.50 345.00
+10 SKU-1
+002
+USB-C Docking Station 11 pcs 89.00 979.00
+11 SKU-1
+007
+Desk Lamp 12 pcs 34.50 414.00
+12 SKU-1
+001
+Wireless Mouse 13 pcs 19.90 258.70
+Order subtotal: 5,031.90 EUR
+Order VERIFY-013
+Date: 13 Sep 2026 Customer: Customer 013 & Partners
+Lines: 0 Order total: 0.00 EUR
+# SKU Description Qty Unit Unit price Line total
+Order subtotal: 0.00 EUR
+Order VERIFY-014
+Date: 14 Sep 2026 Customer: Customer 014 & Partners
+Lines: 1 Order total: 17.20 EUR
+# SKU Description Qty Unit Unit price Line total
+1 SKU-1
+010
+Ethernet Cable 5m 2 pcs 8.60 17.20
+Order subtotal: 17.20 EUR
+Order VERIFY-015
+Date: 15 Sep 2026 Customer: Customer 015 & Partners
+Lines: 2 Order total: 131.20 EUR
+# SKU Description Qty Unit Unit price Line total
+1 SKU-1
+010
+Ethernet Cable 5m 2 pcs 8.60 17.20
+2 SKU-1
+013
+Keyboard 3 pcs 38.00 114.00
+Order subtotal: 131.20 EUR
+Order VERIFY-016
+Date: 16 Sep 2026 Customer: Customer 016 & Partners
+Lines: 12 Order total: 1,065.05 EUR
+# SKU Description Qty Unit Unit price Line total
+1 SKU-1
+004
+Packing Tape 2 roll 3.80 7.60
+
+--- PAGE BREAK ---
+
+MONOREPORT / TEMPLATE EXAMPLE
+2 SKU-1
+005
+HDMI Cable 2m 3 pcs 11.50 34.50
+3 SKU-1
+003
+Notebook A5 4 pcs 4.25 17.00
+4 SKU-1
+007
+Desk Lamp 5 pcs 34.50 172.50
+5 SKU-1
+003
+Notebook A5 6 pcs 4.25 25.50
+6 SKU-1
+008
+Printer Paper A4 7 pack 7.25 50.75
+7 SKU-1
+005
+HDMI Cable 2m 8 pcs 11.50 92.00
+8 SKU-1
+004
+Packing Tape 9 roll 3.80 34.20
+9 SKU-1
+005
+HDMI Cable 2m 10 pcs 11.50 115.00
+10 SKU-1
+003
+Notebook A5 11 pcs 4.25 46.75
+11 SKU-1
+007
+Desk Lamp 12 pcs 34.50 414.00
+12 SKU-1
+003
+Notebook A5 13 pcs 4.25 55.25
+Order subtotal: 1,065.05 EUR
+Order VERIFY-017
+Date: 17 Sep 2026 Customer: Customer 017 & Partners
+Lines: 0 Order total: 0.00 EUR
+# SKU Description Qty Unit Unit price Line total
+Order subtotal: 0.00 EUR
+Order VERIFY-018
+Date: 18 Sep 2026 Customer: Customer 018 & Partners
+Lines: 1 Order total: 24.80 EUR
+# SKU Description Qty Unit Unit price Line total
+1 SKU-1
+009
+Storage Box 2 pcs 12.40 24.80
+Order subtotal: 24.80 EUR
+Order VERIFY-019
+Date: 19 Sep 2026 Customer: Customer 019 & Partners
+Lines: 2 Order total: 119.80 EUR
+# SKU Description Qty Unit Unit price Line total
+1 SKU-1
+011
+Whiteboard Marker 2 pcs 2.90 5.80
+2 SKU-1
+013
+Keyboard 3 pcs 38.00 114.00
+Order subtotal: 119.80 EUR
+Order VERIFY-020
+Date: 20 Sep 2026 Customer: Customer 020 & Partners
+Lines: 12 Order total: 4,880.95 EUR
+
+--- PAGE BREAK ---
+
+MONOREPORT / TEMPLATE EXAMPLE
+# SKU Description Qty Unit Unit price Line total
+1 SKU-1
+011
+Whiteboard Marker 2 pcs 2.90 5.80
+2 SKU-1
+003
+Notebook A5 3 pcs 4.25 12.75
+3 SKU-1
+012
+Monitor 27-inch 4 pcs 249.00 996.00
+4 SKU-1
+011
+Whiteboard Marker 5 pcs 2.90 14.50
+5 SKU-1
+004
+Packing Tape 6 roll 3.80 22.80
+6 SKU-1
+001
+Wireless Mouse 7 pcs 19.90 139.30
+7 SKU-1
+004
+Packing Tape 8 roll 3.80 30.40
+8 SKU-1
+007
+Desk Lamp 9 pcs 34.50 310.50
+9 SKU-1
+011
+Whiteboard Marker 10 pcs 2.90 29.00
+10 SKU-1
+011
+Whiteboard Marker 11 pcs 2.90 31.90
+11 SKU-1
+003
+Notebook A5 12 pcs 4.25 51.00
+12 SKU-1
+012
+Monitor 27-inch 13 pcs 249.00 3,237.00
+Order subtotal: 4,880.95 EUR
+Order VERIFY-021
+Date: 01 Sep 2026 Customer: Customer 021 & Partners
+Lines: 0 Order total: 0.00 EUR
+# SKU Description Qty Unit Unit price Line total
+Order subtotal: 0.00 EUR
+Order VERIFY-022
+Date: 02 Sep 2026 Customer: Customer 022 & Partners
+Lines: 1 Order total: 14.50 EUR
+# SKU Description Qty Unit Unit price Line total
+1 SKU-1
+008
+Printer Paper A4 2 pack 7.25 14.50
+Order subtotal: 14.50 EUR
+Order VERIFY-023
+Date: 03 Sep 2026 Customer: Customer 023 & Partners
+Lines: 2 Order total: 172.50 EUR
+# SKU Description Qty Unit Unit price Line total
+1 SKU-1
+007
+Desk Lamp 2 pcs 34.50 69.00
+2 SKU-1
+007
+Desk Lamp 3 pcs 34.50 103.50
+Order subtotal: 172.50 EUR
+
+--- PAGE BREAK ---
+
+MONOREPORT / TEMPLATE EXAMPLE
+Order VERIFY-024
+Date: 04 Sep 2026 Customer: Customer 024 & Partners
+Lines: 12 Order total: 1,904.70 EUR
+# SKU Description Qty Unit Unit price Line total
+1 SKU-1
+004
+Packing Tape 2 roll 3.80 7.60
+2 SKU-1
+007
+Desk Lamp 3 pcs 34.50 103.50
+3 SKU-1
+009
+Storage Box 4 pcs 12.40 49.60
+4 SKU-1
+007
+Desk Lamp 5 pcs 34.50 172.50
+5 SKU-1
+001
+Wireless Mouse 6 pcs 19.90 119.40
+6 SKU-1
+002
+USB-C Docking Station 7 pcs 89.00 623.00
+7 SKU-1
+008
+Printer Paper A4 8 pack 7.25 58.00
+8 SKU-1
+009
+Storage Box 9 pcs 12.40 111.60
+9 SKU-1
+003
+Notebook A5 10 pcs 4.25 42.50
+10 SKU-1
+004
+Packing Tape 11 roll 3.80 41.80
+11 SKU-1
+007
+Desk Lamp 12 pcs 34.50 414.00
+12 SKU-1
+009
+Storage Box 13 pcs 12.40 161.20
+Order subtotal: 1,904.70 EUR
+REPORT TOTAL: 17,756.70 EUR

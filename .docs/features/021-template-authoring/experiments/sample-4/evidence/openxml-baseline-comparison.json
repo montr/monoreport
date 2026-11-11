@@ -1,0 +1,19 @@
+{
+  "baseline_errors": [
+    {
+      "Id": "Sem_AttributeValueDataTypeDetailed",
+      "Description": "The attribute 'horizontalDpi' has invalid value '0'. The MinInclusive constraint failed. The value must be greater than or equal to 1.",
+      "Part": "/xl/worksheets/sheet1.xml",
+      "Path": "/x:worksheet[1]/x:pageSetup[1]"
+    },
+    {
+      "Id": "Sem_AttributeValueDataTypeDetailed",
+      "Description": "The attribute 'verticalDpi' has invalid value '0'. The MinInclusive constraint failed. The value must be greater than or equal to 1.",
+      "Part": "/xl/worksheets/sheet1.xml",
+      "Path": "/x:worksheet[1]/x:pageSetup[1]"
+    }
+  ],
+  "files_compared": 7,
+  "new_errors": 0,
+  "all_diagnostics_identical": true
+}

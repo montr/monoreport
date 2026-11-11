@@ -1,0 +1,454 @@
+{
+  "xl/worksheets/sheet1.xml": {
+    "rows": [
+      {
+        "attrs": {
+          "r": "1",
+          "ht": "21",
+          "{http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac}dyDescent": "0.2"
+        },
+        "cells": [
+          {
+            "ref": "A1",
+            "style": "2",
+            "value": "Tender: Office equipment",
+            "formula": null
+          }
+        ]
+      },
+      {
+        "attrs": {
+          "r": "3",
+          "{http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac}dyDescent": "0.2"
+        },
+        "cells": [
+          {
+            "ref": "A3",
+            "style": "7",
+            "value": "",
+            "formula": null
+          },
+          {
+            "ref": "B3",
+            "style": "10",
+            "value": "",
+            "formula": null
+          },
+          {
+            "ref": "C3",
+            "style": "19",
+            "value": "Alpha",
+            "formula": null
+          },
+          {
+            "ref": "D3",
+            "style": "20",
+            "value": "",
+            "formula": null
+          },
+          {
+            "ref": "E3",
+            "style": "20",
+            "value": "",
+            "formula": null
+          },
+          {
+            "ref": "F3",
+            "style": "19",
+            "value": "Beta",
+            "formula": null
+          },
+          {
+            "ref": "G3",
+            "style": "20",
+            "value": "",
+            "formula": null
+          },
+          {
+            "ref": "H3",
+            "style": "20",
+            "value": "",
+            "formula": null
+          },
+          {
+            "ref": "I3",
+            "style": "16",
+            "value": "",
+            "formula": null
+          }
+        ]
+      },
+      {
+        "attrs": {
+          "r": "4",
+          "{http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac}dyDescent": "0.2"
+        },
+        "cells": [
+          {
+            "ref": "A4",
+            "style": "8",
+            "value": "Item",
+            "formula": null
+          },
+          {
+            "ref": "B4",
+            "style": "11",
+            "value": "Quantity",
+            "formula": null
+          },
+          {
+            "ref": "C4",
+            "style": "4",
+            "value": "",
+            "formula": null
+          },
+          {
+            "ref": "D4",
+            "style": "14",
+            "value": "Unit price",
+            "formula": null
+          },
+          {
+            "ref": "E4",
+            "style": "14",
+            "value": "Lead days",
+            "formula": null
+          },
+          {
+            "ref": "F4",
+            "style": "4",
+            "value": "",
+            "formula": null
+          },
+          {
+            "ref": "G4",
+            "style": "14",
+            "value": "Unit price",
+            "formula": null
+          },
+          {
+            "ref": "H4",
+            "style": "14",
+            "value": "Lead days",
+            "formula": null
+          },
+          {
+            "ref": "I4",
+            "style": "16",
+            "value": "",
+            "formula": null
+          }
+        ]
+      },
+      {
+        "attrs": {
+          "r": "5",
+          "{http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac}dyDescent": "0.2"
+        },
+        "cells": [
+          {
+            "ref": "A5",
+            "style": "9",
+            "value": "IT equipment",
+            "formula": null
+          },
+          {
+            "ref": "B5",
+            "style": "12",
+            "value": "",
+            "formula": null
+          },
+          {
+            "ref": "C5",
+            "style": "3",
+            "value": "",
+            "formula": null
+          },
+          {
+            "ref": "D5",
+            "style": "15",
+            "value": "",
+            "formula": null
+          },
+          {
+            "ref": "E5",
+            "style": "15",
+            "value": "",
+            "formula": null
+          },
+          {
+            "ref": "F5",
+            "style": "3",
+            "value": "",
+            "formula": null
+          },
+          {
+            "ref": "G5",
+            "style": "15",
+            "value": "",
+            "formula": null
+          },
+          {
+            "ref": "H5",
+            "style": "15",
+            "value": "",
+            "formula": null
+          },
+          {
+            "ref": "I5",
+            "style": "16",
+            "value": "",
+            "formula": null
+          }
+        ]
+      },
+      {
+        "attrs": {
+          "r": "6",
+          "{http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac}dyDescent": "0.2"
+        },
+        "cells": [
+          {
+            "ref": "A6",
+            "style": "18",
+            "value": "Laptop / IT equipment",
+            "formula": null
+          },
+          {
+            "ref": "B6",
+            "style": "21",
+            "value": "2.00",
+            "formula": null
+          },
+          {
+            "ref": "C6",
+            "style": "22",
+            "value": "Laptop",
+            "formula": null
+          },
+          {
+            "ref": "D6",
+            "style": "23",
+            "value": "1,200.00",
+            "formula": null
+          },
+          {
+            "ref": "E6",
+            "style": "23",
+            "value": "10.00",
+            "formula": null
+          },
+          {
+            "ref": "F6",
+            "style": "22",
+            "value": "Laptop",
+            "formula": null
+          },
+          {
+            "ref": "G6",
+            "style": "23",
+            "value": "1,150.00",
+            "formula": null
+          },
+          {
+            "ref": "H6",
+            "style": "23",
+            "value": "12.00",
+            "formula": null
+          },
+          {
+            "ref": "I6",
+            "style": "16",
+            "value": "",
+            "formula": null
+          }
+        ]
+      },
+      {
+        "attrs": {
+          "r": "7",
+          "{http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac}dyDescent": "0.2"
+        },
+        "cells": [
+          {
+            "ref": "A7",
+            "style": "18",
+            "value": "Dock / IT equipment",
+            "formula": null
+          },
+          {
+            "ref": "B7",
+            "style": "21",
+            "value": "3.00",
+            "formula": null
+          },
+          {
+            "ref": "C7",
+            "style": "22",
+            "value": "Dock",
+            "formula": null
+          },
+          {
+            "ref": "D7",
+            "style": "23",
+            "value": "80.00",
+            "formula": null
+          },
+          {
+            "ref": "E7",
+            "style": "23",
+            "value": "5.00",
+            "formula": null
+          },
+          {
+            "ref": "F7",
+            "style": "22",
+            "value": "Dock",
+            "formula": null
+          },
+          {
+            "ref": "G7",
+            "style": "23",
+            "value": "75.00",
+            "formula": null
+          },
+          {
+            "ref": "H7",
+            "style": "23",
+            "value": "7.00",
+            "formula": null
+          },
+          {
+            "ref": "I7",
+            "style": "16",
+            "value": "",
+            "formula": null
+          }
+        ]
+      },
+      {
+        "attrs": {
+          "r": "8",
+          "{http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac}dyDescent": "0.2"
+        },
+        "cells": [
+          {
+            "ref": "A8",
+            "style": "8",
+            "value": "Lot total: IT equipment",
+            "formula": null
+          },
+          {
+            "ref": "B8",
+            "style": "13",
+            "value": "",
+            "formula": null
+          },
+          {
+            "ref": "C8",
+            "style": "4",
+            "value": "",
+            "formula": null
+          },
+          {
+            "ref": "D8",
+            "style": "17",
+            "value": "",
+            "formula": "SUM(D6:D7)"
+          },
+          {
+            "ref": "E8",
+            "style": "17",
+            "value": "",
+            "formula": "SUM(E6:E7)"
+          },
+          {
+            "ref": "F8",
+            "style": "4",
+            "value": "",
+            "formula": null
+          },
+          {
+            "ref": "G8",
+            "style": "17",
+            "value": "",
+            "formula": "SUM(G6:G7)"
+          },
+          {
+            "ref": "H8",
+            "style": "17",
+            "value": "",
+            "formula": "SUM(H6:H7)"
+          },
+          {
+            "ref": "I8",
+            "style": "16",
+            "value": "",
+            "formula": null
+          }
+        ]
+      },
+      {
+        "attrs": {
+          "r": "9",
+          "{http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac}dyDescent": "0.2"
+        },
+        "cells": [
+          {
+            "ref": "A9",
+            "style": "5",
+            "value": "",
+            "formula": null
+          },
+          {
+            "ref": "D9",
+            "style": "6",
+            "value": "",
+            "formula": null
+          },
+          {
+            "ref": "E9",
+            "style": "6",
+            "value": "",
+            "formula": null
+          },
+          {
+            "ref": "G9",
+            "style": "6",
+            "value": "",
+            "formula": null
+          },
+          {
+            "ref": "H9",
+            "style": "6",
+            "value": "",
+            "formula": null
+          }
+        ]
+      },
+      {
+        "attrs": {
+          "r": "10",
+          "{http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac}dyDescent": "0.2"
+        },
+        "cells": [
+          {
+            "ref": "A10",
+            "style": "1",
+            "value": "Compare unit price and lead days in separate columns.",
+            "formula": null
+          }
+        ]
+      }
+    ],
+    "other": [
+      "<ns0:dimension xmlns:ns0=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" ref=\"A1:I10\" />",
+      "<ns0:sheetViews xmlns:ns0=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><ns0:sheetView tabSelected=\"1\" zoomScale=\"150\" zoomScaleNormal=\"100\" zoomScaleSheetLayoutView=\"160\" workbookViewId=\"0\"><ns0:selection activeCell=\"A1\" sqref=\"A1\" /></ns0:sheetView></ns0:sheetViews>",
+      "<ns0:sheetFormatPr xmlns:ns0=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:ns1=\"http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac\" baseColWidth=\"10\" defaultRowHeight=\"15\" ns1:dyDescent=\"0.2\" />",
+      "<ns0:cols xmlns:ns0=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><ns0:col min=\"1\" max=\"1\" width=\"35\" style=\"1\" customWidth=\"1\" /><ns0:col min=\"2\" max=\"2\" width=\"12\" style=\"1\" customWidth=\"1\" /><ns0:col min=\"3\" max=\"3\" width=\"0\" style=\"1\" hidden=\"1\" customWidth=\"1\" /><ns0:col min=\"4\" max=\"4\" width=\"18\" style=\"1\" customWidth=\"1\" /><ns0:col min=\"5\" max=\"5\" width=\"18\" style=\"1\" customWidth=\"1\" /><ns0:col min=\"6\" max=\"6\" width=\"0\" style=\"1\" hidden=\"1\" customWidth=\"1\" /><ns0:col min=\"7\" max=\"7\" width=\"18\" style=\"1\" customWidth=\"1\" /><ns0:col min=\"8\" max=\"8\" width=\"18\" style=\"1\" customWidth=\"1\" /><ns0:col min=\"9\" max=\"9\" width=\"18\" style=\"1\" customWidth=\"1\" /></ns0:cols>",
+      "<ns0:mergeCells xmlns:ns0=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"2\"><ns0:mergeCell ref=\"C3:E3\" /><ns0:mergeCell ref=\"F3:H3\" /></ns0:mergeCells>",
+      "<ns0:pageMargins xmlns:ns0=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" left=\"0.25\" right=\"0.25\" top=\"0.5\" bottom=\"0.5\" header=\"0.2\" footer=\"0.2\" />",
+      "<ns0:pageSetup xmlns:ns0=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" fitToHeight=\"0\" orientation=\"landscape\" />"
+    ]
+  }
+}

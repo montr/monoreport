@@ -1,0 +1,20 @@
+{
+  "renderer": "LibreOffice 26.8.0.3; sips 72 dpi first-page raster",
+  "documents": [
+    {
+      "file": "skill-sample-1.pdf",
+      "pageObjects": 1
+    },
+    {
+      "file": "original.result.pdf",
+      "pageObjects": 1
+    },
+    {
+      "file": "skill-sample-1.result.pdf",
+      "pageObjects": 1
+    }
+  ],
+  "sourceAndOriginalPngByteIdentical": true,
+  "sourcePngSha256": "8b66e2b3ef7760df8bda0362392b846755bed8e310d65630b8dd49ee833a348b",
+  "originalPngSha256": "8b66e2b3ef7760df8bda0362392b846755bed8e310d65630b8dd49ee833a348b"
+}

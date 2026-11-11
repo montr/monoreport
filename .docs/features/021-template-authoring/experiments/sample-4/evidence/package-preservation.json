@@ -1,0 +1,16 @@
+{
+  "source_to_template_changed_parts": [
+    "xl/workbook.xml",
+    "xl/worksheets/sheet1.xml"
+  ],
+  "byte_identical_other_parts": [
+    "_rels/.rels",
+    "xl/_rels/workbook.xml.rels",
+    "xl/theme/theme1.xml",
+    "xl/styles.xml",
+    "docProps/core.xml",
+    "docProps/app.xml",
+    "[Content_Types].xml"
+  ],
+  "original_result_workbook_xml": "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?><x:workbook xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\" xmlns:x15=\"http://schemas.microsoft.com/office/spreadsheetml/2010/11/main\" xmlns:xr=\"http://schemas.microsoft.com/office/spreadsheetml/2014/revision\" xmlns:xr6=\"http://schemas.microsoft.com/office/spreadsheetml/2016/revision6\" xmlns:xr10=\"http://schemas.microsoft.com/office/spreadsheetml/2016/revision10\" xmlns:xr2=\"http://schemas.microsoft.com/office/spreadsheetml/2015/revision2\" xmlns:x=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" mc:Ignorable=\"x15 xr xr6 xr10 xr2\"><x:fileVersion appName=\"xl\" lastEdited=\"7\" lowestEdited=\"7\" rupBuild=\"11020\" /><x:workbookPr defaultThemeVersion=\"202300\" /><x:bookViews><x:workbookView xWindow=\"0\" yWindow=\"700\" windowWidth=\"34200\" windowHeight=\"19900\" xr2:uid=\"{00000000-000D-0000-FFFF-FFFF00000000}\" /></x:bookViews><x:sheets><x:sheet name=\"Employees\" sheetId=\"1\" r:id=\"rId1\" /></x:sheets><x:definedNames><x:definedName name=\"_xlnm.Print_Area\" localSheetId=\"0\">'Employees'!$A$1:$D$112</x:definedName></x:definedNames><x:calcPr calcId=\"0\" calcMode=\"auto\" fullCalcOnLoad=\"1\" forceFullCalc=\"1\" /></x:workbook>"
+}

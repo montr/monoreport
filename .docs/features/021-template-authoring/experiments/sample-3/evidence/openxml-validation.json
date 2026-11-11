@@ -1,0 +1,30 @@
+[
+  {
+    "File": ".docs/features/021-template-authoring/experiments/sample-3/input/skill-sample-3.docx",
+    "Errors": []
+  },
+  {
+    "File": ".docs/features/021-template-authoring/experiments/sample-3/output/skill-sample-3.template.docx",
+    "Errors": []
+  },
+  {
+    "File": ".docs/features/021-template-authoring/experiments/sample-3/evidence/original.result.docx",
+    "Errors": []
+  },
+  {
+    "File": ".docs/features/021-template-authoring/experiments/sample-3/output/skill-sample-3.result.docx",
+    "Errors": []
+  },
+  {
+    "File": ".docs/features/021-template-authoring/experiments/sample-3/evidence/empty-items.result.docx",
+    "Errors": []
+  },
+  {
+    "File": ".docs/features/021-template-authoring/experiments/sample-3/evidence/empty-groups.result.docx",
+    "Errors": []
+  },
+  {
+    "File": ".docs/features/021-template-authoring/experiments/sample-3/evidence/empty-projects.result.docx",
+    "Errors": []
+  }
+]
