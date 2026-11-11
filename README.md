@@ -1,5 +1,7 @@
 # MonoReport
 
+[![Quality](https://github.com/montr/monoreport/actions/workflows/quality.yml/badge.svg?branch=main)](https://github.com/montr/monoreport/actions/workflows/quality.yml)
+
 MonoReport generates DOCX and XLSX documents from templates and JSON data — reports, contracts, invoices, spreadsheets, and other business documents.
 
 **Use the editors you already know.** Create and maintain templates in Microsoft Word, Excel, or other compatible editors. No need to learn a new report designer or specialized editing tools.
